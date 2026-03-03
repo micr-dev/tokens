@@ -4,8 +4,8 @@ import {
   providerIds,
   providerStatusLabel,
   type CliDailyRow,
+  type ProviderData,
   type ProviderId,
-  type ProviderRows,
 } from "./lib/interfaces";
 import { loadOpenCodeRows } from "./lib/open-code";
 
@@ -15,28 +15,32 @@ export async function loadProviderRows(
   startDate: string,
   endDate: string,
   timezone: string,
-): Promise<ProviderRows> {
-  const [claudeRows, codexRows, openCodeRows] = await Promise.all([
+) {
+  const [claudeData, codexData, openCodeData] = await Promise.all([
     loadClaudeRows(startDate, endDate, timezone),
     loadCodexRows(startDate, endDate),
     loadOpenCodeRows(startDate, endDate),
   ]);
 
   return {
-    claude: claudeRows,
-    codex: codexRows,
-    opencode: openCodeRows,
+    claude: claudeData,
+    codex: codexData,
+    opencode: openCodeData,
   };
 }
 
-export function hasData(rows: CliDailyRow[]) {
-  return rows.some((row) => row.totalTokens > 0);
+export function hasData(providerData: ProviderData) {
+  return providerData.daily.some((row) => row.totalTokens > 0);
+}
+
+function hasAnyFlag(values: Record<string, unknown>, keys: string[]) {
+  return keys.some((key) => Boolean(values[key]));
 }
 
 export function getRequestedProviders(values: Record<string, unknown>) {
-  const wantClaude = Boolean(values.claude || values.Claude || values.cloudCode || values.CloudCode);
-  const wantCodex = Boolean(values.codex || values.Codex);
-  const wantOpenCode = Boolean(values.opencode || values.OpenCode || values.OpenCodex);
+  const wantClaude = hasAnyFlag(values, ["claude", "Claude", "cloudCode", "CloudCode"]);
+  const wantCodex = hasAnyFlag(values, ["codex", "Codex"]);
+  const wantOpenCode = hasAnyFlag(values, ["opencode", "OpenCode", "OpenCodex"]);
 
   const requested = new Set<ProviderId>();
   if (wantClaude) requested.add("claude");

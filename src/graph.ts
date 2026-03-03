@@ -1,5 +1,5 @@
 import svgBuilder from "svg-builder";
-import type { CliDailyRow, ProviderId } from "./lib/interfaces";
+import type { CliDailyRow, ModelUsageStat, ProviderId, ProviderInsights } from "./lib/interfaces";
 import { formatLocalDate } from "./lib/utils";
 
 type SvgBuilder = ReturnType<typeof svgBuilder.create>;
@@ -25,8 +25,8 @@ interface SectionLayout {
   titleY: number;
   monthLabelY: number;
   legendY: number;
-  statsCaptionY: number;
-  statsValueY: number;
+  footerCaptionY: number;
+  footerValueY: number;
 }
 
 interface DrawHeatmapSectionOptions {
@@ -36,12 +36,14 @@ interface DrawHeatmapSectionOptions {
   grid: CalendarGrid;
   layout: SectionLayout;
   daily: CliDailyRow[];
+  insights?: ProviderInsights;
   title: string;
   colors: string[];
 }
 
 interface RenderUsageHeatmapsSvgSection {
   daily: CliDailyRow[];
+  insights?: ProviderInsights;
   title: string;
   colors: string[];
 }
@@ -87,6 +89,7 @@ export const heatmapThemes: Record<ProviderId, HeatmapTheme> = {
 
 const daysOfWeekMonday = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const numberFormatter = new Intl.NumberFormat("en-US");
+const fontFamily = "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif";
 
 function formatTokenTotal(value: number) {
   const units = [
@@ -111,6 +114,22 @@ function formatTokenTotal(value: number) {
   return numberFormatter.format(value);
 }
 
+function truncateText(value: string, maxLength: number) {
+  if (value.length <= maxLength) {
+    return value;
+  }
+
+  return `${value.slice(0, Math.max(maxLength - 3, 1))}...`;
+}
+
+function escapeXml(value: string) {
+  return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+}
+
+function caption(value: string) {
+  return value.toUpperCase();
+}
+
 function getAllDays(start: string, end: string) {
   const days: string[] = [];
   let curr = new Date(`${start}T00:00:00`);
@@ -129,7 +148,7 @@ function getMondayBasedWeekday(dateIso: string) {
   return (sundayBased + 6) % 7;
 }
 
-function padToWeekStartMonday(days: string[]): (string | null)[] {
+function padToWeekStartMonday(days: string[]) {
   const firstDay = getMondayBasedWeekday(days[0]);
   const padding = new Array(firstDay).fill(null);
   return [...padding, ...days];
@@ -181,7 +200,7 @@ function getSectionLayout(weekCount: number) {
   const gap = 2;
   const leftLabelWidth = 34;
   const rightPadding = 20;
-  const metricCaptionValueGap = 14;
+  const metricCaptionValueGap = 15;
   const headerValueY = 16;
   const headerCaptionY = headerValueY - metricCaptionValueGap;
   const topPadding = 40;
@@ -193,12 +212,12 @@ function getSectionLayout(weekCount: number) {
   const gridWidth = weekCount * cellSize + Math.max(weekCount - 1, 0) * gap;
   const legendY = gridTop + gridHeight + 10;
   const legendBottomY = legendY + cellSize;
-  const statsTopPadding = 16;
-  const statsCaptionY = legendBottomY + statsTopPadding;
-  const statsValueY = statsCaptionY + metricCaptionValueGap;
-  const statsBottomPadding = 8;
+  const footerTopPadding = 18;
+  const footerCaptionY = legendBottomY + footerTopPadding;
+  const footerValueY = footerCaptionY + metricCaptionValueGap;
+  const statsBottomPadding = 12;
   const width = leftLabelWidth + gridWidth + rightPadding;
-  const height = statsValueY + statsBottomPadding;
+  const height = footerValueY + statsBottomPadding;
 
   return {
     width,
@@ -211,8 +230,8 @@ function getSectionLayout(weekCount: number) {
     titleY,
     monthLabelY,
     legendY,
-    statsCaptionY,
-    statsValueY,
+    footerCaptionY,
+    footerValueY,
   };
 }
 
@@ -247,25 +266,85 @@ function computeStreaks(allDays: string[], valueByDate: Map<string, number>) {
 
 function drawHeatmapSection(
   svg: SvgBuilder,
-  { x, y, allDays, grid, layout, daily, title, colors }: DrawHeatmapSectionOptions,
+  { x, y, allDays, grid, layout, daily, insights, title, colors }: DrawHeatmapSectionOptions,
 ) {
   const valueByDate = new Map<string, number>(daily.map((row) => [row.date, row.totalTokens]));
   const maxValue = Math.max(...daily.map((row) => row.totalTokens), 0);
-  const totalTokens = daily.reduce((sum, row) => sum + Math.max(row.totalTokens, 0), 0);
-  const totalTokensLabel = formatTokenTotal(totalTokens);
-  const { longestStreak, currentStreak } = computeStreaks(allDays, valueByDate);
   const rightEdge = x + layout.width - 8;
+  const leftColumnX = x + 8;
+  const totalInputTokens = daily.reduce((sum, row) => sum + Math.max(row.inputTokens, 0), 0);
+  const totalOutputTokens = daily.reduce((sum, row) => sum + Math.max(row.outputTokens, 0), 0);
+  const totalTokens = daily.reduce((sum, row) => sum + Math.max(row.totalTokens, 0), 0);
+  const topMetricGap = 120;
+  const headerInputX = rightEdge - topMetricGap * 2;
+  const headerOutputX = rightEdge - topMetricGap;
+  const totalTokensLabel = formatTokenTotal(totalTokens);
+  const totalInputLabel = formatTokenTotal(totalInputTokens);
+  const totalOutputLabel = formatTokenTotal(totalOutputTokens);
+  const { longestStreak, currentStreak } = computeStreaks(allDays, valueByDate);
 
   svg = svg.text(
     {
-      x: x + 8,
+      x: leftColumnX,
       y: y + layout.titleY,
       fill: "#0f172a",
       "font-size": 12,
       "font-weight": 600,
-      "font-family": "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
+      "font-family": fontFamily,
     },
     title,
+  );
+
+  svg = svg.text(
+    {
+      x: headerInputX,
+      y: y + layout.headerCaptionY,
+      fill: "#64748b",
+      "font-size": 9,
+      "font-weight": 600,
+      "text-anchor": "end",
+      "font-family": fontFamily,
+    },
+    caption("Input tokens"),
+  );
+
+  svg = svg.text(
+    {
+      x: headerInputX,
+      y: y + layout.titleY,
+      fill: "#0f172a",
+      "font-size": 12,
+      "font-weight": 600,
+      "text-anchor": "end",
+      "font-family": fontFamily,
+    },
+    totalInputLabel,
+  );
+
+  svg = svg.text(
+    {
+      x: headerOutputX,
+      y: y + layout.headerCaptionY,
+      fill: "#64748b",
+      "font-size": 9,
+      "font-weight": 600,
+      "text-anchor": "end",
+      "font-family": fontFamily,
+    },
+    caption("Output tokens"),
+  );
+
+  svg = svg.text(
+    {
+      x: headerOutputX,
+      y: y + layout.titleY,
+      fill: "#0f172a",
+      "font-size": 12,
+      "font-weight": 600,
+      "text-anchor": "end",
+      "font-family": fontFamily,
+    },
+    totalOutputLabel,
   );
 
   svg = svg.text(
@@ -274,10 +353,11 @@ function drawHeatmapSection(
       y: y + layout.headerCaptionY,
       fill: "#64748b",
       "font-size": 9,
+      "font-weight": 600,
       "text-anchor": "end",
-      "font-family": "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
+      "font-family": fontFamily,
     },
-    "Total tokens",
+    caption("Total tokens"),
   );
 
   svg = svg.text(
@@ -288,7 +368,7 @@ function drawHeatmapSection(
       "font-size": 12,
       "font-weight": 600,
       "text-anchor": "end",
-      "font-family": "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
+      "font-family": fontFamily,
     },
     totalTokensLabel,
   );
@@ -306,7 +386,7 @@ function drawHeatmapSection(
         "font-size": 10,
         "text-anchor": "end",
         "dominant-baseline": "middle",
-        "font-family": "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
+        "font-family": fontFamily,
       },
       dayLabel,
     );
@@ -323,7 +403,7 @@ function drawHeatmapSection(
           y: y + layout.monthLabelY,
           fill: "#475569",
           "font-size": 10,
-          "font-family": "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
+          "font-family": fontFamily,
         },
         monthLabel,
       );
@@ -365,9 +445,10 @@ function drawHeatmapSection(
       y: legendY + 10,
       fill: "#64748b",
       "font-size": 10,
-      "font-family": "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
+      "font-weight": 600,
+      "font-family": fontFamily,
     },
-    "Less",
+    caption("Less"),
   );
 
   for (let i = 0; i < colors.length; i += 1) {
@@ -389,58 +470,101 @@ function drawHeatmapSection(
       y: legendY + 10,
       fill: "#64748b",
       "font-size": 10,
-      "font-family": "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
+      "font-weight": 600,
+      "font-family": fontFamily,
     },
-    "More",
+    caption("More"),
   );
 
-  const longestLabelX = x + 8;
-  const currentLabelX = rightEdge;
+  const rightColumnX = rightEdge;
+  const leftSecondaryX = leftColumnX + 250;
+  const rightPrimaryX = rightColumnX - 160;
+
+  const leftRows: { caption: string; data: ModelUsageStat }[] = [];
+  if (insights?.mostUsedModel) {
+    leftRows.push({ caption: "Most used model", data: insights.mostUsedModel });
+  }
+  if (insights?.recentMostUsedModel) {
+    leftRows.push({ caption: "Recent use (last 30 days)", data: insights.recentMostUsedModel });
+  }
+
+  for (const [index, row] of leftRows.entries()) {
+    const captionY = layout.footerCaptionY;
+    const valueY = layout.footerValueY;
+    const modelName = truncateText(row.data.modelName, 20);
+    const modelX = index === 0 ? leftColumnX : leftSecondaryX;
+    const tokenLabel = `(${formatTokenTotal(row.data.totalTokens)})`;
+
+    svg = svg.text(
+      {
+        x: modelX,
+        y: y + captionY,
+        fill: "#64748b",
+        "font-size": 9,
+        "font-weight": 600,
+        "font-family": fontFamily,
+      },
+      caption(row.caption),
+    );
+
+    svg = svg.text(
+      {
+        x: modelX,
+        y: y + valueY,
+        "font-family": fontFamily,
+      },
+      `<tspan fill="#0f172a" font-size="12" font-weight="600">${escapeXml(modelName)}</tspan><tspan dx="6" fill="#64748b" font-size="11" font-weight="400">${tokenLabel}</tspan>`,
+    );
+  }
 
   svg = svg.text(
     {
-      x: longestLabelX,
-      y: y + layout.statsCaptionY,
+      x: rightPrimaryX,
+      y: y + layout.footerCaptionY,
       fill: "#64748b",
       "font-size": 9,
-      "font-family": "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
+      "font-weight": 600,
+      "text-anchor": "end",
+      "font-family": fontFamily,
     },
-    "Longest streak",
+    caption("Longest streak"),
   );
 
   svg = svg.text(
     {
-      x: longestLabelX,
-      y: y + layout.statsValueY,
+      x: rightPrimaryX,
+      y: y + layout.footerValueY,
       fill: "#0f172a",
       "font-size": 12,
       "font-weight": 600,
-      "font-family": "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
+      "text-anchor": "end",
+      "font-family": fontFamily,
     },
     `${numberFormatter.format(longestStreak)} days`,
   );
 
   svg = svg.text(
     {
-      x: currentLabelX,
-      y: y + layout.statsCaptionY,
+      x: rightColumnX,
+      y: y + layout.footerCaptionY,
       fill: "#64748b",
       "font-size": 9,
+      "font-weight": 600,
       "text-anchor": "end",
-      "font-family": "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
+      "font-family": fontFamily,
     },
-    "Current streak",
+    caption("Current streak"),
   );
 
   svg = svg.text(
     {
-      x: currentLabelX,
-      y: y + layout.statsValueY,
+      x: rightColumnX,
+      y: y + layout.footerValueY,
       fill: "#0f172a",
       "font-size": 12,
       "font-weight": 600,
       "text-anchor": "end",
-      "font-family": "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
+      "font-family": fontFamily,
     },
     `${numberFormatter.format(currentStreak)} days`,
   );
@@ -479,6 +603,7 @@ export function renderUsageHeatmapsSvg({
       grid,
       layout,
       daily: section.daily,
+      insights: section.insights,
       title: section.title,
       colors: section.colors,
     });

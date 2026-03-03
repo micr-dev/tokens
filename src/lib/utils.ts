@@ -9,14 +9,40 @@ export function formatLocalDate(date: Date) {
   return `${y}-${m}-${d}`;
 }
 
-export function addDailyTotal(totals: Map<string, number>, date: string, amount: number) {
-  totals.set(date, (totals.get(date) ?? 0) + amount);
+export type DailyTokenTotals = Omit<CliDailyRow, "date">;
+
+export function createDailyTokenTotals(inputTokens: number, outputTokens: number, cacheTokens: number) {
+  return {
+    inputTokens,
+    outputTokens,
+    cacheTokens,
+    totalTokens: inputTokens + outputTokens + cacheTokens,
+  };
 }
 
-export function totalsToRows(totals: Map<string, number>) {
+export function addDailyTokenTotals(
+  totals: Map<string, DailyTokenTotals>,
+  date: string,
+  tokenTotals: DailyTokenTotals,
+) {
+  const existing = totals.get(date);
+  if (!existing) {
+    totals.set(date, tokenTotals);
+    return;
+  }
+
+  totals.set(date, {
+    inputTokens: existing.inputTokens + tokenTotals.inputTokens,
+    outputTokens: existing.outputTokens + tokenTotals.outputTokens,
+    cacheTokens: existing.cacheTokens + tokenTotals.cacheTokens,
+    totalTokens: existing.totalTokens + tokenTotals.totalTokens,
+  });
+}
+
+export function totalsToRows(totals: Map<string, DailyTokenTotals>) {
   return [...totals.entries()]
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([date, totalTokens]) => ({ date, totalTokens }));
+    .map(([date, tokenTotals]) => ({ date, ...tokenTotals }));
 }
 
 export async function listFilesRecursive(rootDir: string, extension: string) {
@@ -50,4 +76,43 @@ export async function listFilesRecursive(rootDir: string, extension: string) {
   }
 
   return files;
+}
+
+export function getRecentWindowStart(endDate: string, days = 30) {
+  const end = new Date(`${endDate}T00:00:00`);
+  end.setDate(end.getDate() - (days - 1));
+  return formatLocalDate(end);
+}
+
+export function normalizeModelName(modelName: string) {
+  return modelName.replace(/-\d{8}$/, "");
+}
+
+export function getTopModel(modelTotals: Map<string, number>) {
+  let bestModel: string | undefined;
+  let bestTokens = 0;
+
+  for (const [modelName, totalTokens] of modelTotals) {
+    if (totalTokens > bestTokens) {
+      bestModel = modelName;
+      bestTokens = totalTokens;
+    }
+  }
+
+  if (!bestModel || bestTokens <= 0) {
+    return undefined;
+  }
+
+  return { modelName: bestModel, totalTokens: bestTokens };
+}
+
+export function getProviderInsights(modelTotals: Map<string, number>, recentModelTotals: Map<string, number>) {
+  const mostUsedModel = getTopModel(modelTotals);
+  const recentMostUsedModel = getTopModel(recentModelTotals);
+
+  if (!mostUsedModel && !recentMostUsedModel) {
+    return undefined;
+  }
+
+  return { mostUsedModel, recentMostUsedModel };
 }

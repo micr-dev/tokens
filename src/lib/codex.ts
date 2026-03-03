@@ -1,8 +1,17 @@
 import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
-import type { CliDailyRow } from "./interfaces";
-import { addDailyTotal, formatLocalDate, listFilesRecursive, totalsToRows } from "./utils";
+import {
+  addDailyTokenTotals,
+  createDailyTokenTotals,
+  type DailyTokenTotals,
+  formatLocalDate,
+  getProviderInsights,
+  getRecentWindowStart,
+  listFilesRecursive,
+  normalizeModelName,
+  totalsToRows,
+} from "./utils";
 
 interface CodexRawUsage {
   input_tokens: number;
@@ -15,6 +24,9 @@ interface CodexRawUsage {
 interface CodexEventPayload {
   type?: string;
   info?: Record<string, unknown>;
+  model?: unknown;
+  model_name?: unknown;
+  metadata?: unknown;
 }
 
 interface CodexEventEntry {
@@ -61,18 +73,67 @@ function subtractCodexUsage(current: CodexRawUsage, previous: CodexRawUsage | nu
   };
 }
 
+function asNonEmptyString(value: unknown) {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  return trimmed === "" ? undefined : trimmed;
+}
+
+function extractCodexModel(payload: unknown) {
+  if (!payload || typeof payload !== "object") {
+    return undefined;
+  }
+
+  const entry = payload as Record<string, unknown>;
+  const directModel = asNonEmptyString(entry.model) ?? asNonEmptyString(entry.model_name);
+  if (directModel) {
+    return directModel;
+  }
+
+  const info = entry.info;
+  if (info && typeof info === "object") {
+    const infoRecord = info as Record<string, unknown>;
+    const infoModel = asNonEmptyString(infoRecord.model) ?? asNonEmptyString(infoRecord.model_name);
+    if (infoModel) {
+      return infoModel;
+    }
+
+    const infoMetadata = infoRecord.metadata;
+    if (infoMetadata && typeof infoMetadata === "object") {
+      const model = asNonEmptyString((infoMetadata as Record<string, unknown>).model);
+      if (model) {
+        return model;
+      }
+    }
+  }
+
+  const metadata = entry.metadata;
+  if (metadata && typeof metadata === "object") {
+    return asNonEmptyString((metadata as Record<string, unknown>).model);
+  }
+
+  return undefined;
+}
+
 export async function loadCodexRows(startDate: string, endDate: string) {
   const codexHome = process.env.CODEX_HOME?.trim()
     ? resolve(process.env.CODEX_HOME)
     : join(homedir(), ".codex");
   const sessionsDir = join(codexHome, "sessions");
   const files = await listFilesRecursive(sessionsDir, ".jsonl");
-  const totals = new Map<string, number>();
+  const totals = new Map<string, DailyTokenTotals>();
+  const recentStart = getRecentWindowStart(endDate, 30);
+  const modelTotals = new Map<string, number>();
+  const recentModelTotals = new Map<string, number>();
 
   for (const filePath of files) {
     const content = await readFile(filePath, "utf8");
     const lines = content.split(/\r?\n/);
     let previousTotals: CodexRawUsage | null = null;
+    let currentModel: string | undefined;
 
     for (const line of lines) {
       const trimmed = line.trim();
@@ -81,6 +142,14 @@ export async function loadCodexRows(startDate: string, endDate: string) {
       }
 
       const entry = JSON.parse(trimmed) as CodexEventEntry;
+      const extractedModel = extractCodexModel(entry.payload);
+
+      if (entry.type === "turn_context") {
+        if (extractedModel) {
+          currentModel = extractedModel;
+        }
+        continue;
+      }
 
       if (entry.type !== "event_msg" || entry.payload?.type !== "token_count") {
         continue;
@@ -107,8 +176,12 @@ export async function loadCodexRows(startDate: string, endDate: string) {
         continue;
       }
 
-      const totalTokens =
-        rawUsage.total_tokens > 0 ? rawUsage.total_tokens : rawUsage.input_tokens + rawUsage.output_tokens;
+      const tokenTotals = createDailyTokenTotals(
+        rawUsage.input_tokens,
+        rawUsage.output_tokens + rawUsage.reasoning_output_tokens,
+        rawUsage.cached_input_tokens,
+      );
+      const { totalTokens } = tokenTotals;
 
       if (totalTokens <= 0) {
         continue;
@@ -119,9 +192,26 @@ export async function loadCodexRows(startDate: string, endDate: string) {
         continue;
       }
 
-      addDailyTotal(totals, date, totalTokens);
+      addDailyTokenTotals(totals, date, tokenTotals);
+
+      const modelName = extractedModel ?? currentModel;
+      if (!modelName) {
+        continue;
+      }
+
+      const normalizedModelName = normalizeModelName(modelName);
+      modelTotals.set(normalizedModelName, (modelTotals.get(normalizedModelName) ?? 0) + totalTokens);
+      if (date >= recentStart) {
+        recentModelTotals.set(
+          normalizedModelName,
+          (recentModelTotals.get(normalizedModelName) ?? 0) + totalTokens,
+        );
+      }
     }
   }
 
-  return totalsToRows(totals);
+  return {
+    daily: totalsToRows(totals),
+    insights: getProviderInsights(modelTotals, recentModelTotals),
+  };
 }

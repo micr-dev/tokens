@@ -159,9 +159,10 @@ async function main() {
     spinner.start("Rendering heatmaps...");
 
     const sections = providersToRender.map((provider) => ({
-      daily: rowsByProvider[provider],
+      daily: rowsByProvider[provider].daily,
       title: heatmapThemes[provider].title,
       colors: heatmapThemes[provider].colors,
+      insights: rowsByProvider[provider].insights,
     }));
 
     const svg = renderUsageHeatmapsSvg({
