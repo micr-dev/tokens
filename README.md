@@ -11,6 +11,7 @@ Data is loaded directly in-process (no shelling out to provider CLIs).
 - Module format: ESM
 - Type checking: TypeScript (`tsc`)
 - Build compiler: `tsup`
+- CLI argument parsing/validation: Node `parseArgs` + `ow`
 - SVG generation: `svg-builder`
 - PNG rendering: `sharp`
 

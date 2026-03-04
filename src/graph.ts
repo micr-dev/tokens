@@ -1,8 +1,6 @@
-import svgBuilder from "svg-builder";
+import svgBuilder, { type SVGBuilderInstance } from "svg-builder";
 import type { CliDailyRow, ModelUsageStat, ProviderId, ProviderInsights } from "./lib/interfaces";
 import { formatLocalDate } from "./lib/utils";
-
-type SvgBuilder = ReturnType<typeof svgBuilder.create>;
 
 interface HeatmapTheme {
   title: string;
@@ -48,9 +46,14 @@ interface RenderUsageHeatmapsSvgSection {
   colors: string[];
 }
 
+interface ModelUsageRow {
+  caption: string;
+  data: ModelUsageStat;
+}
+
 interface RenderUsageHeatmapsSvgOptions {
-  startDate: string;
-  endDate: string;
+  startDate: Date;
+  endDate: Date;
   sections: RenderUsageHeatmapsSvgSection[];
 }
 
@@ -75,7 +78,7 @@ export const heatmapThemes: Record<ProviderId, HeatmapTheme> = {
       "#312e81", // indigo-900
     ],
   },
-  opencode: {
+  openCode: {
     title: "Open Code",
     colors: [
       "#f5f5f5", // neutral-100
@@ -130,12 +133,11 @@ function caption(value: string) {
   return value.toUpperCase();
 }
 
-function getAllDays(start: string, end: string) {
+function getAllDays(start: Date, end: Date) {
   const days: string[] = [];
-  let curr = new Date(`${start}T00:00:00`);
-  const endDate = new Date(`${end}T00:00:00`);
+  const curr = new Date(start);
 
-  while (curr <= endDate) {
+  while (curr <= end) {
     days.push(formatLocalDate(curr));
     curr.setDate(curr.getDate() + 1);
   }
@@ -145,12 +147,14 @@ function getAllDays(start: string, end: string) {
 
 function getMondayBasedWeekday(dateIso: string) {
   const sundayBased = new Date(`${dateIso}T00:00:00`).getDay();
+  
   return (sundayBased + 6) % 7;
 }
 
 function padToWeekStartMonday(days: string[]) {
   const firstDay = getMondayBasedWeekday(days[0]);
   const padding = new Array(firstDay).fill(null);
+
   return [...padding, ...days];
 }
 
@@ -166,6 +170,7 @@ function chunkByWeek(days: (string | null)[]): (string | null)[][] {
 
 function getMonthLabel(week: (string | null)[]) {
   const lastDay = [...week].reverse().find(Boolean);
+
   if (!lastDay) {
     return null;
   }
@@ -181,7 +186,7 @@ function defaultColourMap(value: number, max: number, colorCount: number) {
   return Math.min(Math.max(index, 0), colorCount - 1);
 }
 
-function getCalendarGrid(startDate: string, endDate: string) {
+function getCalendarGrid(startDate: Date, endDate: Date) {
   const allDays = getAllDays(startDate, endDate);
   const paddedDays = padToWeekStartMonday(allDays);
   const weeks = chunkByWeek(paddedDays);
@@ -189,6 +194,7 @@ function getCalendarGrid(startDate: string, endDate: string) {
   const monthLabels = weeks.map((week, i) => {
     const label = getMonthLabel(week);
     const prevLabel = i > 0 ? getMonthLabel(weeks[i - 1]) : null;
+
     return label !== prevLabel ? label : null;
   });
 
@@ -241,8 +247,10 @@ function computeStreaks(allDays: string[], valueByDate: Map<string, number>) {
 
   for (const day of allDays) {
     const active = (valueByDate.get(day) ?? 0) > 0;
+
     if (active) {
       running += 1;
+
       if (running > longestStreak) {
         longestStreak = running;
       }
@@ -252,12 +260,15 @@ function computeStreaks(allDays: string[], valueByDate: Map<string, number>) {
   }
 
   let currentStreak = 0;
+
   for (let i = allDays.length - 1; i >= 0; i -= 1) {
     const day = allDays[i];
     const active = (valueByDate.get(day) ?? 0) > 0;
+
     if (!active) {
       break;
     }
+
     currentStreak += 1;
   }
 
@@ -265,7 +276,7 @@ function computeStreaks(allDays: string[], valueByDate: Map<string, number>) {
 }
 
 function drawHeatmapSection(
-  svg: SvgBuilder,
+  svg: SVGBuilderInstance,
   { x, y, allDays, grid, layout, daily, insights, title, colors }: DrawHeatmapSectionOptions,
 ) {
   const valueByDate = new Map<string, number>(daily.map((row) => [row.date, row.totalTokens]));
@@ -480,10 +491,12 @@ function drawHeatmapSection(
   const leftSecondaryX = leftColumnX + 250;
   const rightPrimaryX = rightColumnX - 160;
 
-  const leftRows: { caption: string; data: ModelUsageStat }[] = [];
+  const leftRows: ModelUsageRow[] = [];
+
   if (insights?.mostUsedModel) {
     leftRows.push({ caption: "Most used model", data: insights.mostUsedModel });
   }
+
   if (insights?.recentMostUsedModel) {
     leftRows.push({ caption: "Recent use (last 30 days)", data: insights.recentMostUsedModel });
   }

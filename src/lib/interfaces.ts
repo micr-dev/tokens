@@ -1,4 +1,4 @@
-export type ProviderId = "claude" | "codex" | "opencode";
+export type ProviderId = "claude" | "codex" | "openCode";
 
 export type CliDailyRow = {
   date: string;
@@ -25,10 +25,10 @@ export type ProviderData = {
 
 export type ProviderRows = Record<ProviderId, ProviderData>;
 
-export const providerIds: ProviderId[] = ["claude", "codex", "opencode"];
+export const providerIds: ProviderId[] = ["claude", "codex", "openCode"];
 
 export const providerStatusLabel: Record<ProviderId, string> = {
   claude: "Claude code",
   codex: "Codex",
-  opencode: "Open code",
+  openCode: "Open Code",
 };

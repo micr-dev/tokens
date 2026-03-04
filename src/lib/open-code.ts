@@ -3,9 +3,7 @@ import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import {
   addDailyTokenTotals,
-  createDailyTokenTotals,
   type DailyTokenTotals,
-  formatLocalDate,
   getProviderInsights,
   getRecentWindowStart,
   listFilesRecursive,
@@ -33,28 +31,54 @@ interface OpenCodeMessage {
 }
 
 function sumOpenCodeTokens(tokens?: OpenCodeTokens) {
-  const inputTokens = tokens?.input ?? 0;
-  const outputTokens = tokens?.output ?? 0;
+  if (!tokens) {
+    return {
+      inputTokens: 0,
+      outputTokens: 0,
+      cacheTokens: 0,
+      totalTokens: 0,
+    };
+  }
+
+  const inputTokens = (tokens?.input ?? 0) + (tokens?.cache?.read ?? 0);
+  const outputTokens = (tokens?.output ?? 0) + (tokens?.cache?.write ?? 0);
   const cacheTokens = (tokens?.cache?.read ?? 0) + (tokens?.cache?.write ?? 0);
-  return createDailyTokenTotals(inputTokens, outputTokens, cacheTokens);
+
+  return {
+    inputTokens,
+    outputTokens,
+    cacheTokens,
+    totalTokens: inputTokens + outputTokens + cacheTokens,
+  };
 }
 
-export async function loadOpenCodeRows(startDate: string, endDate: string) {
-  const openCodeBaseDir = process.env.OPENCODE_DATA_DIR?.trim()
+async function parseOpenCodeFile(filePath: string) {
+  const content = await readFile(filePath, "utf8");
+
+  return JSON.parse(content) as OpenCodeMessage;
+}
+
+async function parseOpenCodeFiles() {
+  const baseDir = process.env.OPENCODE_DATA_DIR?.trim()
     ? resolve(process.env.OPENCODE_DATA_DIR)
     : join(homedir(), ".local", "share", "opencode");
-  const messagesDir = join(openCodeBaseDir, "storage", "message");
+
+  const messagesDir = join(baseDir, "storage", "message");
+
   const files = await listFilesRecursive(messagesDir, ".json");
+
+  return Promise.all(files.map((file) => parseOpenCodeFile(file)));
+}
+
+export async function loadOpenCodeRows(start: Date, end: Date) {
+  const messages = await parseOpenCodeFiles();
   const totals = new Map<string, DailyTokenTotals>();
   const dedupe = new Set<string>();
-  const recentStart = getRecentWindowStart(endDate, 30);
+  const recentStart = getRecentWindowStart(end, 30);
   const modelTotals = new Map<string, number>();
   const recentModelTotals = new Map<string, number>();
 
-  for (const filePath of files) {
-    const content = await readFile(filePath, "utf8");
-    const message = JSON.parse(content) as OpenCodeMessage;
-
+  for (const message of messages) {
     if (!message.providerID || !message.modelID) {
       continue;
     }
@@ -66,23 +90,25 @@ export async function loadOpenCodeRows(startDate: string, endDate: string) {
     dedupe.add(message.id);
 
     const tokenTotals = sumOpenCodeTokens(message.tokens);
-    const { totalTokens } = tokenTotals;
 
-    if (totalTokens <= 0) {
+    if (tokenTotals.totalTokens <= 0) {
       continue;
     }
 
-    const createdAt = message.time.created ?? Date.now();
-    const date = formatLocalDate(new Date(createdAt));
-    if (date < startDate || date > endDate) {
+    const date = new Date(message.time.created ?? Date.now());
+
+    if (date < start || date > end) {
       continue;
     }
 
     addDailyTokenTotals(totals, date, tokenTotals);
+
     const modelName = normalizeModelName(message.modelID);
-    modelTotals.set(modelName, (modelTotals.get(modelName) ?? 0) + totalTokens);
+
+    modelTotals.set(modelName, (modelTotals.get(modelName) ?? 0) + tokenTotals.totalTokens);
+    
     if (date >= recentStart) {
-      recentModelTotals.set(modelName, (recentModelTotals.get(modelName) ?? 0) + totalTokens);
+      recentModelTotals.set(modelName, (recentModelTotals.get(modelName) ?? 0) + tokenTotals.totalTokens);
     }
   }
 

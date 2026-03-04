@@ -11,27 +11,20 @@ export function formatLocalDate(date: Date) {
 
 export type DailyTokenTotals = Omit<CliDailyRow, "date">;
 
-export function createDailyTokenTotals(inputTokens: number, outputTokens: number, cacheTokens: number) {
-  return {
-    inputTokens,
-    outputTokens,
-    cacheTokens,
-    totalTokens: inputTokens + outputTokens + cacheTokens,
-  };
-}
-
 export function addDailyTokenTotals(
   totals: Map<string, DailyTokenTotals>,
-  date: string,
+  date: Date,
   tokenTotals: DailyTokenTotals,
 ) {
-  const existing = totals.get(date);
+  const key = formatLocalDate(date);
+
+  const existing = totals.get(key);
   if (!existing) {
-    totals.set(date, tokenTotals);
+    totals.set(key, tokenTotals);
     return;
   }
 
-  totals.set(date, {
+  totals.set(key, {
     inputTokens: existing.inputTokens + tokenTotals.inputTokens,
     outputTokens: existing.outputTokens + tokenTotals.outputTokens,
     cacheTokens: existing.cacheTokens + tokenTotals.cacheTokens,
@@ -78,10 +71,12 @@ export async function listFilesRecursive(rootDir: string, extension: string) {
   return files;
 }
 
-export function getRecentWindowStart(endDate: string, days = 30) {
-  const end = new Date(`${endDate}T00:00:00`);
-  end.setDate(end.getDate() - (days - 1));
-  return formatLocalDate(end);
+export function getRecentWindowStart(endDate: Date, days = 30) {
+  const start = new Date(endDate);
+
+  start.setDate(start.getDate() - (days - 1));
+  
+  return start;
 }
 
 export function normalizeModelName(modelName: string) {

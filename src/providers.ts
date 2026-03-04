@@ -11,37 +11,23 @@ import { loadOpenCodeRows } from "./lib/open-code";
 
 export { providerIds, providerStatusLabel, type CliDailyRow, type ProviderId };
 
-export async function loadProviderRows(
-  startDate: string,
-  endDate: string,
-  timezone: string,
-) {
-  const [claudeData, codexData, openCodeData] = await Promise.all([
-    loadClaudeRows(startDate, endDate, timezone),
-    loadCodexRows(startDate, endDate),
-    loadOpenCodeRows(startDate, endDate),
+interface AggregateUsageOptions {
+  start: Date;
+  end: Date;
+  timezone: string;
+}
+
+export async function aggregateUsage({ start, end, timezone }: AggregateUsageOptions) {
+  const [claude, codex, openCode] = await Promise.all([
+    loadClaudeRows(start, end, timezone),
+    loadCodexRows(start, end),
+    loadOpenCodeRows(start, end),
   ]);
 
   return {
-    claude: claudeData,
-    codex: codexData,
-    opencode: openCodeData,
+    claude: claude.daily.some((row) => row.totalTokens > 0) ? claude : null,
+    codex: codex.daily.some((row) => row.totalTokens > 0) ? codex : null,
+    openCode: openCode.daily.some((row) => row.totalTokens > 0) ? openCode : null,
   };
 }
 
-export function hasData(providerData: ProviderData) {
-  return providerData.daily.some((row) => row.totalTokens > 0);
-}
-
-export function getRequestedProviders(values: Record<string, unknown>) {
-  const wantClaude = Boolean(values.claude);
-  const wantCodex = Boolean(values.codex);
-  const wantOpenCode = Boolean(values.opencode);
-
-  const requested = new Set<ProviderId>();
-  if (wantClaude) requested.add("claude");
-  if (wantCodex) requested.add("codex");
-  if (wantOpenCode) requested.add("opencode");
-
-  return providerIds.filter((id) => requested.has(id));
-}

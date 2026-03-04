@@ -1,28 +1,39 @@
 import type { DailyUsage } from "ccusage/data-loader";
 import type { ProviderData } from "./interfaces";
 import {
-  createDailyTokenTotals,
   getProviderInsights,
   getRecentWindowStart,
   normalizeModelName,
   type DailyTokenTotals,
 } from "./utils";
 
-function isoDateToCompact(value: string) {
-  return value.replaceAll("-", "");
-}
-
-function getClaudeTokenTotals(entry: {
+interface ClaudeTokenEntry {
   inputTokens: number;
   outputTokens: number;
   cacheCreationTokens: number;
   cacheReadTokens: number;
-}): DailyTokenTotals {
-  return createDailyTokenTotals(
-    entry.inputTokens,
-    entry.outputTokens,
-    entry.cacheCreationTokens + entry.cacheReadTokens,
-  );
+}
+
+function toCompactDate(date: Date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+
+  return `${y}${m}${d}`;
+}
+
+function getClaudeTokenTotals({
+  inputTokens,
+  outputTokens,
+  cacheCreationTokens,
+  cacheReadTokens,
+}: ClaudeTokenEntry): DailyTokenTotals {
+  return {
+    inputTokens: inputTokens + cacheReadTokens,
+    outputTokens: outputTokens + cacheCreationTokens,
+    cacheTokens: cacheCreationTokens + cacheReadTokens,
+    totalTokens: inputTokens + outputTokens + cacheCreationTokens + cacheReadTokens,
+  };
 }
 
 function toDailyRows(daily: DailyUsage[]) {
@@ -35,40 +46,45 @@ function toDailyRows(daily: DailyUsage[]) {
 }
 
 export async function loadClaudeRows(
-  startDate: string,
-  endDate: string,
+  startDate: Date,
+  endDate: Date,
   timezone: string,
 ): Promise<ProviderData> {
   process.env.LOG_LEVEL ??= "0";
   const { loadDailyUsageData } = await import("ccusage/data-loader");
 
   const usage = await loadDailyUsageData({
-    since: isoDateToCompact(startDate),
-    until: isoDateToCompact(endDate),
+    since: toCompactDate(startDate),
+    until: toCompactDate(endDate),
     timezone,
     mode: "display",
     offline: true,
   });
 
-  const daily = toDailyRows(usage).filter((row) => row.date >= startDate && row.date <= endDate);
+  const daily = toDailyRows(usage).filter((row) => {
+    const rowDate = new Date(row.date);
+    return rowDate >= startDate && rowDate <= endDate;
+  });
   const recentStart = getRecentWindowStart(endDate, 30);
   const modelTotals = new Map<string, number>();
   const recentModelTotals = new Map<string, number>();
 
   for (const day of usage) {
-    if (day.date < startDate || day.date > endDate) {
+    const dayDate = new Date(day.date);
+    if (dayDate < startDate || dayDate > endDate) {
       continue;
     }
 
     for (const model of day.modelBreakdowns) {
       const tokens = getClaudeTokenTotals(model).totalTokens;
+      
       if (tokens <= 0) {
         continue;
       }
 
       const modelName = normalizeModelName(model.modelName);
       modelTotals.set(modelName, (modelTotals.get(modelName) ?? 0) + tokens);
-      if (day.date >= recentStart) {
+      if (dayDate >= recentStart) {
         recentModelTotals.set(modelName, (recentModelTotals.get(modelName) ?? 0) + tokens);
       }
     }

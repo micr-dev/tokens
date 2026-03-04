@@ -3,9 +3,7 @@ import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import {
   addDailyTokenTotals,
-  createDailyTokenTotals,
   type DailyTokenTotals,
-  formatLocalDate,
   getProviderInsights,
   getRecentWindowStart,
   listFilesRecursive,
@@ -79,6 +77,7 @@ function asNonEmptyString(value: unknown) {
   }
 
   const trimmed = value.trim();
+
   return trimmed === "" ? undefined : trimmed;
 }
 
@@ -89,59 +88,69 @@ function extractCodexModel(payload: unknown) {
 
   const entry = payload as Record<string, unknown>;
   const directModel = asNonEmptyString(entry.model) ?? asNonEmptyString(entry.model_name);
+
   if (directModel) {
     return directModel;
   }
 
-  const info = entry.info;
-  if (info && typeof info === "object") {
-    const infoRecord = info as Record<string, unknown>;
+  if (entry.info && typeof entry.info === "object") {
+    const infoRecord = entry.info as Record<string, unknown>;
+
     const infoModel = asNonEmptyString(infoRecord.model) ?? asNonEmptyString(infoRecord.model_name);
+
     if (infoModel) {
       return infoModel;
     }
 
-    const infoMetadata = infoRecord.metadata;
-    if (infoMetadata && typeof infoMetadata === "object") {
-      const model = asNonEmptyString((infoMetadata as Record<string, unknown>).model);
+    if (infoRecord.metadata && typeof infoRecord.metadata === "object") {
+      const model = asNonEmptyString((infoRecord.metadata as Record<string, unknown>).model);
+
       if (model) {
         return model;
       }
     }
   }
 
-  const metadata = entry.metadata;
-  if (metadata && typeof metadata === "object") {
-    return asNonEmptyString((metadata as Record<string, unknown>).model);
+  if (entry.metadata && typeof entry.metadata === "object") {
+    return asNonEmptyString((entry.metadata as Record<string, unknown>).model);
   }
 
   return undefined;
 }
 
-export async function loadCodexRows(startDate: string, endDate: string) {
+async function parseCodexFile(filePath: string) {
+  const content = await readFile(filePath, "utf8");
+
+  const lines = content.split(/\r?\n/);
+  
+  return lines.map((line) => JSON.parse(line.trim()) as CodexEventEntry);
+}
+
+async function parseCodexFiles() {
   const codexHome = process.env.CODEX_HOME?.trim()
     ? resolve(process.env.CODEX_HOME)
     : join(homedir(), ".codex");
+
   const sessionsDir = join(codexHome, "sessions");
+  
   const files = await listFilesRecursive(sessionsDir, ".jsonl");
+
+  return Promise.all(files.map((file) => parseCodexFile(file)));
+}
+
+export async function loadCodexRows(start: Date, end: Date) {
+  const sessions = await parseCodexFiles();
+
   const totals = new Map<string, DailyTokenTotals>();
-  const recentStart = getRecentWindowStart(endDate, 30);
+  const recentStart = getRecentWindowStart(end, 30);
   const modelTotals = new Map<string, number>();
   const recentModelTotals = new Map<string, number>();
 
-  for (const filePath of files) {
-    const content = await readFile(filePath, "utf8");
-    const lines = content.split(/\r?\n/);
+  for (const session of sessions) {
     let previousTotals: CodexRawUsage | null = null;
     let currentModel: string | undefined;
 
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed) {
-        continue;
-      }
-
-      const entry = JSON.parse(trimmed) as CodexEventEntry;
+    for (const entry of session) {
       const extractedModel = extractCodexModel(entry.payload);
 
       if (entry.type === "turn_context") {
@@ -176,35 +185,39 @@ export async function loadCodexRows(startDate: string, endDate: string) {
         continue;
       }
 
-      const tokenTotals = createDailyTokenTotals(
-        rawUsage.input_tokens,
-        rawUsage.output_tokens + rawUsage.reasoning_output_tokens,
-        rawUsage.cached_input_tokens,
-      );
-      const { totalTokens } = tokenTotals;
+      const usage = {
+        inputTokens: rawUsage.input_tokens,
+        outputTokens: rawUsage.output_tokens,
+        cacheTokens: rawUsage.cached_input_tokens,
+        totalTokens: rawUsage.total_tokens,
+      };
 
-      if (totalTokens <= 0) {
+      if (usage.totalTokens <= 0) {
         continue;
       }
 
-      const date = formatLocalDate(new Date(entry.timestamp));
-      if (date < startDate || date > endDate) {
+      const date = new Date(entry.timestamp);
+
+      if (date < start || date > end) {
         continue;
       }
 
-      addDailyTokenTotals(totals, date, tokenTotals);
+      addDailyTokenTotals(totals, date, usage);
 
       const modelName = extractedModel ?? currentModel;
+
       if (!modelName) {
         continue;
       }
 
       const normalizedModelName = normalizeModelName(modelName);
-      modelTotals.set(normalizedModelName, (modelTotals.get(normalizedModelName) ?? 0) + totalTokens);
+
+      modelTotals.set(normalizedModelName, (modelTotals.get(normalizedModelName) ?? 0) + usage.totalTokens);
+
       if (date >= recentStart) {
         recentModelTotals.set(
           normalizedModelName,
-          (recentModelTotals.get(normalizedModelName) ?? 0) + totalTokens,
+          (recentModelTotals.get(normalizedModelName) ?? 0) + usage.totalTokens,
         );
       }
     }

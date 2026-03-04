@@ -2,68 +2,72 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, extname, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import ora, { type Ora } from "ora";
+import ow from "ow";
 import sharp from "sharp";
 import { heatmapThemes, renderUsageHeatmapsSvg } from "./graph";
 import { formatLocalDate } from "./lib/utils";
-import {
-  getRequestedProviders,
-  hasData,
-  loadProviderRows,
-  providerIds,
-  providerStatusLabel,
-  type ProviderId,
-} from "./providers";
+import { aggregateUsage, providerIds, providerStatusLabel } from "./providers";
 
 type OutputFormat = "png" | "svg";
+type CliArgValues = {
+  output?: string;
+  format?: string;
+  help: boolean;
+  claude: boolean;
+  codex: boolean;
+  opencode: boolean;
+};
 
 const PNG_BASE_WIDTH = 1000;
 const PNG_SCALE = 4;
 const PNG_RENDER_WIDTH = PNG_BASE_WIDTH * PNG_SCALE;
 
+const HELP_TEXT = `codegraph-usage
+
+Generate rolling 1-year usage heatmap image(s) (today is the latest day).
+
+Usage:
+  codegraph-usage [--claude] [--codex] [--opencode] [--format png|svg] [--output ./heatmap-last-year.png]
+
+Options:
+  --claude                    Render Claude Code graph
+  --codex                     Render Codex graph
+  --opencode                  Render Open Code graph
+  -f, --format                Output format: png or svg (default: png)
+  -o, --output                Output file path (default: ./heatmap-last-year.png)
+  -h, --help                  Show this help
+`;
+
 function printHelp() {
-  process.stdout.write("codegraph-usage\n\n");
-  process.stdout.write(
-    "Generate rolling 1-year usage heatmap image(s) (today is the latest day).\n\n",
-  );
-  process.stdout.write("Usage:\n");
-  process.stdout.write(
-    "  codegraph-usage [--claude] [--codex] [--opencode] [--format png|svg] [--output ./heatmap-last-year.png]\n\n",
-  );
-  process.stdout.write("Options:\n");
-  process.stdout.write("  --claude                    Render Claude Code graph\n");
-  process.stdout.write("  --codex                     Render Codex graph\n");
-  process.stdout.write("  --opencode                  Render Open Code graph\n");
-  process.stdout.write("  -f, --format                Output format: png or svg (default: png)\n");
-  process.stdout.write("  -o, --output                Output file path (default: ./heatmap-last-year.png)\n");
-  process.stdout.write("  -h, --help                  Show this help\n");
+  process.stdout.write(HELP_TEXT);
 }
 
-function normalizeFormat(format: string) {
-  const lower = format.toLowerCase();
-
-  if (lower !== "png" && lower !== "svg") {
-    throw new Error(`Invalid format "${format}". Expected "png" or "svg".`);
-  }
-
-  return lower;
+function validateArgs(values: unknown): asserts values is CliArgValues {
+  ow(
+    values,
+    ow.object.exactShape({
+      output: ow.optional.string.nonEmpty,
+      format: ow.optional.string.nonEmpty,
+      help: ow.boolean,
+      claude: ow.boolean,
+      codex: ow.boolean,
+      opencode: ow.boolean,
+    }),
+  );
 }
 
 function inferFormat(formatArg: string | undefined, outputArg: string | undefined) {
   if (formatArg) {
-    return normalizeFormat(formatArg);
+    ow(formatArg, ow.string.oneOf(["png", "svg"] as const));
+
+    return formatArg;
   }
 
-  if (outputArg) {
-    const ext = extname(outputArg).toLowerCase();
-    if (ext === ".svg") {
-      return "svg";
-    }
-    if (ext === ".png") {
-      return "png";
-    }
+  if (outputArg && extname(outputArg) === ".svg") {
+    return "svg" as const;
   }
 
-  return "png";
+  return "png" as const;
 }
 
 async function writeOutputImage(outputPath: string, format: OutputFormat, svg: string) {
@@ -83,7 +87,7 @@ async function writeOutputImage(outputPath: string, format: OutputFormat, svg: s
 async function main() {
   let spinner: Ora | undefined;
 
-  const { values } = parseArgs({
+  const parsed = parseArgs({
     options: {
       output: { type: "string", short: "o" },
       format: { type: "string", short: "f" },
@@ -94,6 +98,10 @@ async function main() {
     },
     allowPositionals: false,
   });
+  
+  validateArgs(parsed.values);
+
+  const { values } = parsed;
 
   if (values.help) {
     printHelp();
@@ -106,58 +114,54 @@ async function main() {
       spinner: "dots",
     }).start();
 
-    const endDate = new Date();
-    endDate.setHours(0, 0, 0, 0);
+    const end = new Date();
+    end.setHours(0, 0, 0, 0);
 
-    const startDate = new Date(endDate);
-    startDate.setFullYear(startDate.getFullYear() - 1);
+    const start = new Date(end);
+    start.setFullYear(start.getFullYear() - 1);
 
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone ?? "UTC";
-    const start = formatLocalDate(startDate);
-    const end = formatLocalDate(endDate);
     const format = inferFormat(values.format, values.output);
 
-    const rowsByProvider = await loadProviderRows(start, end, timezone);
+    const rowsByProvider = await aggregateUsage({ start, end, timezone });
+
     spinner.stop();
 
-    const foundByProvider: Record<ProviderId, boolean> = {
-      claude: hasData(rowsByProvider.claude),
-      codex: hasData(rowsByProvider.codex),
-      opencode: hasData(rowsByProvider.opencode),
-    };
-
     for (const provider of providerIds) {
-      const found = foundByProvider[provider] ? "found" : "not found";
+      const found = rowsByProvider[provider] ? "found" : "not found";
+
       process.stdout.write(`${providerStatusLabel[provider]} ${found}\n`);
     }
 
-    const requestedProviders = getRequestedProviders(values);
-    const hasExplicitProviderSelection = requestedProviders.length > 0;
-    const targetProviders = hasExplicitProviderSelection ? requestedProviders : providerIds;
-    const missingRequested = targetProviders.filter((provider) => !foundByProvider[provider]);
+    const requested = providerIds.filter((id) => values[id.toLowerCase() as keyof CliArgValues]);
+    const explicit = requested.length > 0;
+    const candidates = explicit ? requested : providerIds;
+    const providersToRender = candidates.filter((p) => rowsByProvider[p]);
 
-    if (hasExplicitProviderSelection && missingRequested.length > 0) {
+    if (explicit && providersToRender.length < requested.length) {
+      const missing = requested.filter((p) => !rowsByProvider[p]);
+
       throw new Error(
-        `Requested provider data not found: ${missingRequested
-          .map((provider) => providerStatusLabel[provider])
-          .join(", ")}`,
+        `Requested provider data not found: ${missing.map((p) => providerStatusLabel[p]).join(", ")}`,
       );
     }
 
-    const providersToRender = targetProviders.filter((provider) => foundByProvider[provider]);
-
-    if (!hasExplicitProviderSelection && providersToRender.length === 0) {
+    if (providersToRender.length === 0) {
       throw new Error("No usage data found for Claude code, Codex, or Open code.");
     }
 
     spinner.start("Rendering heatmaps...");
 
-    const sections = providersToRender.map((provider) => ({
-      daily: rowsByProvider[provider].daily,
-      title: heatmapThemes[provider].title,
-      colors: heatmapThemes[provider].colors,
-      insights: rowsByProvider[provider].insights,
-    }));
+    const sections = providersToRender.map((provider) => {
+      const data = rowsByProvider[provider]!;
+      
+      return {
+        daily: data.daily,
+        title: heatmapThemes[provider].title,
+        colors: heatmapThemes[provider].colors,
+        insights: data.insights,
+      };
+    });
 
     const svg = renderUsageHeatmapsSvg({
       startDate: start,
@@ -178,8 +182,8 @@ async function main() {
         {
           output: outputPath,
           format,
-          startDate: start,
-          endDate: end,
+          startDate: formatLocalDate(start),
+          endDate: formatLocalDate(end),
           rendered: providersToRender,
         },
         null,
