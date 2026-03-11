@@ -299,7 +299,7 @@ async function fetchCursorUsageCsv(accessToken: string) {
     });
 
     if (response.ok) {
-      return response.text();
+      return response;
     }
 
     failures.push({
@@ -356,28 +356,212 @@ function parseCsvLine(line: string) {
   return values;
 }
 
-function parseCursorUsageCsv(content: string) {
-  const lines = content
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter((line) => line !== "");
+function createCursorCsvRow(headers: string[], values: string[]) {
+  const row: CursorCsvRow = {};
 
-  if (lines.length === 0) {
-    return [];
+  headers.forEach((header, index) => {
+    row[header as keyof CursorCsvRow] = values[index];
+  });
+
+  return row;
+}
+
+function processCursorCsvLines(
+  lines: Iterable<string>,
+  onRow: (row: CursorCsvRow) => void,
+) {
+  let headers: string[] | null = null;
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+
+    if (line === "") {
+      continue;
+    }
+
+    const values = parseCsvLine(line);
+
+    if (!headers) {
+      headers = values;
+      continue;
+    }
+
+    onRow(createCursorCsvRow(headers, values));
+  }
+}
+
+function processCursorUsageCsvText(
+  content: string,
+  onRow: (row: CursorCsvRow) => void,
+) {
+  processCursorCsvLines(content.split(/\r?\n/), onRow);
+}
+
+async function processCursorUsageCsvStream(
+  response: Response,
+  onRow: (row: CursorCsvRow) => void,
+) {
+  if (!response.body) {
+    processCursorUsageCsvText(await response.text(), onRow);
+
+    return;
   }
 
-  const headers = parseCsvLine(lines[0]);
+  let headers: string[] | null = null;
+  let currentField = "";
+  let currentRow: string[] = [];
+  let inQuotes = false;
+  let pendingQuote = false;
+  let sawCarriageReturn = false;
+  const decoder = new TextDecoder();
 
-  return lines.slice(1).map((line) => {
-    const values = parseCsvLine(line);
-    const row: CursorCsvRow = {};
+  const emitField = () => {
+    currentRow.push(currentField);
+    currentField = "";
+  };
 
-    headers.forEach((header, index) => {
-      row[header as keyof CursorCsvRow] = values[index];
-    });
+  const emitRow = () => {
+    emitField();
 
-    return row;
-  });
+    if (currentRow.every((value) => value.trim() === "")) {
+      currentRow = [];
+
+      return;
+    }
+
+    if (!headers) {
+      headers = currentRow;
+      currentRow = [];
+
+      return;
+    }
+
+    onRow(createCursorCsvRow(headers, currentRow));
+    currentRow = [];
+  };
+
+  const processChunk = (chunk: string) => {
+    for (const char of chunk) {
+      let shouldReprocess = true;
+
+      while (shouldReprocess) {
+        shouldReprocess = false;
+
+        if (sawCarriageReturn) {
+          sawCarriageReturn = false;
+
+          if (char === "\n") {
+            break;
+          }
+        }
+
+        if (pendingQuote) {
+          pendingQuote = false;
+
+          if (char === '"') {
+            currentField += '"';
+            break;
+          }
+
+          inQuotes = false;
+          shouldReprocess = true;
+          continue;
+        }
+
+        if (inQuotes) {
+          if (char === '"') {
+            pendingQuote = true;
+          } else {
+            currentField += char;
+          }
+
+          break;
+        }
+
+        if (char === '"') {
+          inQuotes = true;
+          break;
+        }
+
+        if (char === ",") {
+          emitField();
+          break;
+        }
+
+        if (char === "\n") {
+          emitRow();
+          break;
+        }
+
+        if (char === "\r") {
+          emitRow();
+          sawCarriageReturn = true;
+          break;
+        }
+
+        currentField += char;
+        break;
+      }
+    }
+  };
+
+  const reader = response.body.getReader();
+
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+
+      if (done) {
+        break;
+      }
+
+      processChunk(decoder.decode(value, { stream: true }));
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  processChunk(decoder.decode());
+
+  if (pendingQuote) {
+    pendingQuote = false;
+    inQuotes = false;
+  }
+
+  if (currentField !== "" || currentRow.length > 0) {
+    emitRow();
+  }
+}
+
+function addCursorUsageRow(
+  row: CursorCsvRow,
+  start: Date,
+  end: Date,
+  recentStart: Date,
+  totals: DailyTotalsByDate,
+  modelTotals: Map<string, ModelTokenTotals>,
+  recentModelTotals: Map<string, ModelTokenTotals>,
+) {
+  const date = parseCursorDate(row.Date);
+  const rawModel = row.Model?.trim();
+  const tokenTotals = createCursorTokenTotals(row);
+
+  if (!date || !rawModel || !tokenTotals) {
+    return;
+  }
+
+  if (date < start || date > end) {
+    return;
+  }
+
+  const modelName = normalizeModelName(rawModel);
+
+  addDailyTokenTotals(totals, date, tokenTotals, modelName);
+  addModelTokenTotals(modelTotals, modelName, tokenTotals);
+
+  if (date >= recentStart) {
+    addModelTokenTotals(recentModelTotals, modelName, tokenTotals);
+  }
 }
 
 function parseCursorDate(value?: string) {
@@ -449,32 +633,32 @@ export async function loadCursorRows(
   }
 
   const recentStart = getRecentWindowStart(end, 30);
-  const rows = parseCursorUsageCsv(
-    await fetchCursorUsageCsv(authState.accessToken),
-  );
+  const response = await fetchCursorUsageCsv(authState.accessToken);
 
-  for (const row of rows) {
-    const date = parseCursorDate(row.Date);
-    const rawModel = row.Model?.trim();
-    const tokenTotals = createCursorTokenTotals(row);
+  return summarizeCursorUsageCsv(response, start, end, recentStart);
+}
 
-    if (!date || !rawModel || !tokenTotals) {
-      continue;
-    }
+export async function summarizeCursorUsageCsv(
+  response: Response,
+  start: Date,
+  end: Date,
+  recentStart = getRecentWindowStart(end, 30),
+): Promise<UsageSummary> {
+  const totals: DailyTotalsByDate = new Map();
+  const modelTotals = new Map<string, ModelTokenTotals>();
+  const recentModelTotals = new Map<string, ModelTokenTotals>();
 
-    if (date < start || date > end) {
-      continue;
-    }
-
-    const modelName = normalizeModelName(rawModel);
-
-    addDailyTokenTotals(totals, date, tokenTotals, modelName);
-    addModelTokenTotals(modelTotals, modelName, tokenTotals);
-
-    if (date >= recentStart) {
-      addModelTokenTotals(recentModelTotals, modelName, tokenTotals);
-    }
-  }
+  await processCursorUsageCsvStream(response, (row) => {
+    addCursorUsageRow(
+      row,
+      start,
+      end,
+      recentStart,
+      totals,
+      modelTotals,
+      recentModelTotals,
+    );
+  });
 
   return createUsageSummary("cursor", totals, modelTotals, recentModelTotals, end);
 }
