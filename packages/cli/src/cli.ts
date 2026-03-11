@@ -29,6 +29,7 @@ interface CliArgValues {
   all: boolean;
   claude: boolean;
   codex: boolean;
+  cursor: boolean;
   opencode: boolean;
 }
 
@@ -42,12 +43,13 @@ const HELP_TEXT = `slopmeter
 Generate rolling 1-year usage heatmap image(s) (today is the latest day).
 
 Usage:
-  slopmeter [--all] [--claude] [--codex] [--opencode] [--dark] [--format png|svg|json] [--output ./heatmap-last-year.png]
+  slopmeter [--all] [--claude] [--codex] [--cursor] [--opencode] [--dark] [--format png|svg|json] [--output ./heatmap-last-year.png]
 
 Options:
   --all                       Render one merged graph for all providers
   --claude                    Render Claude Code graph
   --codex                     Render Codex graph
+  --cursor                    Render Cursor graph
   --opencode                  Render Open Code graph
   --dark                      Render with the dark theme
   -f, --format                Output format: png, svg, or json (default: png)
@@ -70,6 +72,7 @@ function validateArgs(values: unknown): asserts values is CliArgValues {
       all: ow.boolean,
       claude: ow.boolean,
       codex: ow.boolean,
+      cursor: ow.boolean,
       opencode: ow.boolean,
     }),
   );
@@ -182,7 +185,7 @@ function getOutputProviders(
 
   if (!merged) {
     throw new Error(
-      "No usage data found for Claude code, Codex, or Open code.",
+      "No usage data found for Claude code, Codex, Cursor, or Open code.",
     );
   }
 
@@ -217,7 +220,7 @@ function selectProvidersToRender(
 
   if (providersToRender.length === 0) {
     throw new Error(
-      "No usage data found for Claude code, Codex, or Open code.",
+      "No usage data found for Claude code, Codex, Cursor, or Open code.",
     );
   }
 
@@ -260,6 +263,7 @@ async function main() {
       all: { type: "boolean", default: false },
       claude: { type: "boolean", default: false },
       codex: { type: "boolean", default: false },
+      cursor: { type: "boolean", default: false },
       opencode: { type: "boolean", default: false },
     },
     allowPositionals: false,

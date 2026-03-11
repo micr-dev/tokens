@@ -10,7 +10,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-export type CodegraphProviderId = "claude" | "codex" | "opencode";
+export type CodegraphProviderId = "claude" | "codex" | "cursor" | "opencode";
 
 export interface CodegraphModelUsage {
   name: string;
@@ -64,6 +64,8 @@ const heatmapVariants = cva("", {
         "[--heatmap-0:var(--heatmap-claude-0)] [--heatmap-1:var(--heatmap-claude-1)] [--heatmap-2:var(--heatmap-claude-2)] [--heatmap-3:var(--heatmap-claude-3)] [--heatmap-4:var(--heatmap-claude-4)]",
       codex:
         "[--heatmap-0:var(--heatmap-codex-0)] [--heatmap-1:var(--heatmap-codex-1)] [--heatmap-2:var(--heatmap-codex-2)] [--heatmap-3:var(--heatmap-codex-3)] [--heatmap-4:var(--heatmap-codex-4)]",
+      cursor:
+        "[--heatmap-0:var(--heatmap-cursor-0)] [--heatmap-1:var(--heatmap-cursor-1)] [--heatmap-2:var(--heatmap-cursor-2)] [--heatmap-3:var(--heatmap-cursor-3)] [--heatmap-4:var(--heatmap-cursor-4)]",
       opencode:
         "[--heatmap-0:var(--heatmap-opencode-0)] [--heatmap-1:var(--heatmap-opencode-1)] [--heatmap-2:var(--heatmap-opencode-2)] [--heatmap-3:var(--heatmap-opencode-3)] [--heatmap-4:var(--heatmap-opencode-4)]",
     },
