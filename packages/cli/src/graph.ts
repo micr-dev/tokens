@@ -611,33 +611,6 @@ function drawHeatmapSection(
     }
   }
 
-  const transitionWeekIndex =
-    firstActivityOnlyDate && firstMeasuredDate
-      ? grid.weeks.findIndex((week) => week.includes(firstMeasuredDate))
-      : -1;
-
-  if (transitionWeekIndex > 0) {
-    const lineX =
-      x +
-      layout.leftLabelWidth +
-      transitionWeekIndex * (layout.cellSize + layout.gap) -
-      Math.max(layout.gap, 2);
-    const lineTop = y + layout.monthLabelY - 2;
-    const lineBottom =
-      y + layout.gridTop + 7 * layout.cellSize + 6 * layout.gap + 2;
-
-    svg = svg.line({
-      x1: lineX,
-      y1: lineTop,
-      x2: lineX,
-      y2: lineBottom,
-      stroke: palette.muted,
-      "stroke-width": 1,
-      "stroke-dasharray": "4 4",
-      "stroke-opacity": 0.65,
-    });
-  }
-
   const legendStartX = x + layout.leftLabelWidth;
   const legendY = y + layout.legendY;
 

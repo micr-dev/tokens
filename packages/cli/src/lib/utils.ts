@@ -753,7 +753,9 @@ export function getProviderInsights(
 ): Insights {
   const mostUsedModel = getTopModel(modelTotals);
   const recentMostUsedModel = getTopModel(recentModelTotals);
-  const measuredDaily = daily.filter((row) => row.total > 0);
+  const measuredDaily = daily.filter(
+    (row) => (row.displayValue ?? row.total) > 0,
+  );
 
   return {
     mostUsedModel,

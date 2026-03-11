@@ -189,6 +189,15 @@ function getOutputProviders(
   return [merged];
 }
 
+function getMergedProviderTitle(
+  rowsByProvider: Record<ProviderId, UsageSummary | null>,
+) {
+  return providerIds
+    .filter((provider) => rowsByProvider[provider] !== null)
+    .map((provider) => heatmapThemes[provider].title)
+    .join(" / ");
+}
+
 function selectProvidersToRender(
   rowsByProvider: Record<ProviderId, UsageSummary | null>,
   requested: ProviderId[],
@@ -328,7 +337,10 @@ async function main() {
         sections: exportProviders.map(({ provider, daily, insights }) => ({
           daily,
           insights,
-          title: heatmapThemes[provider].title,
+          title:
+            provider === "all"
+              ? getMergedProviderTitle(rowsByProvider)
+              : heatmapThemes[provider].title,
           titleCaption: heatmapThemes[provider].titleCaption,
           colors: heatmapThemes[provider].colors,
         })),
