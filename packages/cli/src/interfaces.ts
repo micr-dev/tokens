@@ -4,6 +4,9 @@ export type UsageProviderId =
   | "cursor"
   | "opencode"
   | "pi"
+  | "hermes"
+  | "helios"
+  | "t3"
   | "all";
 
 export interface UsageSummary {

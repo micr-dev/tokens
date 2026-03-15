@@ -19,6 +19,7 @@ import {
 } from "./utils";
 
 const PI_AGENT_DIR_ENV = "PI_CODING_AGENT_DIR";
+const GSD_HOME_ENV = "GSD_HOME";
 const CLASSIFICATION_PREFIX_BYTES = 16 * 1024;
 
 interface PiUsagePayload {
@@ -50,8 +51,22 @@ function getPiAgentDir() {
     : join(homedir(), ".pi", "agent");
 }
 
+function getGsdHomeDir() {
+  const configuredHomeDir = process.env[GSD_HOME_ENV]?.trim();
+
+  return configuredHomeDir ? resolve(configuredHomeDir) : join(homedir(), ".gsd");
+}
+
 async function getPiSessionFiles() {
-  return listFilesRecursive(join(getPiAgentDir(), "sessions"), ".jsonl");
+  const sessionRoots = [
+    join(getPiAgentDir(), "sessions"),
+    join(getGsdHomeDir(), "sessions"),
+  ];
+  const files = await Promise.all(
+    sessionRoots.map((sessionRoot) => listFilesRecursive(sessionRoot, ".jsonl")),
+  );
+
+  return files.flat().sort((left, right) => left.localeCompare(right));
 }
 
 function classifyPiRecord(prefix: string): JsonlRecordDecision<void> {

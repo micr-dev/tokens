@@ -3,7 +3,7 @@ import type { DailyUsage, Insights, ModelUsage } from "./interfaces";
 import type { ProviderId } from "./lib/interfaces";
 import { formatLocalDate } from "./lib/utils";
 
-type HeatmapThemeId = ProviderId | "all";
+type HeatmapThemeId = ProviderId | "t3" | "all";
 
 interface HeatmapTheme {
   title: string;
@@ -174,8 +174,66 @@ export const heatmapThemes: Record<HeatmapThemeId, HeatmapTheme> = {
       ],
     },
   },
+  hermes: {
+    title: "Hermes Agent",
+    colors: {
+      light: [
+        "#eff6ff",
+        "#bfdbfe",
+        "#93c5fd",
+        "#3b82f6",
+        "#1d4ed8",
+      ],
+      dark: [
+        "#172554",
+        "#1d4ed8",
+        "#2563eb",
+        "#60a5fa",
+        "#bfdbfe",
+      ],
+    },
+  },
+  helios: {
+    title: "Helios",
+    colors: {
+      light: [
+        "#fffbea",
+        "#fde68a",
+        "#fcd34d",
+        "#f59e0b",
+        "#b45309",
+      ],
+      dark: [
+        "#451a03",
+        "#92400e",
+        "#d97706",
+        "#fbbf24",
+        "#fde68a",
+      ],
+    },
+  },
+  t3: {
+    title: "T3 Chat",
+    colors: {
+      light: [
+        "#f0fdfa",
+        "#99f6e4",
+        "#5eead4",
+        "#14b8a6",
+        "#0f766e",
+      ],
+      dark: [
+        "#042f2e",
+        "#115e59",
+        "#0d9488",
+        "#2dd4bf",
+        "#99f6e4",
+      ],
+    },
+  },
   all: {
-    title: "Codex / Claude Code / Cursor / Open Code / Pi Coding Agent",
+    title:
+      "Codex / Cursor / Open Code / Pi Coding Agent / Hermes Agent / Helios / Claude Code",
     titleCaption: "Total usage from",
     colors: {
       light: [

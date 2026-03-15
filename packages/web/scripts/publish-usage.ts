@@ -1,4 +1,5 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { put } from "@vercel/blob";
@@ -11,15 +12,26 @@ import {
 import { mergeUsageSummaries } from "../../cli/src/lib/utils";
 import { providerIds, aggregateUsage } from "../../cli/src/providers";
 import type { UsageSummary } from "../../cli/src/interfaces";
+import { loadT3PublishedSummary } from "../lib/t3-chat";
 
 const DEFAULT_IMPORT_PATH = ".slopmeter-data/imports/windows-history.json";
+const DEFAULT_T3_IMPORT_PATH = ".local/share/slopmeter/t3-chat-export.json";
 const DEFAULT_LOCAL_OUTPUT_PATH = ".slopmeter-data/published/daily-usage.json";
 const DEFAULT_LOCAL_SVG_OUTPUT_PATH =
   ".slopmeter-data/published/heatmap-last-year.svg";
 const DEFAULT_BLOB_PATH = "slopmeter/daily-usage.json";
 const DEFAULT_SVG_BLOB_PATH = "slopmeter/heatmap-last-year.svg";
 const REPO_ROOT = resolve(fileURLToPath(new URL("../../..", import.meta.url)));
-const WEB_PROVIDER_ORDER = ["codex", "cursor", "opencode", "pi", "claude"] as const;
+const WEB_PROVIDER_ORDER = [
+  "codex",
+  "cursor",
+  "opencode",
+  "pi",
+  "hermes",
+  "helios",
+  "claude",
+  "t3",
+] as const;
 
 function getDateWindow() {
   const start = new Date();
@@ -46,6 +58,10 @@ function readImportedPayload(importPath: string) {
 
 function resolveRepoPath(pathValue: string) {
   return resolve(REPO_ROOT, pathValue);
+}
+
+function resolveHomePath(pathValue: string) {
+  return resolve(homedir(), pathValue);
 }
 
 function parseDateOnly(value: string) {
@@ -111,6 +127,21 @@ function renderPublishedSvg(payload: PublishedUsagePayload) {
   });
 }
 
+function sortPublishedProviders(
+  providers: PublishedUsagePayload["providers"],
+) {
+  const ordered = new Map(
+    WEB_PROVIDER_ORDER.map((providerId, index) => [providerId, index]),
+  );
+
+  return [...providers].sort((left, right) => {
+    const leftOrder = ordered.get(left.provider) ?? Number.MAX_SAFE_INTEGER;
+    const rightOrder = ordered.get(right.provider) ?? Number.MAX_SAFE_INTEGER;
+
+    return leftOrder - rightOrder || left.provider.localeCompare(right.provider);
+  });
+}
+
 async function main() {
   const { start, end } = getDateWindow();
   const { rowsByProvider, warnings } = await aggregateUsage({ start, end });
@@ -133,6 +164,11 @@ async function main() {
       ? process.env.SLOPMETER_WEB_IMPORT_PATH.trim()
       : resolveRepoPath(DEFAULT_IMPORT_PATH),
   );
+  const t3ImportPath = resolve(
+    process.env.SLOPMETER_WEB_T3_IMPORT_PATH?.trim()
+      ? process.env.SLOPMETER_WEB_T3_IMPORT_PATH.trim()
+      : resolveHomePath(DEFAULT_T3_IMPORT_PATH),
+  );
   const localOutputPath = resolve(
     process.env.SLOPMETER_WEB_LOCAL_OUTPUT_PATH?.trim()
       ? process.env.SLOPMETER_WEB_LOCAL_OUTPUT_PATH.trim()
@@ -152,6 +188,16 @@ async function main() {
   const mergedPayload: PublishedUsagePayload = mergeJsonExportsToPublishedUsage(
     importedPayload ? [currentPayload, importedPayload] : [currentPayload],
   );
+  const t3Summary = await loadT3PublishedSummary(t3ImportPath, start, end);
+
+  if (t3Summary) {
+    mergedPayload.providers = sortPublishedProviders([
+      ...mergedPayload.providers,
+      t3Summary,
+    ]);
+  } else {
+    mergedPayload.providers = sortPublishedProviders(mergedPayload.providers);
+  }
   const svg = renderPublishedSvg(mergedPayload);
 
   mkdirSync(dirname(localOutputPath), { recursive: true });
@@ -168,6 +214,7 @@ async function main() {
       `${JSON.stringify(
         {
           importPath: importedPayload ? importPath : null,
+          t3ImportPath: t3Summary ? t3ImportPath : null,
           localOutputPath,
           localSvgOutputPath,
           blobPath: null,
@@ -207,10 +254,11 @@ async function main() {
 
   process.stdout.write(
     `${JSON.stringify(
-      {
-        importPath: importedPayload ? importPath : null,
-        localOutputPath,
-        localSvgOutputPath,
+        {
+          importPath: importedPayload ? importPath : null,
+          t3ImportPath: t3Summary ? t3ImportPath : null,
+          localOutputPath,
+          localSvgOutputPath,
         blobPath,
         svgBlobPath,
         url: upload.url,

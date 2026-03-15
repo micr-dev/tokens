@@ -143,3 +143,26 @@ test("mergeJsonExportsToPublishedUsage rejects merged all-provider imports", () 
     /without --all/,
   );
 });
+
+test("mergeJsonExportsToPublishedUsage rejects hosted-only t3 imports", () => {
+  assert.throws(
+    () =>
+      mergeJsonExportsToPublishedUsage([
+        {
+          version: JSON_EXPORT_VERSION,
+          start: "2026-03-10",
+          end: "2026-03-15",
+          providers: [
+            {
+              provider: "t3",
+              daily: [],
+              insights: {
+                streaks: { current: 0, longest: 0 },
+              },
+            },
+          ],
+        },
+      ]),
+    /hosted-only providers/,
+  );
+});

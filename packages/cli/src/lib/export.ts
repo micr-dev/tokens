@@ -99,9 +99,9 @@ function mergeUsageSummariesByProvider(
   const grouped = new Map<ProviderId, UsageSummary[]>();
 
   for (const summary of summaries) {
-    if (summary.provider === "all") {
+    if (summary.provider === "all" || summary.provider === "t3") {
       throw new Error(
-        "Provider-specific JSON export required. Re-run slopmeter without --all before importing.",
+        "Provider-specific CLI JSON export required. Re-run slopmeter without --all and without hosted-only providers before importing.",
       );
     }
 

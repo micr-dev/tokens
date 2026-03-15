@@ -35,6 +35,8 @@ interface CliArgValues {
   cursor: boolean;
   opencode: boolean;
   pi: boolean;
+  hermes: boolean;
+  helios: boolean;
 }
 
 const PNG_BASE_WIDTH = 1000;
@@ -45,7 +47,7 @@ const HELP_TEXT = `slopmeter
 Generate rolling 1-year usage heatmap image(s) (today is the latest day).
 
 Usage:
-  slopmeter [--all] [--claude] [--codex] [--cursor] [--opencode] [--pi] [--dark] [--format png|svg|json] [--output ./heatmap-last-year.png]
+  slopmeter [--all] [--claude] [--codex] [--cursor] [--opencode] [--pi] [--hermes] [--helios] [--dark] [--format png|svg|json] [--output ./heatmap-last-year.png]
 
 Options:
   --all                       Render one merged graph for all providers
@@ -54,6 +56,8 @@ Options:
   --cursor                    Render Cursor graph
   --opencode                  Render Open Code graph
   --pi                        Render Pi Coding Agent graph
+  --hermes                    Render Hermes Agent graph
+  --helios                    Render Helios graph
   --dark                      Render with the dark theme
   -f, --format                Output format: png, svg, or json (default: png)
   -o, --output                Output file path (default: ./heatmap-last-year.png)
@@ -78,8 +82,22 @@ function validateArgs(values: unknown): asserts values is CliArgValues {
       cursor: ow.boolean,
       opencode: ow.boolean,
       pi: ow.boolean,
+      hermes: ow.boolean,
+      helios: ow.boolean,
     }),
   );
+}
+
+function getProviderListLabel() {
+  return [
+    "Claude Code",
+    "Codex",
+    "Cursor",
+    "Open Code",
+    "Pi Coding Agent",
+    "Hermes Agent",
+    "Helios",
+  ].join(", ");
 }
 
 function inferFormat(
@@ -172,7 +190,7 @@ function getOutputProviders(
 
   if (!merged) {
     throw new Error(
-      "No usage data found for Claude Code, Codex, Cursor, Open Code, or Pi Coding Agent.",
+      `No usage data found for ${getProviderListLabel()}.`,
     );
   }
 
@@ -207,7 +225,7 @@ function selectProvidersToRender(
 
   if (providersToRender.length === 0) {
     throw new Error(
-      "No usage data found for Claude Code, Codex, Cursor, Open Code, or Pi Coding Agent.",
+      `No usage data found for ${getProviderListLabel()}.`,
     );
   }
 
@@ -253,6 +271,8 @@ async function main() {
       cursor: { type: "boolean", default: false },
       opencode: { type: "boolean", default: false },
       pi: { type: "boolean", default: false },
+      hermes: { type: "boolean", default: false },
+      helios: { type: "boolean", default: false },
     },
     allowPositionals: false,
   });

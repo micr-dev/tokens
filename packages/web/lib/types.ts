@@ -30,7 +30,15 @@ export interface PublishedUsagePayload {
   end: string;
   updatedAt: string;
   providers: Array<{
-    provider: "claude" | "codex" | "cursor" | "opencode" | "pi";
+    provider:
+      | "claude"
+      | "codex"
+      | "cursor"
+      | "opencode"
+      | "pi"
+      | "hermes"
+      | "helios"
+      | "t3";
     daily: PublishedDailyUsage[];
     insights?: {
       mostUsedModel?: PublishedModelUsage;
