@@ -1,0 +1,25 @@
+{
+  "name": "slopmeter-web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc -p tsconfig.typecheck.json --noEmit",
+    "publish:usage": "tsx scripts/publish-usage.ts"
+  },
+  "dependencies": {
+    "@vercel/blob": "^1.1.1",
+    "next": "^15.5.6",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "@types/react": "^19.1.12",
+    "@types/react-dom": "^19.1.9",
+    "tsx": "latest",
+    "typescript": "latest"
+  }
+}

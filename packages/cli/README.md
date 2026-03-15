@@ -104,6 +104,12 @@ npx slopmeter --dark --format svg --output ./out/heatmap-dark.svg
 - Supported extensions are `.png`, `.svg`, and `.json`.
 - If neither `--format` nor a recognized output extension is provided, PNG is used.
 
+## JSON export
+
+- `--format json` writes a machine-readable export with `version`, `start`, `end`, and `providers`.
+- Each provider entry contains `provider`, `daily`, and optional `insights`.
+- Each `daily` row contains `date`, `input`, `output`, `cache`, `total`, optional `displayValue`, and `breakdown`.
+
 ## Data locations
 
 - Claude Code: `$CLAUDE_CONFIG_DIR/*/projects` or `~/.config/claude/projects`, `~/.claude/projects`

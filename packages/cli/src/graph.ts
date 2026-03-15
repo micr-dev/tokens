@@ -332,6 +332,40 @@ function formatShortDate(dateIso: string) {
   });
 }
 
+function formatLongDate(dateIso: string) {
+  return new Date(`${dateIso}T00:00:00`).toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function buildCellTooltip(providerTitle: string, row: DailyUsage) {
+  const lines = [
+    providerTitle,
+    formatLongDate(formatLocalDate(row.date)),
+    `Total: ${numberFormatter.format(row.total)}`,
+    `Input: ${numberFormatter.format(row.input)}`,
+    `Output: ${numberFormatter.format(row.output)}`,
+    `Cache input: ${numberFormatter.format(row.cache.input)}`,
+    `Cache output: ${numberFormatter.format(row.cache.output)}`,
+  ];
+
+  if (row.total <= 0 && (row.displayValue ?? 0) > 0) {
+    lines.push("Telemetry missing - activity recorded without full token totals");
+  }
+
+  if (row.breakdown.length > 0) {
+    const topModel = row.breakdown[0];
+
+    lines.push(
+      `Top model: ${topModel.name} (${numberFormatter.format(topModel.tokens.total)})`,
+    );
+  }
+
+  return lines.join("\n");
+}
+
 function getCalendarGrid(startDate: Date, endDate: Date) {
   const allDays = getAllDays(startDate, endDate);
   const paddedDays = padToWeekStartMonday(allDays);
@@ -409,6 +443,7 @@ function drawHeatmapSection(
   const colorsForMode = colors[colorMode];
   const legendColors = [emptyCellFill[colorMode], ...colorsForMode.slice(1)];
   const valueByDate = new Map<string, number>();
+  const rowByDate = new Map<string, DailyUsage>();
   const rightEdge = x + layout.width - 8;
   const leftColumnX = x + 8;
   let maxValue = 0;
@@ -423,6 +458,7 @@ function drawHeatmapSection(
     const displayValue = row.displayValue ?? row.total;
 
     valueByDate.set(dateKey, displayValue);
+    rowByDate.set(dateKey, row);
     maxValue = Math.max(maxValue, displayValue);
     if (row.total <= 0 && displayValue > 0) {
       if (!firstActivityOnlyDate || dateKey < firstActivityOnlyDate) {
@@ -646,7 +682,15 @@ function drawHeatmapSection(
         fill,
       };
 
-      svg = svg.rect(rectAttributes);
+      const dayRow = rowByDate.get(day);
+      const rectContent =
+        dayRow && (dayRow.displayValue ?? dayRow.total) > 0
+          ? svgBuilder
+              .create()
+              .title({}, buildCellTooltip(title, dayRow))
+          : undefined;
+
+      svg = svg.rect(rectAttributes, rectContent);
     }
   }
 

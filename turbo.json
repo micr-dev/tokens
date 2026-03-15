@@ -14,12 +14,14 @@
         "NODE_ENV",
         "OPENCODE_DATA_DIR",
         "PI_CODING_AGENT_DIR",
+        "SLOPMETER_WEB_DATA_URL",
+        "SLOPMETER_WEB_IMPORT_PATH",
         "SLOPMETER_FILE_PROCESS_CONCURRENCY",
         "SLOPMETER_MAX_JSONL_RECORD_BYTES",
         "XDG_CONFIG_HOME"
       ],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": ["dist/**"]
+      "outputs": ["dist/**", ".next/**"]
     },
     "typecheck": {
       "dependsOn": ["^typecheck"]
@@ -37,6 +39,8 @@
         "NODE_ENV",
         "OPENCODE_DATA_DIR",
         "PI_CODING_AGENT_DIR",
+        "SLOPMETER_WEB_DATA_URL",
+        "SLOPMETER_WEB_IMPORT_PATH",
         "SLOPMETER_FILE_PROCESS_CONCURRENCY",
         "SLOPMETER_MAX_JSONL_RECORD_BYTES",
         "XDG_CONFIG_HOME"

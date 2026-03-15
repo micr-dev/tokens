@@ -8,6 +8,7 @@ CLI tool that generates usage heatmaps for Claude Code, Codex, Cursor, Open Code
 packages/
   cli/
   registry/
+  web/
 tooling/
   typescript-config/
 ```
@@ -90,10 +91,46 @@ Model names are normalized to remove a trailing date suffix like `-20251101`.
 - Use `--format json` (or an `.json` output filename) to export data for interactive rendering.
 - Export includes fixed `version: "2026-03-03"`.
 - Each provider includes:
-  - `title` and `colors`
   - `daily` rows with `date`, `input`, `output`, `cache`, `total`
   - `daily[].breakdown` per-model usage for that day, sorted by `tokens.total` (includes `input` and `output`)
   - `insights` (`mostUsedModel`, `recentMostUsedModel`) when available
+
+## Hosted daily page
+
+`packages/web` contains a small Next.js page meant for Vercel deployment. It renders the original `slopmeter` SVG layout on the web:
+
+- one merged all-provider section
+- one section per available provider
+- native browser hover tooltips on active cells
+
+### Local-only verification
+
+```bash
+# optional frozen import from another machine
+mkdir -p .slopmeter-data/imports
+cp /path/to/windows-export.json .slopmeter-data/imports/windows-history.json
+
+# merge local usage + import and write only the local published artifact
+SLOPMETER_WEB_SKIP_BLOB_UPLOAD=1 bun run publish:web
+
+# run the web app locally against .slopmeter-data/published/daily-usage.json
+bun run dev:web
+```
+
+### Publish flow
+
+- The page reads `SLOPMETER_WEB_SVG_URL` at runtime.
+- The hosted app defaults to `SLOPMETER_WEB_BASE_PATH=/tokens`, so the page is served at `/tokens`.
+- `bun run publish:web` scans this machine's current usage, merges the optional import file at `.slopmeter-data/imports/windows-history.json`, writes `.slopmeter-data/published/daily-usage.json` plus `.slopmeter-data/published/heatmap-last-year.svg`, and uploads both artifacts to Vercel Blob.
+- Set `BLOB_READ_WRITE_TOKEN` for real uploads.
+- Optional overrides:
+  - `SLOPMETER_WEB_BASE_PATH`
+  - `SLOPMETER_WEB_IMPORT_PATH`
+  - `SLOPMETER_WEB_LOCAL_OUTPUT_PATH`
+  - `SLOPMETER_WEB_LOCAL_SVG_OUTPUT_PATH`
+  - `SLOPMETER_WEB_BLOB_PATH`
+  - `SLOPMETER_WEB_SVG_BLOB_PATH`
+  - `SLOPMETER_WEB_SKIP_BLOB_UPLOAD=1`
 
 ## Provider/data behavior
 

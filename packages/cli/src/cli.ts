@@ -7,11 +7,14 @@ import sharp from "sharp";
 import { heatmapThemes, renderUsageHeatmapsSvg, type ColorMode } from "./graph";
 import type {
   JsonExportPayload,
-  JsonUsageSummary,
   UsageSummary,
   UsageProviderId,
 } from "./interfaces";
 import type { ProviderId } from "./providers";
+import {
+  createJsonExportPayload,
+  writeJsonExport,
+} from "./lib/export";
 import { formatLocalDate } from "./lib/utils";
 import {
   aggregateUsage,
@@ -37,8 +40,6 @@ interface CliArgValues {
 const PNG_BASE_WIDTH = 1000;
 const PNG_SCALE = 4;
 const PNG_RENDER_WIDTH = PNG_BASE_WIDTH * PNG_SCALE;
-const JSON_EXPORT_VERSION = "2026-03-03";
-
 const HELP_TEXT = `slopmeter
 
 Generate rolling 1-year usage heatmap image(s) (today is the latest day).
@@ -125,26 +126,6 @@ async function writeOutputImage(
     .toBuffer();
 
   writeFileSync(outputPath, pngBuffer);
-}
-
-function writeOutputJson(outputPath: string, payload: JsonExportPayload) {
-  writeFileSync(outputPath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
-}
-
-function toJsonUsageSummary(summary: UsageSummary): JsonUsageSummary {
-  return {
-    provider: summary.provider,
-    insights: summary.insights,
-    daily: summary.daily.map((row) => ({
-      date: formatLocalDate(row.date),
-      input: row.input,
-      output: row.output,
-      cache: row.cache,
-      total: row.total,
-      displayValue: row.displayValue,
-      breakdown: row.breakdown,
-    })),
-  };
 }
 
 function getDateWindow() {
@@ -325,17 +306,14 @@ async function main() {
     if (format === "json") {
       spinner.start("Preparing JSON export...");
 
-      const payload: JsonExportPayload = {
-        version: JSON_EXPORT_VERSION,
-        start: formatLocalDate(start),
-        end: formatLocalDate(end),
-        providers: exportProviders.map((provider) =>
-          toJsonUsageSummary(provider),
-        ),
-      };
+      const payload: JsonExportPayload = createJsonExportPayload(
+        start,
+        end,
+        exportProviders,
+      );
 
       spinner.text = "Writing output file...";
-      writeOutputJson(outputPath, payload);
+      writeJsonExport(outputPath, payload);
     } else {
       spinner.start("Rendering heatmaps...");
 
