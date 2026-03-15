@@ -91,7 +91,7 @@ test("renderUsageHeatmapsSvg renders stacked provider sections", () => {
   assert.match(svg, />Open Code<\/text>/);
 });
 
-test("renderUsageHeatmapsSvg adds native hover titles for active cells", () => {
+test("renderUsageHeatmapsSvg adds structured tooltip payloads for active cells", () => {
   const svg = renderUsageHeatmapsSvg({
     startDate: new Date("2026-03-15T00:00:00"),
     endDate: new Date("2026-03-15T00:00:00"),
@@ -129,5 +129,9 @@ test("renderUsageHeatmapsSvg adds native hover titles for active cells", () => {
     ],
   });
 
-  assert.match(svg, /<title>Codex\nMar 15, 2026\nTotal: 15\nInput: 10\nOutput: 5\nCache input: 2\nCache output: 1\nTop model: gpt-5 \(15\)<\/title>/);
+  assert.doesNotMatch(svg, /<title>/);
+  assert.match(
+    svg,
+    /<desc>\{"provider":"Codex","date":"Mar 15, 2026","total":"15","input":"10","output":"5","cacheInput":"2","cacheOutput":"1","topModel":"gpt-5","topModelTokens":"15"\}<\/desc>/,
+  );
 });

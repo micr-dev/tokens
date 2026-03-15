@@ -6,10 +6,70 @@ interface SvgUsageProps {
   svgMarkup: string;
 }
 
+interface TooltipMetric {
+  label: string;
+  value: string;
+}
+
 interface TooltipState {
-  text: string;
+  provider: string;
+  date: string;
+  metrics: TooltipMetric[];
+  topModel: string | null;
+  topModelTokens: string | null;
+  note: string | null;
   x: number;
   y: number;
+}
+
+function readTooltipState(target: SVGRectElement, x: number, y: number) {
+  const description = target.querySelector("desc")?.textContent?.trim();
+
+  if (!description) {
+    return null;
+  }
+
+  let payload: Record<string, string>;
+
+  try {
+    payload = JSON.parse(description) as Record<string, string>;
+  } catch {
+    return null;
+  }
+
+  const {
+    provider,
+    date,
+    total,
+    input,
+    output,
+    cacheInput,
+    cacheOutput,
+    topModel,
+    topModelTokens,
+    note,
+  } = payload;
+
+  if (!provider || !date || !total || !input || !output || !cacheInput || !cacheOutput) {
+    return null;
+  }
+
+  return {
+    provider,
+    date,
+    metrics: [
+      { label: "Total", value: total },
+      { label: "Input", value: input },
+      { label: "Output", value: output },
+      { label: "Cache in", value: cacheInput },
+      { label: "Cache out", value: cacheOutput },
+    ],
+    topModel: topModel ?? null,
+    topModelTokens: topModelTokens ?? null,
+    note: note ?? null,
+    x,
+    y,
+  } satisfies TooltipState;
 }
 
 export function SvgUsage({ svgMarkup }: SvgUsageProps) {
@@ -36,19 +96,19 @@ export function SvgUsage({ svgMarkup }: SvgUsageProps) {
         return;
       }
 
-      const title = target.querySelector("title")?.textContent?.trim();
+      const nextTooltip = readTooltipState(
+        target,
+        event.clientX + 18,
+        event.clientY + 18,
+      );
 
-      if (!title) {
+      if (!nextTooltip) {
         hideTooltip();
 
         return;
       }
 
-      setTooltip({
-        text: title,
-        x: event.clientX + 16,
-        y: event.clientY + 16,
-      });
+      setTooltip(nextTooltip);
     }
 
     container.addEventListener("pointermove", handlePointerMove);
@@ -75,7 +135,28 @@ export function SvgUsage({ svgMarkup }: SvgUsageProps) {
             top: tooltip.y,
           }}
         >
-          {tooltip.text}
+          <div className="heatmap-tooltip__eyebrow">{tooltip.provider}</div>
+          <div className="heatmap-tooltip__date">{tooltip.date}</div>
+          <div className="heatmap-tooltip__metrics">
+            {tooltip.metrics.map((metric) => (
+              <div key={metric.label} className="heatmap-tooltip__metric">
+                <span className="heatmap-tooltip__label">{metric.label}</span>
+                <span className="heatmap-tooltip__value">{metric.value}</span>
+              </div>
+            ))}
+          </div>
+          {tooltip.topModel ? (
+            <div className="heatmap-tooltip__model">
+              <span className="heatmap-tooltip__label">Top model</span>
+              <span className="heatmap-tooltip__value">
+                {tooltip.topModel}
+                {tooltip.topModelTokens ? ` (${tooltip.topModelTokens})` : ""}
+              </span>
+            </div>
+          ) : null}
+          {tooltip.note ? (
+            <div className="heatmap-tooltip__note">{tooltip.note}</div>
+          ) : null}
         </div>
       ) : null}
     </>

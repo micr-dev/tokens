@@ -340,30 +340,29 @@ function formatLongDate(dateIso: string) {
   });
 }
 
-function buildCellTooltip(providerTitle: string, row: DailyUsage) {
-  const lines = [
-    providerTitle,
-    formatLongDate(formatLocalDate(row.date)),
-    `Total: ${numberFormatter.format(row.total)}`,
-    `Input: ${numberFormatter.format(row.input)}`,
-    `Output: ${numberFormatter.format(row.output)}`,
-    `Cache input: ${numberFormatter.format(row.cache.input)}`,
-    `Cache output: ${numberFormatter.format(row.cache.output)}`,
-  ];
+function buildCellTooltipPayload(providerTitle: string, row: DailyUsage) {
+  const payload: Record<string, string> = {
+    provider: providerTitle,
+    date: formatLongDate(formatLocalDate(row.date)),
+    total: numberFormatter.format(row.total),
+    input: numberFormatter.format(row.input),
+    output: numberFormatter.format(row.output),
+    cacheInput: numberFormatter.format(row.cache.input),
+    cacheOutput: numberFormatter.format(row.cache.output),
+  };
 
   if (row.total <= 0 && (row.displayValue ?? 0) > 0) {
-    lines.push("Telemetry missing - activity recorded without full token totals");
+    payload.note = "Activity recorded without full token totals";
   }
 
   if (row.breakdown.length > 0) {
     const topModel = row.breakdown[0];
 
-    lines.push(
-      `Top model: ${topModel.name} (${numberFormatter.format(topModel.tokens.total)})`,
-    );
+    payload.topModel = topModel.name;
+    payload.topModelTokens = numberFormatter.format(topModel.tokens.total);
   }
 
-  return lines.join("\n");
+  return JSON.stringify(payload);
 }
 
 function getCalendarGrid(startDate: Date, endDate: Date) {
@@ -685,9 +684,7 @@ function drawHeatmapSection(
       const dayRow = rowByDate.get(day);
       const rectContent =
         dayRow && (dayRow.displayValue ?? dayRow.total) > 0
-          ? svgBuilder
-              .create()
-              .title({}, buildCellTooltip(title, dayRow))
+          ? svgBuilder.create().desc({}, buildCellTooltipPayload(title, dayRow))
           : undefined;
 
       svg = svg.rect(rectAttributes, rectContent);

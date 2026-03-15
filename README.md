@@ -101,7 +101,7 @@ Model names are normalized to remove a trailing date suffix like `-20251101`.
 
 - one merged all-provider section
 - one section per available provider
-- native browser hover tooltips on active cells
+- custom hover tooltips on active cells
 
 ### Local-only verification
 
@@ -120,7 +120,7 @@ bun run dev:web
 ### Publish flow
 
 - The page reads `SLOPMETER_WEB_SVG_URL` at runtime.
-- The hosted app defaults to `SLOPMETER_WEB_BASE_PATH=/tokens`, so the page is served at `/tokens`.
+- The hosted app serves from `/` by default. Set `SLOPMETER_WEB_BASE_PATH` only if you intentionally want a subpath deployment.
 - `bun run publish:web` scans this machine's current usage, merges the optional import file at `.slopmeter-data/imports/windows-history.json`, writes `.slopmeter-data/published/daily-usage.json` plus `.slopmeter-data/published/heatmap-last-year.svg`, and uploads both artifacts to Vercel Blob.
 - Set `BLOB_READ_WRITE_TOKEN` for real uploads.
 - Optional overrides:

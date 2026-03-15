@@ -25,14 +25,75 @@ body {
 .heatmap-tooltip {
   position: fixed;
   z-index: 1000;
-  max-width: min(320px, calc(100vw - 24px));
+  width: min(280px, calc(100vw - 24px));
+  padding: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.98);
+  color: #0f172a;
+  font-family:
+    "Instrument Sans", "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+  pointer-events: none;
+  box-shadow:
+    0 18px 40px rgba(15, 23, 42, 0.14),
+    0 4px 12px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(12px);
+}
+
+.heatmap-tooltip__eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #475569;
+}
+
+.heatmap-tooltip__date {
+  margin-top: 2px;
+  font-size: 16px;
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+.heatmap-tooltip__metrics {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.heatmap-tooltip__metric,
+.heatmap-tooltip__model {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.heatmap-tooltip__label {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.heatmap-tooltip__value {
+  font-size: 13px;
+  font-weight: 600;
+  text-align: right;
+}
+
+.heatmap-tooltip__model {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.heatmap-tooltip__note {
+  margin-top: 12px;
   padding: 10px 12px;
   border-radius: 10px;
-  background: rgba(15, 23, 42, 0.94);
-  color: #f8fafc;
-  font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    "Liberation Mono", "Courier New", monospace;
-  white-space: pre-line;
-  pointer-events: none;
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.22);
+  background: #f8fafc;
+  color: #334155;
+  font-size: 12px;
+  line-height: 1.4;
 }
