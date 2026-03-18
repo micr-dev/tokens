@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
-import { loadT3PublishedSummary } from "../lib/t3-chat";
+import { loadT3PublishedSummary } from "../scripts/lib/t3-chat";
 
 function createTempWorkspace(label: string) {
   return mkdtempSync(join(tmpdir(), `slopmeter-${label}-`));

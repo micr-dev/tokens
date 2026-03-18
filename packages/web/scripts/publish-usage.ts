@@ -12,7 +12,7 @@ import {
 import { mergeUsageSummaries } from "../../cli/src/lib/utils";
 import { providerIds, aggregateUsage } from "../../cli/src/providers";
 import type { UsageSummary } from "../../cli/src/interfaces";
-import { loadT3PublishedSummary } from "../lib/t3-chat";
+import { loadT3PublishedSummary } from "./lib/t3-chat";
 
 const DEFAULT_IMPORT_PATH = ".slopmeter-data/imports/windows-history.json";
 const DEFAULT_T3_IMPORT_PATH = ".local/share/slopmeter/t3-chat-export.json";

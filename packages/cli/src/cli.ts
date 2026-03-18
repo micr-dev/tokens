@@ -200,10 +200,7 @@ function getOutputProviders(
 function getMergedProviderTitle(
   rowsByProvider: Record<ProviderId, UsageSummary | null>,
 ) {
-  return providerIds
-    .filter((provider) => rowsByProvider[provider] !== null)
-    .map((provider) => heatmapThemes[provider].title)
-    .join(" / ");
+  return "All Providers";
 }
 
 function selectProvidersToRender(

@@ -50,3 +50,45 @@ export interface PublishedUsagePayload {
     };
   }>;
 }
+
+export interface AnalyticsSeriesPoint {
+  label: string;
+  value: number;
+}
+
+export interface AnalyticsModelShare {
+  name: string;
+  total: number;
+  share: number;
+}
+
+export interface ProviderAnalytics {
+  provider: PublishedUsagePayload["providers"][number]["provider"];
+  total: number;
+  input: number;
+  output: number;
+  cacheTotal: number;
+  cacheShare: number;
+  activeDays: number;
+  longestStreak: number;
+  currentStreak: number;
+  topDay: {
+    date: string;
+    total: number;
+  } | null;
+  topMonth: {
+    label: string;
+    total: number;
+  } | null;
+  mostUsedModel: {
+    name: string;
+    total: number;
+  } | null;
+  recentMostUsedModel: {
+    name: string;
+    total: number;
+  } | null;
+  monthly: AnalyticsSeriesPoint[];
+  weekdays: AnalyticsSeriesPoint[];
+  topModels: AnalyticsModelShare[];
+}
