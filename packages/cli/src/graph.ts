@@ -182,14 +182,14 @@ export const heatmapThemes: Record<HeatmapThemeId, HeatmapTheme> = {
         "#fff59d", // light yellow
         "#ffeb3b", // yellow
         "#ffc107", // amber
-        "#ff9800", // orange
+        "#D4AF37", // gold
       ],
       dark: [
         "#3e3528",
         "#5c4e38",
         "#8c7348",
         "#c7a040",
-        "#ffc107",
+        "#B8860B", // dark gold
       ],
     },
   },
@@ -216,11 +216,11 @@ export const heatmapThemes: Record<HeatmapThemeId, HeatmapTheme> = {
     title: "T3 Chat",
     colors: {
       light: [
+        "#FCE7F3", // very light pink
         "#F6EAF0",
         "#E7C1D1",
         "#CE88A9",
         "#A95381",
-        "#391326",
       ],
       dark: [
         "#391326",
@@ -232,8 +232,7 @@ export const heatmapThemes: Record<HeatmapThemeId, HeatmapTheme> = {
     },
   },
   all: {
-    title:
-      "Codex / Cursor / Open Code / Pi Coding Agent / Hermes Agent / Helios / Claude Code",
+    title: "All Providers",
     titleCaption: "Total usage from",
     colors: {
       light: [
