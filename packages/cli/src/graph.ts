@@ -178,18 +178,18 @@ export const heatmapThemes: Record<HeatmapThemeId, HeatmapTheme> = {
     title: "Hermes Agent",
     colors: {
       light: [
-        "#eff6ff",
-        "#bfdbfe",
-        "#93c5fd",
-        "#3b82f6",
-        "#1d4ed8",
+        "#fffde7", // very light yellow
+        "#fff59d", // light yellow
+        "#ffeb3b", // yellow
+        "#ffc107", // amber
+        "#ff9800", // orange
       ],
       dark: [
-        "#172554",
-        "#1d4ed8",
-        "#2563eb",
-        "#60a5fa",
-        "#bfdbfe",
+        "#3e3528",
+        "#5c4e38",
+        "#8c7348",
+        "#c7a040",
+        "#ffc107",
       ],
     },
   },
@@ -216,18 +216,18 @@ export const heatmapThemes: Record<HeatmapThemeId, HeatmapTheme> = {
     title: "T3 Chat",
     colors: {
       light: [
-        "#f0fdfa",
-        "#99f6e4",
-        "#5eead4",
-        "#14b8a6",
-        "#0f766e",
+        "#F6EAF0",
+        "#E7C1D1",
+        "#CE88A9",
+        "#A95381",
+        "#391326",
       ],
       dark: [
-        "#042f2e",
-        "#115e59",
-        "#0d9488",
-        "#2dd4bf",
-        "#99f6e4",
+        "#391326",
+        "#5A2340",
+        "#7A3259",
+        "#A95381",
+        "#D9A1BA",
       ],
     },
   },
