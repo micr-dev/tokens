@@ -62,7 +62,13 @@ interface ClaudeStatsCacheEntry {
   tokensByModel?: Record<string, number>;
 }
 
+interface ClaudeStatsCacheDailyActivityEntry {
+  date?: string;
+  messageCount?: number;
+}
+
 interface ClaudeStatsCache {
+  dailyActivity?: ClaudeStatsCacheDailyActivityEntry[];
   dailyModelTokens?: ClaudeStatsCacheEntry[];
   modelUsage?: Record<string, ClaudeStatsCacheModelUsage>;
 }
@@ -95,14 +101,9 @@ function discoverClaudeWorkDirs() {
 }
 
 function getClaudeConfigPaths() {
-  const xdgConfigHome =
-    process.env.XDG_CONFIG_HOME?.trim() || join(homedir(), ".config");
-
-  const defaults = [join(xdgConfigHome, "claude"), join(homedir(), ".claude")];
-
   const envPaths = (process.env[CLAUDE_CONFIG_DIR_ENV] ?? "").trim();
 
-  const envResolved =
+  const configuredPaths =
     envPaths === ""
       ? []
       : envPaths
@@ -111,8 +112,17 @@ function getClaudeConfigPaths() {
           .filter((path) => path !== "")
           .map((path) => resolve(path));
 
-  const seen = new Set(envResolved);
-  const paths = [...envResolved];
+  if (configuredPaths.length > 0) {
+    return [...new Set(configuredPaths)];
+  }
+
+  const xdgConfigHome =
+    process.env.XDG_CONFIG_HOME?.trim() || join(homedir(), ".config");
+
+  const defaults = [join(xdgConfigHome, "claude"), join(homedir(), ".claude")];
+
+  const seen = new Set<string>();
+  const paths: string[] = [];
 
   for (const path of [...defaults, ...discoverClaudeWorkDirs()]) {
     if (!seen.has(path)) {
@@ -392,6 +402,52 @@ async function loadClaudeHistoryDisplayValues(
   }
 }
 
+async function loadClaudeStatsCacheDisplayValues(
+  startDate: Date,
+  endDate: Date,
+  coveredDates: Set<string>,
+  displayValuesByDate: Map<string, number>,
+) {
+  const statsCacheFiles = getClaudeStatsCacheFiles();
+
+  for (const file of statsCacheFiles) {
+    let statsCache: ClaudeStatsCache;
+
+    try {
+      statsCache = await readJsonDocument<ClaudeStatsCache>(file);
+    } catch {
+      continue;
+    }
+
+    for (const row of statsCache.dailyActivity ?? []) {
+      if (!row.date || coveredDates.has(row.date)) {
+        continue;
+      }
+
+      const timestamp = new Date(`${row.date}T00:00:00`);
+
+      if (
+        Number.isNaN(timestamp.getTime()) ||
+        timestamp < startDate ||
+        timestamp > endDate
+      ) {
+        continue;
+      }
+
+      const messageCount = Math.max(0, Math.round(row.messageCount ?? 0));
+
+      if (messageCount <= 0) {
+        continue;
+      }
+
+      displayValuesByDate.set(
+        row.date,
+        (displayValuesByDate.get(row.date) ?? 0) + messageCount,
+      );
+    }
+  }
+}
+
 function createUniqueHash(messageId?: string, requestId?: string) {
   if (!messageId || !requestId) {
     return null;
@@ -479,6 +535,12 @@ export async function loadClaudeRows(
     startDate,
     endDate,
     new Set(totals.keys()),
+    displayValuesByDate,
+  );
+  await loadClaudeStatsCacheDisplayValues(
+    startDate,
+    endDate,
+    new Set([...totals.keys(), ...displayValuesByDate.keys()]),
     displayValuesByDate,
   );
 

@@ -1077,6 +1077,95 @@ test("Claude falls back to history.jsonl for activity-only days before token log
   });
 });
 
+test("Claude falls back to stats-cache dailyActivity when token rows are unavailable", async (t) => {
+  const workspace = createTempWorkspace("claude-daily-activity");
+
+  t.after(() => {
+    rmSync(workspace, { recursive: true, force: true });
+  });
+
+  const claudeConfig = join(workspace, "claude");
+  const outputPath = join(workspace, "out.json");
+
+  writeJsonFile(
+    join(claudeConfig, "stats-cache.json"),
+    JSON.stringify({
+      version: 2,
+      lastComputedDate: recentDate(1),
+      dailyActivity: [
+        {
+          date: recentDate(6),
+          messageCount: 3,
+        },
+        {
+          date: recentDate(5),
+          messageCount: 1,
+        },
+      ],
+      dailyModelTokens: [],
+      modelUsage: {},
+      totalSessions: 0,
+      totalMessages: 4,
+      hourCounts: {},
+      totalSpeculationTimeSavedMs: 0,
+    }),
+  );
+
+  const result = await runCli(
+    ["--claude", "--format", "json", "--output", outputPath],
+    {
+      CLAUDE_CONFIG_DIR: claudeConfig,
+    },
+  );
+
+  assert.equal(result.code, 0, result.stderr || result.stdout);
+
+  const payload = JSON.parse(readFileSync(outputPath, "utf8")) as {
+    providers: Array<{
+      provider: string;
+      insights: {
+        streaks: {
+          longest: number;
+          current: number;
+        };
+      };
+      daily: Array<{
+        date: string;
+        total: number;
+        displayValue?: number;
+        breakdown: unknown[];
+      }>;
+    }>;
+  };
+
+  assert.deepEqual(
+    payload.providers[0]?.daily.map((day) => ({
+      date: day.date,
+      total: day.total,
+      displayValue: day.displayValue,
+      breakdownLength: day.breakdown.length,
+    })),
+    [
+      {
+        date: recentDate(6),
+        total: 0,
+        displayValue: 3,
+        breakdownLength: 0,
+      },
+      {
+        date: recentDate(5),
+        total: 0,
+        displayValue: 1,
+        breakdownLength: 0,
+      },
+    ],
+  );
+  assert.deepEqual(payload.providers[0]?.insights.streaks, {
+    longest: 2,
+    current: 0,
+  });
+});
+
 test("Claude fails clearly on oversized JSONL records via the shared splitter", async (t) => {
   const workspace = createTempWorkspace("claude-oversized");
 
