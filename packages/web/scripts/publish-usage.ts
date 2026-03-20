@@ -27,13 +27,13 @@ const DEFAULT_BLOB_PATH = "slopmeter/daily-usage.json";
 const DEFAULT_SVG_BLOB_PATH = "slopmeter/heatmap-last-year.svg";
 const REPO_ROOT = resolve(fileURLToPath(new URL("../../..", import.meta.url)));
 export const WEB_PROVIDER_ORDER = [
-  "claude",
-  "gemini",
   "codex",
-  "cursor",
   "opencode",
   "pi",
+  "gemini",
+  "claude",
   "hermes",
+  "cursor",
   "helios",
   "t3",
 ] as const;
