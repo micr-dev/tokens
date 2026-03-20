@@ -121,3 +121,65 @@ test("loadGeminiRows aggregates recorded Gemini CLI chat sessions", async (t) =>
   assert.equal(summary.insights?.mostUsedModel?.name, "gemini-2.5-pro");
   assert.equal(summary.insights?.recentMostUsedModel?.name, "gemini-2.5-pro");
 });
+
+test("loadGeminiRows skips truncated gemini session files", async (t) => {
+  const workspace = createTempWorkspace("gemini-invalid");
+  const originalGeminiHome = process.env.GEMINI_HOME;
+  const validSessionPath = join(
+    workspace,
+    "tmp",
+    "workspace",
+    "chats",
+    "session-2026-03-20T05-00-valid.json",
+  );
+  const invalidSessionPath = join(
+    workspace,
+    "tmp",
+    "workspace",
+    "chats",
+    "session-2026-03-20T05-01-invalid.json",
+  );
+
+  t.after(() => {
+    rmSync(workspace, { recursive: true, force: true });
+
+    if (originalGeminiHome === undefined) {
+      delete process.env.GEMINI_HOME;
+    } else {
+      process.env.GEMINI_HOME = originalGeminiHome;
+    }
+  });
+
+  process.env.GEMINI_HOME = workspace;
+
+  writeJsonFile(validSessionPath, {
+    messages: [
+      {
+        timestamp: "2026-03-20T10:00:00.000Z",
+        type: "gemini",
+        model: "gemini-2.5-pro",
+        tokens: {
+          input: 10,
+          output: 5,
+          cached: 2,
+          total: 15,
+        },
+      },
+    ],
+  });
+  ensureParent(invalidSessionPath);
+  writeFileSync(invalidSessionPath, "{\"messages\":[", "utf8");
+
+  const summary = await loadGeminiRows(
+    new Date("2026-03-20T00:00:00.000Z"),
+    new Date("2026-03-20T23:59:59.999Z"),
+  );
+
+  assert.deepEqual(
+    summary.daily.map((day) => ({
+      date: day.date.toISOString().slice(0, 10),
+      total: day.total,
+    })),
+    [{ date: "2026-03-20", total: 15 }],
+  );
+});

@@ -165,7 +165,15 @@ export async function loadGeminiRows(
   const recentStart = getRecentWindowStart(end, 30);
 
   for (const file of files) {
-    const session = await readJsonDocument<GeminiSessionRecord>(file);
+    let session: GeminiSessionRecord;
+
+    try {
+      session = await readJsonDocument<GeminiSessionRecord>(file);
+    } catch {
+      // Gemini can leave behind truncated temp sessions while a chat is active.
+      // Skip unreadable files so one bad local artifact does not block publishing.
+      continue;
+    }
 
     addGeminiSession(
       session,
