@@ -11,7 +11,11 @@ import {
 } from "../../cli/src/lib/export";
 import { mergeUsageSummaries } from "../../cli/src/lib/utils";
 import { providerIds, aggregateUsage } from "../../cli/src/providers";
-import type { UsageSummary } from "../../cli/src/interfaces";
+import type {
+  JsonExportPayload,
+  JsonUsageSummary,
+  UsageSummary,
+} from "../../cli/src/interfaces";
 import { loadT3PublishedSummary } from "./lib/t3-chat";
 
 const DEFAULT_IMPORT_PATH = ".slopmeter-data/imports/windows-history.json";
@@ -22,15 +26,15 @@ const DEFAULT_LOCAL_SVG_OUTPUT_PATH =
 const DEFAULT_BLOB_PATH = "slopmeter/daily-usage.json";
 const DEFAULT_SVG_BLOB_PATH = "slopmeter/heatmap-last-year.svg";
 const REPO_ROOT = resolve(fileURLToPath(new URL("../../..", import.meta.url)));
-const WEB_PROVIDER_ORDER = [
-  "codex",
+export const WEB_PROVIDER_ORDER = [
+  "claude",
   "gemini",
+  "codex",
   "cursor",
   "opencode",
   "pi",
   "hermes",
   "helios",
-  "claude",
   "t3",
 ] as const;
 
@@ -55,6 +59,24 @@ function readImportedPayload(importPath: string) {
   return JSON.parse(readFileSync(importPath, "utf8")) as ReturnType<
     typeof createJsonExportPayload
   >;
+}
+
+async function readHostedPayload() {
+  const dataUrl = process.env.SLOPMETER_WEB_DATA_URL?.trim();
+
+  if (!dataUrl) {
+    return null;
+  }
+
+  const response = await fetch(dataUrl, {
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    return null;
+  }
+
+  return (await response.json()) as PublishedUsagePayload;
 }
 
 function resolveRepoPath(pathValue: string) {
@@ -84,6 +106,17 @@ function toUsageSummary(
       displayValue: row.displayValue,
       breakdown: row.breakdown,
     })),
+  };
+}
+
+function toJsonExportPayload(
+  payload: PublishedUsagePayload,
+): JsonExportPayload {
+  return {
+    version: payload.version,
+    start: payload.start,
+    end: payload.end,
+    providers: payload.providers,
   };
 }
 
@@ -128,7 +161,7 @@ function renderPublishedSvg(payload: PublishedUsagePayload) {
   });
 }
 
-function sortPublishedProviders(
+export function sortPublishedProviders(
   providers: PublishedUsagePayload["providers"],
 ) {
   const ordered = new Map(
@@ -136,11 +169,49 @@ function sortPublishedProviders(
   );
 
   return [...providers].sort((left, right) => {
-    const leftOrder = ordered.get(left.provider) ?? Number.MAX_SAFE_INTEGER;
-    const rightOrder = ordered.get(right.provider) ?? Number.MAX_SAFE_INTEGER;
+    const leftOrder =
+      ordered.get(left.provider as (typeof WEB_PROVIDER_ORDER)[number]) ??
+      Number.MAX_SAFE_INTEGER;
+    const rightOrder =
+      ordered.get(right.provider as (typeof WEB_PROVIDER_ORDER)[number]) ??
+      Number.MAX_SAFE_INTEGER;
 
     return leftOrder - rightOrder || left.provider.localeCompare(right.provider);
   });
+}
+
+export function mergePublishedUsagePayloads({
+  currentPayload,
+  importedPayload,
+  hostedPayload,
+  t3Summary,
+  updatedAt,
+}: {
+  currentPayload: JsonExportPayload;
+  importedPayload: JsonExportPayload | null;
+  hostedPayload: PublishedUsagePayload | null;
+  t3Summary: JsonUsageSummary | null;
+  updatedAt?: Date;
+}): PublishedUsagePayload {
+  const mergedPayload = mergeJsonExportsToPublishedUsage(
+    [
+      currentPayload,
+      hostedPayload ? toJsonExportPayload(hostedPayload) : null,
+      importedPayload,
+    ].filter((payload): payload is JsonExportPayload => payload !== null),
+    updatedAt,
+  );
+
+  if (t3Summary) {
+    mergedPayload.providers = sortPublishedProviders([
+      ...mergedPayload.providers,
+      t3Summary,
+    ]);
+  } else {
+    mergedPayload.providers = sortPublishedProviders(mergedPayload.providers);
+  }
+
+  return mergedPayload;
 }
 
 async function main() {
@@ -186,19 +257,14 @@ async function main() {
     process.env.SLOPMETER_WEB_SVG_BLOB_PATH?.trim() || DEFAULT_SVG_BLOB_PATH;
   const currentPayload = createJsonExportPayload(start, end, currentProviders);
   const importedPayload = readImportedPayload(importPath);
-  const mergedPayload: PublishedUsagePayload = mergeJsonExportsToPublishedUsage(
-    importedPayload ? [currentPayload, importedPayload] : [currentPayload],
-  );
+  const hostedPayload = await readHostedPayload();
   const t3Summary = await loadT3PublishedSummary(t3ImportPath, start, end);
-
-  if (t3Summary) {
-    mergedPayload.providers = sortPublishedProviders([
-      ...mergedPayload.providers,
-      t3Summary,
-    ]);
-  } else {
-    mergedPayload.providers = sortPublishedProviders(mergedPayload.providers);
-  }
+  const mergedPayload = mergePublishedUsagePayloads({
+    currentPayload,
+    importedPayload,
+    hostedPayload,
+    t3Summary,
+  });
   const svg = renderPublishedSvg(mergedPayload);
 
   mkdirSync(dirname(localOutputPath), { recursive: true });
@@ -271,4 +337,6 @@ async function main() {
   );
 }
 
-void main();
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  void main();
+}
