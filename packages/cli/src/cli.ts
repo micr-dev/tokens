@@ -32,6 +32,7 @@ interface CliArgValues {
   all: boolean;
   claude: boolean;
   codex: boolean;
+  gemini: boolean;
   cursor: boolean;
   opencode: boolean;
   pi: boolean;
@@ -47,12 +48,13 @@ const HELP_TEXT = `slopmeter
 Generate rolling 1-year usage heatmap image(s) (today is the latest day).
 
 Usage:
-  slopmeter [--all] [--claude] [--codex] [--cursor] [--opencode] [--pi] [--hermes] [--helios] [--dark] [--format png|svg|json] [--output ./heatmap-last-year.png]
+  slopmeter [--all] [--claude] [--codex] [--gemini] [--cursor] [--opencode] [--pi] [--hermes] [--helios] [--dark] [--format png|svg|json] [--output ./heatmap-last-year.png]
 
 Options:
   --all                       Render one merged graph for all providers
   --claude                    Render Claude Code graph
   --codex                     Render Codex graph
+  --gemini                    Render Gemini CLI graph
   --cursor                    Render Cursor graph
   --opencode                  Render Open Code graph
   --pi                        Render Pi Coding Agent graph
@@ -79,6 +81,7 @@ function validateArgs(values: unknown): asserts values is CliArgValues {
       all: ow.boolean,
       claude: ow.boolean,
       codex: ow.boolean,
+      gemini: ow.boolean,
       cursor: ow.boolean,
       opencode: ow.boolean,
       pi: ow.boolean,
@@ -92,6 +95,7 @@ function getProviderListLabel() {
   return [
     "Claude Code",
     "Codex",
+    "Gemini CLI",
     "Cursor",
     "Open Code",
     "Pi Coding Agent",
@@ -265,6 +269,7 @@ async function main() {
       all: { type: "boolean", default: false },
       claude: { type: "boolean", default: false },
       codex: { type: "boolean", default: false },
+      gemini: { type: "boolean", default: false },
       cursor: { type: "boolean", default: false },
       opencode: { type: "boolean", default: false },
       pi: { type: "boolean", default: false },

@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import {
   formatCompactNumber,
   formatPercent,
+  getProviderDetailTheme,
   getProviderTitle,
 } from "../lib/analytics";
 import type { ProviderAnalytics } from "../lib/types";
@@ -253,129 +254,140 @@ function ModelShareBars({ models }: { models: ProviderAnalytics["topModels"] }) 
 function DetailsView({ analytics }: { analytics: ProviderAnalytics[] }) {
   return (
     <section className="details-grid">
-      {analytics.map((provider) => (
-        <section
-          key={provider.provider}
-          className={`provider-card provider-card--${provider.provider}`}
-        >
-          <header className="provider-card__header">
-            <h2 className="provider-card__title">
-              {getProviderTitle(provider.provider)}
-            </h2>
-            <div className="provider-card__total">
-              {formatCompactNumber(provider.total)}
-            </div>
-          </header>
+      {analytics.map((provider) => {
+        const theme = getProviderDetailTheme(provider.provider);
+        const cardStyle = {
+          "--provider-accent": theme.accent,
+          "--provider-accent-soft": theme.accentSoft,
+        } as CSSProperties;
 
-          <div className="provider-card__stats">
-            <div>
-              <span className="provider-card__stat-label">Input</span>
-              <span className="provider-card__stat-value">
-                {formatCompactNumber(provider.input)}
-              </span>
-            </div>
-            <div>
-              <span className="provider-card__stat-label">Output</span>
-              <span className="provider-card__stat-value">
-                {formatCompactNumber(provider.output)}
-              </span>
-            </div>
-            <div>
-              <span className="provider-card__stat-label">Cache share</span>
-              <span className="provider-card__stat-value">
-                {formatPercent(provider.cacheShare)}
-              </span>
-            </div>
-            <div>
-              <span className="provider-card__stat-label">Active days</span>
-              <span className="provider-card__stat-value">{provider.activeDays}</span>
-            </div>
-            <div>
-              <span className="provider-card__stat-label">Longest streak</span>
-              <span className="provider-card__stat-value">
-                {provider.longestStreak}
-              </span>
-            </div>
-            <div>
-              <span className="provider-card__stat-label">Current streak</span>
-              <span className="provider-card__stat-value">
-                {provider.currentStreak}
-              </span>
-            </div>
-          </div>
+        return (
+          <section
+            key={provider.provider}
+            className={`provider-card provider-card--${provider.provider}`}
+            style={cardStyle}
+          >
+            <header className="provider-card__header">
+              <h2 className="provider-card__title">
+                {getProviderTitle(provider.provider)}
+              </h2>
+              <div className="provider-card__total">
+                {formatCompactNumber(provider.total)}
+              </div>
+            </header>
 
-          <div className="provider-card__highlights">
-            <div>
-              <div className="provider-card__eyebrow">Peak day</div>
-              <div className="provider-card__highlight">
-                {provider.topDay ? formatFullDate(provider.topDay.date) : "None"}
+            <div className="provider-card__stats">
+              <div>
+                <span className="provider-card__stat-label">Input</span>
+                <span className="provider-card__stat-value">
+                  {formatCompactNumber(provider.input)}
+                </span>
               </div>
-              <div className="provider-card__subtle">
-                {provider.topDay ? formatCompactNumber(provider.topDay.total) : ""}
+              <div>
+                <span className="provider-card__stat-label">Output</span>
+                <span className="provider-card__stat-value">
+                  {formatCompactNumber(provider.output)}
+                </span>
               </div>
-            </div>
-            <div>
-              <div className="provider-card__eyebrow">Peak month</div>
-              <div className="provider-card__highlight">
-                {provider.topMonth ? formatPeakMonthLabel(provider.topMonth.label) : "None"}
+              <div>
+                <span className="provider-card__stat-label">Cache share</span>
+                <span className="provider-card__stat-value">
+                  {formatPercent(provider.cacheShare)}
+                </span>
               </div>
-              <div className="provider-card__subtle">
-                {provider.topMonth
-                  ? formatCompactNumber(provider.topMonth.total)
-                  : ""}
+              <div>
+                <span className="provider-card__stat-label">Active days</span>
+                <span className="provider-card__stat-value">{provider.activeDays}</span>
               </div>
-            </div>
-            <div>
-              <div className="provider-card__eyebrow">Most used model</div>
-              <div className="provider-card__highlight provider-card__highlight--truncate">
-                {provider.mostUsedModel?.name ?? "None"}
+              <div>
+                <span className="provider-card__stat-label">Longest streak</span>
+                <span className="provider-card__stat-value">
+                  {provider.longestStreak}
+                </span>
               </div>
-              <div className="provider-card__subtle">
-                {provider.mostUsedModel
-                  ? formatCompactNumber(provider.mostUsedModel.total)
-                  : ""}
-              </div>
-            </div>
-            <div>
-              <div className="provider-card__eyebrow">Recent model</div>
-              <div className="provider-card__highlight provider-card__highlight--truncate">
-                {provider.recentMostUsedModel?.name ?? "None"}
-              </div>
-              <div className="provider-card__subtle">
-                {provider.recentMostUsedModel
-                  ? formatCompactNumber(provider.recentMostUsedModel.total)
-                  : ""}
+              <div>
+                <span className="provider-card__stat-label">Current streak</span>
+                <span className="provider-card__stat-value">
+                  {provider.currentStreak}
+                </span>
               </div>
             </div>
-          </div>
 
-          <div className="provider-card__section">
-            <div className="provider-card__section-title">Monthly totals</div>
-            <SeriesBars
-              points={provider.monthly.map((point) => ({
-                ...point,
-                label: formatMonthLabel(point.label),
-              }))}
-              formatter={formatCompactNumber}
-              noteFormatter={(value) => `${formatExactNumber(value)} tokens`}
-            />
-          </div>
+            <div className="provider-card__highlights">
+              <div>
+                <div className="provider-card__eyebrow">Peak day</div>
+                <div className="provider-card__highlight">
+                  {provider.topDay ? formatFullDate(provider.topDay.date) : "None"}
+                </div>
+                <div className="provider-card__subtle">
+                  {provider.topDay ? formatCompactNumber(provider.topDay.total) : ""}
+                </div>
+              </div>
+              <div>
+                <div className="provider-card__eyebrow">Peak month</div>
+                <div className="provider-card__highlight">
+                  {provider.topMonth
+                    ? formatPeakMonthLabel(provider.topMonth.label)
+                    : "None"}
+                </div>
+                <div className="provider-card__subtle">
+                  {provider.topMonth
+                    ? formatCompactNumber(provider.topMonth.total)
+                    : ""}
+                </div>
+              </div>
+              <div>
+                <div className="provider-card__eyebrow">Most used model</div>
+                <div className="provider-card__highlight provider-card__highlight--truncate">
+                  {provider.mostUsedModel?.name ?? "None"}
+                </div>
+                <div className="provider-card__subtle">
+                  {provider.mostUsedModel
+                    ? formatCompactNumber(provider.mostUsedModel.total)
+                    : ""}
+                </div>
+              </div>
+              <div>
+                <div className="provider-card__eyebrow">Recent model</div>
+                <div className="provider-card__highlight provider-card__highlight--truncate">
+                  {provider.recentMostUsedModel?.name ?? "None"}
+                </div>
+                <div className="provider-card__subtle">
+                  {provider.recentMostUsedModel
+                    ? formatCompactNumber(provider.recentMostUsedModel.total)
+                    : ""}
+                </div>
+              </div>
+            </div>
 
-          <div className="provider-card__section">
-            <div className="provider-card__section-title">Weekday shape</div>
-            <SeriesBars
-              points={provider.weekdays}
-              formatter={formatCompactNumber}
-              noteFormatter={(value) => `${formatExactNumber(value)} tokens`}
-            />
-          </div>
+            <div className="provider-card__section">
+              <div className="provider-card__section-title">Monthly totals</div>
+              <SeriesBars
+                points={provider.monthly.map((point) => ({
+                  ...point,
+                  label: formatMonthLabel(point.label),
+                }))}
+                formatter={formatCompactNumber}
+                noteFormatter={(value) => `${formatExactNumber(value)} tokens`}
+              />
+            </div>
 
-          <div className="provider-card__section">
-            <div className="provider-card__section-title">Top models</div>
-            <ModelShareBars models={provider.topModels} />
-          </div>
-        </section>
-      ))}
+            <div className="provider-card__section">
+              <div className="provider-card__section-title">Weekday shape</div>
+              <SeriesBars
+                points={provider.weekdays}
+                formatter={formatCompactNumber}
+                noteFormatter={(value) => `${formatExactNumber(value)} tokens`}
+              />
+            </div>
+
+            <div className="provider-card__section">
+              <div className="provider-card__section-title">Top models</div>
+              <ModelShareBars models={provider.topModels} />
+            </div>
+          </section>
+        );
+      })}
     </section>
   );
 }

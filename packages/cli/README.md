@@ -1,6 +1,6 @@
 # slopmeter
 
-`slopmeter` is a Node.js CLI that scans local Claude Code, Codex, Cursor, Open Code, Pi Coding Agent, Hermes Agent, and Helios usage data and generates a contribution-style heatmap for the rolling past year.
+`slopmeter` is a Node.js CLI that scans local Claude Code, Codex, Gemini CLI, Cursor, Open Code, Pi Coding Agent, Hermes Agent, and Helios usage data and generates a contribution-style heatmap for the rolling past year.
 
 ## Requirements
 
@@ -24,7 +24,7 @@ slopmeter
 ## Usage
 
 ```bash
-slopmeter [--all] [--claude] [--codex] [--cursor] [--opencode] [--pi] [--hermes] [--helios] [--dark] [--format png|svg|json] [--output ./heatmap-last-year.png]
+slopmeter [--all] [--claude] [--codex] [--gemini] [--cursor] [--opencode] [--pi] [--hermes] [--helios] [--dark] [--format png|svg|json] [--output ./heatmap-last-year.png]
 ```
 
 By default, the CLI:
@@ -37,6 +37,7 @@ By default, the CLI:
 
 - `--claude`: include only Claude Code data
 - `--codex`: include only Codex data
+- `--gemini`: include only Gemini CLI data
 - `--cursor`: include only Cursor data
 - `--opencode`: include only Open Code data
 - `--pi`: include only Pi Coding Agent data
@@ -78,6 +79,12 @@ Render only Cursor usage:
 
 ```bash
 npx slopmeter --cursor
+```
+
+Render only Gemini CLI usage:
+
+```bash
+npx slopmeter --gemini
 ```
 
 Render only Pi Coding Agent usage:
@@ -130,6 +137,7 @@ npx slopmeter --dark --format svg --output ./out/heatmap-dark.svg
 - Older Claude Code layouts: falls back to `$CLAUDE_CONFIG_DIR/stats-cache.json`, `~/.config/claude/stats-cache.json`, or `~/.claude/stats-cache.json` for days not present in project logs
 - Earliest Claude Code activity fallback: uses `$CLAUDE_CONFIG_DIR/history.jsonl`, `~/.config/claude/history.jsonl`, or `~/.claude/history.jsonl` to mark activity-only days when token totals are unavailable
 - Codex: `$CODEX_HOME/sessions` or `~/.codex/sessions`
+- Gemini CLI: `$GEMINI_HOME/tmp/*/chats/session-*.json` or `~/.gemini/tmp/*/chats/session-*.json`
 - Cursor: reads `cursorAuth/accessToken` and `cursorAuth/refreshToken` from `$CURSOR_STATE_DB_PATH`, `$CURSOR_CONFIG_DIR/User/globalStorage/state.vscdb`, `~/Library/Application Support/Cursor/User/globalStorage/state.vscdb` (macOS), `%APPDATA%/Cursor/User/globalStorage/state.vscdb` (Windows), or `~/.config/Cursor/User/globalStorage/state.vscdb` (Linux), then loads usage from Cursor's CSV export endpoint
 - Open Code: prefers `$OPENCODE_DATA_DIR/opencode.db` or `~/.local/share/opencode/opencode.db`, and falls back to `$OPENCODE_DATA_DIR/storage/message` or `~/.local/share/opencode/storage/message`
 - Pi Coding Agent: `$PI_CODING_AGENT_DIR/sessions` or `~/.pi/agent/sessions`
@@ -144,6 +152,7 @@ When Claude Code falls back to `history.jsonl`, those days are rendered as activ
 
 - If no provider flags are passed, `slopmeter` renders every provider with available data.
 - If `--all` is passed, `slopmeter` loads all providers and renders one combined graph with merged totals, streaks, and model rankings.
+- Gemini CLI usage is derived from recorded `gemini` chat messages in session JSON files, using Gemini's recorded prompt, cache, and total token counts per message.
 - Pi Coding Agent usage is derived from assistant messages in Pi and GSD session logs, grouped by the model that handled each turn.
 - Hermes Agent usage is derived from assistant-message token counts in `state.db`, with session input distributed proportionally across assistant turns.
 - Helios usage is derived from assistant-message token counts in `helios.db`, with session input distributed proportionally across assistant turns.
@@ -154,6 +163,7 @@ When Claude Code falls back to `history.jsonl`, those days are rendered as activ
 
 - `SLOPMETER_FILE_PROCESS_CONCURRENCY`: positive integer file-processing limit for Claude Code and Codex JSONL files. Default: `16`.
 - `SLOPMETER_MAX_JSONL_RECORD_BYTES`: byte cap for Claude Code and Codex JSONL records, OpenCode JSON documents, and OpenCode SQLite `message.data` payloads. Default: `67108864` (`64 MB`).
+- `GEMINI_HOME`: alternate Gemini CLI base directory. Default: `~/.gemini`.
 - `GSD_HOME`: alternate GSD base directory. Default: `~/.gsd`.
 - `HERMES_HOME`: alternate Hermes base directory. Default: `~/.hermes`.
 - `HELIOS_HOME`: alternate Helios base directory. Default: `~/.helios`.

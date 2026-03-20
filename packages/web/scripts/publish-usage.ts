@@ -24,6 +24,7 @@ const DEFAULT_SVG_BLOB_PATH = "slopmeter/heatmap-last-year.svg";
 const REPO_ROOT = resolve(fileURLToPath(new URL("../../..", import.meta.url)));
 const WEB_PROVIDER_ORDER = [
   "codex",
+  "gemini",
   "cursor",
   "opencode",
   "pi",

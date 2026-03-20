@@ -1,3 +1,14 @@
+export type ProviderId =
+  | "claude"
+  | "codex"
+  | "gemini"
+  | "cursor"
+  | "opencode"
+  | "pi"
+  | "hermes"
+  | "helios"
+  | "t3";
+
 export interface PublishedModelUsage {
   name: string;
   tokens: {
@@ -30,15 +41,7 @@ export interface PublishedUsagePayload {
   end: string;
   updatedAt: string;
   providers: Array<{
-    provider:
-      | "claude"
-      | "codex"
-      | "cursor"
-      | "opencode"
-      | "pi"
-      | "hermes"
-      | "helios"
-      | "t3";
+    provider: ProviderId;
     daily: PublishedDailyUsage[];
     insights?: {
       mostUsedModel?: PublishedModelUsage;

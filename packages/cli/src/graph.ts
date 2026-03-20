@@ -117,6 +117,25 @@ export const heatmapThemes: Record<HeatmapThemeId, HeatmapTheme> = {
       ],
     },
   },
+  gemini: {
+    title: "Gemini CLI",
+    colors: {
+      light: [
+        "#fef2f2", // red-50
+        "#fecaca", // red-200
+        "#fca5a5", // red-300
+        "#ef4444", // red-500
+        "#991b1b", // red-800
+      ],
+      dark: [
+        "#450a0a", // red-950
+        "#991b1b", // red-800
+        "#dc2626", // red-600
+        "#f87171", // red-400
+        "#fecaca", // red-200
+      ],
+    },
+  },
   cursor: {
     title: "Cursor",
     colors: {

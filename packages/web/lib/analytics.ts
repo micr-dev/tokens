@@ -2,22 +2,63 @@ import type {
   AnalyticsModelShare,
   AnalyticsSeriesPoint,
   ProviderAnalytics,
+  ProviderId,
   PublishedUsagePayload,
 } from "./types";
 
 const weekdayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-const providerTitles: Record<
-  PublishedUsagePayload["providers"][number]["provider"],
-  string
-> = {
+const providerTitles: Record<ProviderId, string> = {
   claude: "Claude Code",
   codex: "Codex",
+  gemini: "Gemini CLI",
   cursor: "Cursor",
   opencode: "Open Code",
   pi: "Pi Coding Agent",
   hermes: "Hermes Agent",
   helios: "Helios",
   t3: "T3 Chat",
+};
+
+const providerDetailThemes: Record<
+  ProviderId,
+  { accent: string; accentSoft: string }
+> = {
+  claude: {
+    accent: "#f97316",
+    accentSoft: "#fff7ed",
+  },
+  codex: {
+    accent: "#4f46e5",
+    accentSoft: "#e0e7ff",
+  },
+  gemini: {
+    accent: "#ef4444",
+    accentSoft: "#fef2f2",
+  },
+  cursor: {
+    accent: "#f97316",
+    accentSoft: "#fff7ed",
+  },
+  opencode: {
+    accent: "#525252",
+    accentSoft: "#f5f5f5",
+  },
+  pi: {
+    accent: "#10b981",
+    accentSoft: "#ecfdf5",
+  },
+  hermes: {
+    accent: "#ffc107",
+    accentSoft: "#fffde7",
+  },
+  helios: {
+    accent: "#f59e0b",
+    accentSoft: "#fffbea",
+  },
+  t3: {
+    accent: "#ce88a9",
+    accentSoft: "#fce7f3",
+  },
 };
 
 export function formatCompactNumber(value: number) {
@@ -32,9 +73,13 @@ export function formatPercent(value: number) {
 }
 
 export function getProviderTitle(
-  provider: PublishedUsagePayload["providers"][number]["provider"],
+  provider: ProviderId,
 ) {
   return providerTitles[provider];
+}
+
+export function getProviderDetailTheme(provider: ProviderId) {
+  return providerDetailThemes[provider];
 }
 
 function sortSeries<T extends AnalyticsSeriesPoint>(series: T[]) {

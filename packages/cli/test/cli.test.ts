@@ -377,6 +377,7 @@ test("--codex only loads Codex and only reports Codex availability", async (t) =
   const codexHome = join(workspace, "codex");
   const claudeConfig = join(workspace, "claude");
   const openCodeDir = join(workspace, "opencode");
+  const gsdHome = join(workspace, "gsd");
   const outputPath = join(workspace, "out.json");
   const unreadableClaudeFile = join(claudeConfig, "projects", "bad.jsonl");
 
@@ -644,6 +645,7 @@ test("--pi only loads Pi Coding Agent and ignores oversized irrelevant session r
   });
 
   const piAgentDir = join(workspace, "pi-agent");
+  const gsdHome = join(workspace, "gsd");
   const codexHome = join(workspace, "codex");
   const claudeConfig = join(workspace, "claude");
   const openCodeDir = join(workspace, "opencode");
@@ -666,6 +668,7 @@ test("--pi only loads Pi Coding Agent and ignores oversized irrelevant session r
     ["--pi", "--format", "json", "--output", outputPath],
     {
       PI_CODING_AGENT_DIR: piAgentDir,
+      GSD_HOME: gsdHome,
       CODEX_HOME: codexHome,
       CLAUDE_CONFIG_DIR: claudeConfig,
       OPENCODE_DATA_DIR: openCodeDir,

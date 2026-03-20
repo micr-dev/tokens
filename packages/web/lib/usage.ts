@@ -12,6 +12,19 @@ const DEFAULT_LOCAL_SVG_OUTPUT_PATH = resolve(
   REPO_ROOT,
   ".slopmeter-data/published/heatmap-last-year.svg",
 );
+const mergedProvidersCaption = "TOTAL USAGE FROM";
+const mergedProvidersLabel = "All Providers";
+
+export function normalizePublishedSvgMarkup(svgMarkup: string) {
+  const mergedProvidersPattern = new RegExp(
+    `(<text\\b[^>]*>${mergedProvidersCaption}<\\/text>\\s*<text\\b[^>]*>)([^<]+)(<\\/text>)`,
+  );
+
+  return svgMarkup.replace(
+    mergedProvidersPattern,
+    `$1${mergedProvidersLabel}$3`,
+  );
+}
 
 export async function getPublishedSvgMarkup(): Promise<string> {
   const svgUrl = process.env.SLOPMETER_WEB_SVG_URL?.trim();
@@ -23,7 +36,9 @@ export async function getPublishedSvgMarkup(): Promise<string> {
       );
     }
 
-    return await readFile(DEFAULT_LOCAL_SVG_OUTPUT_PATH, "utf8");
+    return normalizePublishedSvgMarkup(
+      await readFile(DEFAULT_LOCAL_SVG_OUTPUT_PATH, "utf8"),
+    );
   }
 
   const response = await fetch(svgUrl, {
@@ -34,7 +49,7 @@ export async function getPublishedSvgMarkup(): Promise<string> {
     throw new Error(`Failed to load published SVG: ${response.status}`);
   }
 
-  return await response.text();
+  return normalizePublishedSvgMarkup(await response.text());
 }
 
 export async function getPublishedUsagePayload(): Promise<PublishedUsagePayload | null> {
