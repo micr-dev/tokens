@@ -1,6 +1,6 @@
 # slopmeter
 
-CLI tool that generates usage heatmaps for Claude Code, Codex, Cursor, Open Code, Pi Coding Agent, Hermes Agent, and Helios for the rolling past year (ending today).
+CLI tool that generates usage heatmaps for Claude Code, Codex, Cursor, Open Code, Pi Coding Agent, Droid, Hermes Agent, and Helios for the rolling past year (ending today).
 
 ## Monorepo layout
 
@@ -62,6 +62,7 @@ slopmeter --codex
 slopmeter --cursor
 slopmeter --opencode
 slopmeter --pi
+slopmeter --droid
 slopmeter --hermes
 slopmeter --helios
 ```
@@ -157,6 +158,7 @@ bun run dev:web
 - `SLOPMETER_FILE_PROCESS_CONCURRENCY`: positive integer file-processing limit for Claude Code and Codex JSONL files. Default: `16`.
 - `SLOPMETER_MAX_JSONL_RECORD_BYTES`: byte cap for Claude Code and Codex JSONL records, OpenCode JSON documents, and OpenCode SQLite `message.data` payloads. Default: `67108864` (`64 MB`).
 - `GSD_HOME`: alternate GSD base directory. Default: `~/.gsd`.
+- `Droid`: `~/.factory/sessions/**/*.settings.json`
 - `HERMES_HOME`: alternate Hermes base directory. Default: `~/.hermes`.
 - `HELIOS_HOME`: alternate Helios base directory. Default: `~/.helios`.
 

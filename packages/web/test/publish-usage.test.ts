@@ -81,6 +81,25 @@ test("mergePublishedUsagePayloads preserves hosted providers and applies canonic
             },
           },
         },
+        {
+          provider: "droid",
+          daily: [
+            {
+              date: "2026-03-19",
+              input: 5,
+              output: 2,
+              cache: { input: 0, output: 0 },
+              total: 7,
+              breakdown: [],
+            },
+          ],
+          insights: {
+            streaks: {
+              longest: 1,
+              current: 1,
+            },
+          },
+        },
       ],
     },
     importedPayload: null,
@@ -108,10 +127,11 @@ test("mergePublishedUsagePayloads preserves hosted providers and applies canonic
 
   assert.deepEqual(
     merged.providers.map((provider) => provider.provider),
-    ["codex", "opencode", "gemini", "claude", "t3"],
+    ["codex", "opencode", "droid", "gemini", "claude", "t3"],
   );
   assert.equal(merged.providers[0].daily[0]?.total, 10);
   assert.equal(merged.providers[1].daily[0]?.total, 6);
-  assert.equal(merged.providers[2].daily[0]?.total, 5);
-  assert.equal(merged.providers[3].daily[0]?.total, 12);
+  assert.equal(merged.providers[2].daily[0]?.total, 7);
+  assert.equal(merged.providers[3].daily[0]?.total, 5);
+  assert.equal(merged.providers[4].daily[0]?.total, 12);
 });

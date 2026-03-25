@@ -5,6 +5,7 @@ export type ProviderId =
   | "cursor"
   | "opencode"
   | "pi"
+  | "droid"
   | "hermes"
   | "helios";
 
@@ -15,6 +16,7 @@ export const providerIds: ProviderId[] = [
   "cursor",
   "opencode",
   "pi",
+  "droid",
   "hermes",
   "helios",
 ];
@@ -26,6 +28,7 @@ export const providerStatusLabel: Record<ProviderId, string> = {
   cursor: "Cursor",
   opencode: "Open Code",
   pi: "Pi Coding Agent",
+  droid: "Droid",
   hermes: "Hermes Agent",
   helios: "Helios",
 };

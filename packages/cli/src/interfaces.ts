@@ -5,6 +5,7 @@ export type UsageProviderId =
   | "cursor"
   | "opencode"
   | "pi"
+  | "droid"
   | "hermes"
   | "helios"
   | "t3"

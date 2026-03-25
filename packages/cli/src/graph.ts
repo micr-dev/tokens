@@ -193,6 +193,25 @@ export const heatmapThemes: Record<HeatmapThemeId, HeatmapTheme> = {
       ],
     },
   },
+  droid: {
+    title: "Droid",
+    colors: {
+      light: [
+        "#f8fafc", // slate-50
+        "#cbd5e1", // slate-300
+        "#94a3b8", // slate-400
+        "#475569", // slate-600
+        "#1e293b", // slate-800
+      ],
+      dark: [
+        "#0f172a", // slate-900
+        "#1e293b", // slate-800
+        "#334155", // slate-700
+        "#64748b", // slate-500
+        "#cbd5e1", // slate-300
+      ],
+    },
+  },
   hermes: {
     title: "Hermes Agent",
     colors: {

@@ -20,6 +20,13 @@ test("getProviderDetailTheme keeps Hermes aligned with the heatmap palette", () 
   });
 });
 
+test("getProviderDetailTheme exposes Droid slate gray colors for details cards", () => {
+  assert.deepEqual(getProviderDetailTheme("droid"), {
+    accent: "#475569",
+    accentSoft: "#f8fafc",
+  });
+});
+
 test("getProviderDetailTheme exposes Gemini CLI colors for details cards", () => {
   assert.deepEqual(getProviderDetailTheme("gemini"), {
     accent: "#ef4444",

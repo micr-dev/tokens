@@ -2,6 +2,7 @@ import type { UsageSummary } from "./interfaces";
 import { loadClaudeRows } from "./lib/claude-code";
 import { loadCodexRows } from "./lib/codex";
 import { loadCursorRows } from "./lib/cursor";
+import { loadDroidRows } from "./lib/droid";
 import { loadGeminiRows } from "./lib/gemini";
 import { loadHeliosRows } from "./lib/helios";
 import { loadHermesRows } from "./lib/hermes";
@@ -57,6 +58,7 @@ export async function aggregateUsage({
     cursor: null,
     opencode: null,
     pi: null,
+    droid: null,
     hermes: null,
     helios: null,
   };
@@ -76,6 +78,8 @@ export async function aggregateUsage({
               ? await loadOpenCodeRows(start, end)
               : provider === "pi"
                 ? await loadPiRows(start, end)
+                : provider === "droid"
+                  ? await loadDroidRows(start, end)
                 : provider === "hermes"
                   ? await loadHermesRows(start, end)
                   : await loadHeliosRows(start, end);

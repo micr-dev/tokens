@@ -5,6 +5,7 @@ export type ProviderId =
   | "cursor"
   | "opencode"
   | "pi"
+  | "droid"
   | "hermes"
   | "helios"
   | "t3";
@@ -65,9 +66,19 @@ export interface AnalyticsModelShare {
   share: number;
 }
 
+export interface ProviderDailyAnalytics {
+  date: string;
+  total: number;
+  input: number;
+  output: number;
+  cacheInput: number;
+  cacheOutput: number;
+}
+
 export interface ProviderAnalytics {
   provider: PublishedUsagePayload["providers"][number]["provider"];
   total: number;
+  share: number;
   input: number;
   output: number;
   cacheTotal: number;
@@ -94,4 +105,9 @@ export interface ProviderAnalytics {
   monthly: AnalyticsSeriesPoint[];
   weekdays: AnalyticsSeriesPoint[];
   topModels: AnalyticsModelShare[];
+  daily: ProviderDailyAnalytics[];
+}
+
+export interface DetailsAnalytics {
+  providers: ProviderAnalytics[];
 }

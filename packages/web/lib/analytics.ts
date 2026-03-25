@@ -1,12 +1,14 @@
 import type {
   AnalyticsModelShare,
   AnalyticsSeriesPoint,
+  DetailsAnalytics,
   ProviderAnalytics,
   ProviderId,
   PublishedUsagePayload,
 } from "./types";
 
 const weekdayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
 const providerTitles: Record<ProviderId, string> = {
   claude: "Claude Code",
   codex: "Codex",
@@ -14,6 +16,7 @@ const providerTitles: Record<ProviderId, string> = {
   cursor: "Cursor",
   opencode: "Open Code",
   pi: "Pi Coding Agent",
+  droid: "Droid",
   hermes: "Hermes Agent",
   helios: "Helios",
   t3: "T3 Chat",
@@ -47,6 +50,10 @@ const providerDetailThemes: Record<
     accent: "#10b981",
     accentSoft: "#ecfdf5",
   },
+  droid: {
+    accent: "#475569",
+    accentSoft: "#f8fafc",
+  },
   hermes: {
     accent: "#ffc107",
     accentSoft: "#fffde7",
@@ -56,8 +63,8 @@ const providerDetailThemes: Record<
     accentSoft: "#fffbea",
   },
   t3: {
-    accent: "#ce88a9",
-    accentSoft: "#fce7f3",
+    accent: "#a95381",
+    accentSoft: "#f6eaf0",
   },
 };
 
@@ -72,9 +79,7 @@ export function formatPercent(value: number) {
   return `${value.toFixed(1)}%`;
 }
 
-export function getProviderTitle(
-  provider: ProviderId,
-) {
+export function getProviderTitle(provider: ProviderId) {
   return providerTitles[provider];
 }
 
@@ -104,31 +109,42 @@ export function buildProviderAnalytics(
   let cacheTotal = 0;
   let topDay: ProviderAnalytics["topDay"] = null;
 
-  for (const day of provider.daily) {
-    total += day.total;
-    input += day.input;
-    output += day.output;
-    cacheTotal += day.cache.input + day.cache.output;
+  const daily = [...provider.daily]
+    .sort((left, right) => left.date.localeCompare(right.date))
+    .map((day) => {
+      total += day.total;
+      input += day.input;
+      output += day.output;
+      cacheTotal += day.cache.input + day.cache.output;
 
-    const monthLabel = day.date.slice(0, 7);
+      const monthLabel = day.date.slice(0, 7);
 
-    monthly.set(monthLabel, (monthly.get(monthLabel) ?? 0) + day.total);
+      monthly.set(monthLabel, (monthly.get(monthLabel) ?? 0) + day.total);
 
-    const weekday = getMondayBasedWeekdayIndex(day.date);
+      const weekday = getMondayBasedWeekdayIndex(day.date);
 
-    weekdayTotals.set(weekday, (weekdayTotals.get(weekday) ?? 0) + day.total);
+      weekdayTotals.set(weekday, (weekdayTotals.get(weekday) ?? 0) + day.total);
 
-    if (!topDay || day.total > topDay.total) {
-      topDay = { date: day.date, total: day.total };
-    }
+      if (!topDay || day.total > topDay.total) {
+        topDay = { date: day.date, total: day.total };
+      }
 
-    for (const breakdown of day.breakdown) {
-      modelTotals.set(
-        breakdown.name,
-        (modelTotals.get(breakdown.name) ?? 0) + breakdown.tokens.total,
-      );
-    }
-  }
+      for (const breakdown of day.breakdown) {
+        modelTotals.set(
+          breakdown.name,
+          (modelTotals.get(breakdown.name) ?? 0) + breakdown.tokens.total,
+        );
+      }
+
+      return {
+        date: day.date,
+        total: day.total,
+        input: day.input,
+        output: day.output,
+        cacheInput: day.cache.input,
+        cacheOutput: day.cache.output,
+      };
+    });
 
   const topMonthEntry =
     [...monthly.entries()].sort((left, right) => right[1] - left[1])[0] ?? null;
@@ -144,6 +160,7 @@ export function buildProviderAnalytics(
   return {
     provider: provider.provider,
     total,
+    share: 0,
     input,
     output,
     cacheTotal,
@@ -175,11 +192,17 @@ export function buildProviderAnalytics(
       value: weekdayTotals.get(index) ?? 0,
     })),
     topModels,
+    daily,
   };
 }
 
-export function buildAnalytics(
-  payload: PublishedUsagePayload,
-): ProviderAnalytics[] {
-  return payload.providers.map(buildProviderAnalytics);
+export function buildAnalytics(payload: PublishedUsagePayload): DetailsAnalytics {
+  const providers = payload.providers.map(buildProviderAnalytics);
+  const total = providers.reduce((sum, provider) => sum + provider.total, 0);
+
+  for (const provider of providers) {
+    provider.share = total > 0 ? provider.total / total : 0;
+  }
+
+  return { providers };
 }

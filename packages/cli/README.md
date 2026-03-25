@@ -1,6 +1,6 @@
 # slopmeter
 
-`slopmeter` is a Node.js CLI that scans local Claude Code, Codex, Gemini CLI, Cursor, Open Code, Pi Coding Agent, Hermes Agent, and Helios usage data and generates a contribution-style heatmap for the rolling past year.
+`slopmeter` is a Node.js CLI that scans local Claude Code, Codex, Gemini CLI, Cursor, Open Code, Pi Coding Agent, Droid, Hermes Agent, and Helios usage data and generates a contribution-style heatmap for the rolling past year.
 
 ## Requirements
 
@@ -24,7 +24,7 @@ slopmeter
 ## Usage
 
 ```bash
-slopmeter [--all] [--claude] [--codex] [--gemini] [--cursor] [--opencode] [--pi] [--hermes] [--helios] [--dark] [--format png|svg|json] [--output ./heatmap-last-year.png]
+slopmeter [--all] [--claude] [--codex] [--gemini] [--cursor] [--opencode] [--pi] [--droid] [--hermes] [--helios] [--dark] [--format png|svg|json] [--output ./heatmap-last-year.png]
 ```
 
 By default, the CLI:
@@ -41,6 +41,7 @@ By default, the CLI:
 - `--cursor`: include only Cursor data
 - `--opencode`: include only Open Code data
 - `--pi`: include only Pi Coding Agent data
+- `--droid`: include only Droid data
 - `--hermes`: include only Hermes Agent data
 - `--helios`: include only Helios data
 - `--all`: merge all providers into one combined graph
@@ -93,6 +94,12 @@ Render only Pi Coding Agent usage:
 npx slopmeter --pi
 ```
 
+Render only Droid usage:
+
+```bash
+npx slopmeter --droid
+```
+
 Render only Hermes Agent usage:
 
 ```bash
@@ -142,6 +149,7 @@ npx slopmeter --dark --format svg --output ./out/heatmap-dark.svg
 - Open Code: prefers `$OPENCODE_DATA_DIR/opencode.db` or `~/.local/share/opencode/opencode.db`, and falls back to `$OPENCODE_DATA_DIR/storage/message` or `~/.local/share/opencode/storage/message`
 - Pi Coding Agent: `$PI_CODING_AGENT_DIR/sessions` or `~/.pi/agent/sessions`
 - GSD-2: `$GSD_HOME/sessions` or `~/.gsd/sessions`, merged into `pi`
+- Droid: `~/.factory/sessions/**/*.settings.json`
 - Hermes Agent: `$HERMES_HOME/state.db` or `~/.hermes/state.db`
 - Helios: `$HELIOS_HOME/helios.db` or `~/.helios/helios.db`
 

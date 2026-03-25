@@ -36,6 +36,7 @@ interface CliArgValues {
   cursor: boolean;
   opencode: boolean;
   pi: boolean;
+  droid: boolean;
   hermes: boolean;
   helios: boolean;
 }
@@ -48,7 +49,7 @@ const HELP_TEXT = `slopmeter
 Generate rolling 1-year usage heatmap image(s) (today is the latest day).
 
 Usage:
-  slopmeter [--all] [--claude] [--codex] [--gemini] [--cursor] [--opencode] [--pi] [--hermes] [--helios] [--dark] [--format png|svg|json] [--output ./heatmap-last-year.png]
+  slopmeter [--all] [--claude] [--codex] [--gemini] [--cursor] [--opencode] [--pi] [--droid] [--hermes] [--helios] [--dark] [--format png|svg|json] [--output ./heatmap-last-year.png]
 
 Options:
   --all                       Render one merged graph for all providers
@@ -58,6 +59,7 @@ Options:
   --cursor                    Render Cursor graph
   --opencode                  Render Open Code graph
   --pi                        Render Pi Coding Agent graph
+  --droid                     Render Droid graph
   --hermes                    Render Hermes Agent graph
   --helios                    Render Helios graph
   --dark                      Render with the dark theme
@@ -85,6 +87,7 @@ function validateArgs(values: unknown): asserts values is CliArgValues {
       cursor: ow.boolean,
       opencode: ow.boolean,
       pi: ow.boolean,
+      droid: ow.boolean,
       hermes: ow.boolean,
       helios: ow.boolean,
     }),
@@ -99,6 +102,7 @@ function getProviderListLabel() {
     "Cursor",
     "Open Code",
     "Pi Coding Agent",
+    "Droid",
     "Hermes Agent",
     "Helios",
   ].join(", ");
@@ -273,6 +277,7 @@ async function main() {
       cursor: { type: "boolean", default: false },
       opencode: { type: "boolean", default: false },
       pi: { type: "boolean", default: false },
+      droid: { type: "boolean", default: false },
       hermes: { type: "boolean", default: false },
       helios: { type: "boolean", default: false },
     },
