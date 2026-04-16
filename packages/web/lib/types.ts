@@ -108,6 +108,50 @@ export interface ProviderAnalytics {
   daily: ProviderDailyAnalytics[];
 }
 
+export type ModelsTimeScale = "year" | "month" | "week" | "day";
+
+export type VendorCompanyId =
+  | "openai"
+  | "google"
+  | "z-ai"
+  | "anthropic"
+  | "moonshot"
+  | "minimax"
+  | "xai"
+  | "nvidia"
+  | "deepseek"
+  | "alibaba";
+
+export interface VendorModelColor {
+  name: string;
+  color: string;
+}
+
+export interface VendorModelsBucketSegment {
+  name: string;
+  total: number;
+  color: string;
+}
+
+export interface VendorModelsBucket {
+  key: string;
+  label: string;
+  description: string;
+  total: number;
+  segments: VendorModelsBucketSegment[];
+}
+
+export interface VendorModelsAnalytics {
+  vendor: VendorCompanyId;
+  name: string;
+  total: number;
+  share: number;
+  topModels: AnalyticsModelShare[];
+  modelColors: VendorModelColor[];
+  scales: Record<ModelsTimeScale, VendorModelsBucket[]>;
+}
+
 export interface DetailsAnalytics {
   providers: ProviderAnalytics[];
+  vendors: VendorModelsAnalytics[];
 }
