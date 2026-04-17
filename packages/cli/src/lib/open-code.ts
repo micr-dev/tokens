@@ -1,6 +1,5 @@
 import { existsSync } from "node:fs";
-import { copyFile, mkdtemp, rm } from "node:fs/promises";
-import { homedir, tmpdir } from "node:os";
+import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import type { UsageSummary } from "../interfaces";
 import {
@@ -16,6 +15,7 @@ import {
   parseJsonTextWithLimit,
   readJsonDocument,
 } from "./utils";
+import { isSqliteLockedError, withSqliteSnapshot } from "./sqlite";
 
 interface OpenCodeTokenCache {
   read?: number;
@@ -147,36 +147,6 @@ function parseOpenCodeMessageData(
   };
 }
 
-function isSqliteLockedError(error: unknown) {
-  return error instanceof Error && /database is locked/i.test(error.message);
-}
-
-async function withDatabaseSnapshot<T>(
-  databasePath: string,
-  callback: (snapshotPath: string) => Promise<T>,
-) {
-  const snapshotDir = await mkdtemp(join(tmpdir(), "slopmeter-opencode-"));
-  const snapshotPath = join(snapshotDir, "opencode.db");
-
-  await copyFile(databasePath, snapshotPath);
-
-  for (const suffix of ["-shm", "-wal"]) {
-    const companionPath = `${databasePath}${suffix}`;
-
-    if (!existsSync(companionPath)) {
-      continue;
-    }
-
-    await copyFile(companionPath, `${snapshotPath}${suffix}`);
-  }
-
-  try {
-    return await callback(snapshotPath);
-  } finally {
-    await rm(snapshotDir, { recursive: true, force: true });
-  }
-}
-
 async function iterateOpenCodeDatabaseMessages(
   databasePath: string,
   onMessage: (message: OpenCodeMessage) => void,
@@ -216,7 +186,7 @@ async function loadOpenCodeDatabaseMessages(
       throw error;
     }
 
-    await withDatabaseSnapshot(databasePath, async (snapshotPath) => {
+    await withSqliteSnapshot(databasePath, "opencode", async (snapshotPath) => {
       await iterateOpenCodeDatabaseMessages(snapshotPath, onMessage);
     });
   }
