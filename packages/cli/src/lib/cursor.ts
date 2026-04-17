@@ -1,6 +1,5 @@
 import { existsSync } from "node:fs";
-import { copyFile, mkdtemp, rm } from "node:fs/promises";
-import { homedir, tmpdir } from "node:os";
+import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import Database from "better-sqlite3";
 import type { UsageSummary } from "../interfaces";
@@ -14,6 +13,7 @@ import {
   getRecentWindowStart,
   normalizeModelName,
 } from "./utils";
+import { isSqliteLockedError, withSqliteSnapshot } from "./sqlite";
 
 const CURSOR_CONFIG_DIR_ENV = "CURSOR_CONFIG_DIR";
 const CURSOR_STATE_DB_PATH_ENV = "CURSOR_STATE_DB_PATH";
@@ -159,36 +159,6 @@ function readCursorAuthStateFromDatabase(databasePath: string) {
   }
 }
 
-function isSqliteLockedError(error: unknown) {
-  return error instanceof Error && /database is locked/i.test(error.message);
-}
-
-async function withCursorStateSnapshot<T>(
-  databasePath: string,
-  callback: (snapshotPath: string) => Promise<T>,
-) {
-  const snapshotDir = await mkdtemp(join(tmpdir(), "slopmeter-cursor-"));
-  const snapshotPath = join(snapshotDir, "state.vscdb");
-
-  await copyFile(databasePath, snapshotPath);
-
-  for (const suffix of ["-shm", "-wal"]) {
-    const companionPath = `${databasePath}${suffix}`;
-
-    if (!existsSync(companionPath)) {
-      continue;
-    }
-
-    await copyFile(companionPath, `${snapshotPath}${suffix}`);
-  }
-
-  try {
-    return await callback(snapshotPath);
-  } finally {
-    await rm(snapshotDir, { recursive: true, force: true });
-  }
-}
-
 async function readCursorAuthState(databasePath: string) {
   try {
     return readCursorAuthStateFromDatabase(databasePath);
@@ -197,7 +167,7 @@ async function readCursorAuthState(databasePath: string) {
       throw error;
     }
 
-    return withCursorStateSnapshot(databasePath, async (snapshotPath) =>
+    return withSqliteSnapshot(databasePath, "cursor", async (snapshotPath) =>
       readCursorAuthStateFromDatabase(snapshotPath),
     );
   }
