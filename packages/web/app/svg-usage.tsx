@@ -991,21 +991,8 @@ export function SvgUsage({ svgMarkup, analytics }: SvgUsageProps) {
             }
             onClick={() => setActiveView("heatmap")}
           >
-            Heatmap
+            Harnesses
           </button>
-          {analytics ? (
-            <button
-              type="button"
-              className={
-                activeView === "details"
-                  ? "view-toggle__button is-active"
-                  : "view-toggle__button"
-              }
-              onClick={() => setActiveView("details")}
-            >
-              Details
-            </button>
-          ) : null}
           {analytics?.vendors.length ? (
             <button
               type="button"
@@ -1017,6 +1004,19 @@ export function SvgUsage({ svgMarkup, analytics }: SvgUsageProps) {
               onClick={() => setActiveView("models")}
             >
               Models
+            </button>
+          ) : null}
+          {analytics ? (
+            <button
+              type="button"
+              className={
+                activeView === "details"
+                  ? "view-toggle__button is-active"
+                  : "view-toggle__button"
+              }
+              onClick={() => setActiveView("details")}
+            >
+              Details
             </button>
           ) : null}
         </div>

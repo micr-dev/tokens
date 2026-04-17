@@ -27,10 +27,14 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 .eslintcache
 .cache
 *.tsbuildinfo
-.slopmeter-data
+.slopmeter-data/*
+!.slopmeter-data/published/
+!.slopmeter-data/published/daily-usage.json
+!.slopmeter-data/published/heatmap-last-year.svg
 
 # IntelliJ based IDEs
 .idea
 
 # Finder (MacOS) folder config
 .DS_Store
+.vercel

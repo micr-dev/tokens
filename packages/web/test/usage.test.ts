@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { getProviderDetailTheme } from "../lib/analytics";
-import { normalizePublishedSvgMarkup } from "../lib/usage";
+import {
+  normalizePublishedSvgMarkup,
+  shouldUseLocalPublishedArtifacts,
+} from "../lib/usage";
 
 test("normalizePublishedSvgMarkup replaces merged provider lists with All Providers", () => {
   const input =
@@ -20,10 +23,10 @@ test("getProviderDetailTheme keeps Hermes aligned with the heatmap palette", () 
   });
 });
 
-test("getProviderDetailTheme exposes Droid slate gray colors for details cards", () => {
+test("getProviderDetailTheme exposes Droid red colors for details cards", () => {
   assert.deepEqual(getProviderDetailTheme("droid"), {
-    accent: "#475569",
-    accentSoft: "#f8fafc",
+    accent: "#ef4444",
+    accentSoft: "#fef2f2",
   });
 });
 
@@ -32,4 +35,17 @@ test("getProviderDetailTheme exposes Gemini CLI colors for details cards", () =>
     accent: "#ef4444",
     accentSoft: "#fef2f2",
   });
+});
+
+test("shouldUseLocalPublishedArtifacts reports whether a published file exists", () => {
+  assert.equal(
+    shouldUseLocalPublishedArtifacts("/home/ubuntu/workspace/tokens/package.json"),
+    true,
+  );
+  assert.equal(
+    shouldUseLocalPublishedArtifacts(
+      "/home/ubuntu/workspace/tokens/does-not-exist.json",
+    ),
+    false,
+  );
 });

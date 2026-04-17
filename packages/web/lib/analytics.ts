@@ -145,7 +145,19 @@ interface BucketDefinition {
   end: number;
 }
 
-const modelAliasPrefixes = ["cliproxyapi/", "google/"];
+const modelAliasPrefixes = [
+  "cliproxyapi/",
+  "google/",
+  "anthropic/",
+  "openai/",
+  "xai/",
+  "moonshot/",
+  "minimax/",
+  "deepseek/",
+  "alibaba/",
+  "nvidia/",
+  "z-ai/",
+];
 
 function padNumber(value: number) {
   return String(value).padStart(2, "0");

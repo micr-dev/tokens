@@ -15,6 +15,10 @@ const DEFAULT_LOCAL_SVG_OUTPUT_PATH = resolve(
 const mergedProvidersCaption = "TOTAL USAGE FROM";
 const mergedProvidersLabel = "All Providers";
 
+export function shouldUseLocalPublishedArtifacts(path: string) {
+  return existsSync(path);
+}
+
 export function normalizePublishedSvgMarkup(svgMarkup: string) {
   const mergedProvidersPattern = new RegExp(
     `(<text\\b[^>]*>${mergedProvidersCaption}<\\/text>\\s*<text\\b[^>]*>)([^<]+)(<\\/text>)`,
@@ -29,15 +33,15 @@ export function normalizePublishedSvgMarkup(svgMarkup: string) {
 export async function getPublishedSvgMarkup(): Promise<string> {
   const svgUrl = process.env.SLOPMETER_WEB_SVG_URL?.trim();
 
-  if (!svgUrl) {
-    if (!existsSync(DEFAULT_LOCAL_SVG_OUTPUT_PATH)) {
-      throw new Error(
-        "No published SVG found. Set SLOPMETER_WEB_SVG_URL or run bun run publish:web.",
-      );
-    }
-
+  if (shouldUseLocalPublishedArtifacts(DEFAULT_LOCAL_SVG_OUTPUT_PATH)) {
     return normalizePublishedSvgMarkup(
       await readFile(DEFAULT_LOCAL_SVG_OUTPUT_PATH, "utf8"),
+    );
+  }
+
+  if (!svgUrl) {
+    throw new Error(
+      "No published SVG found. Set SLOPMETER_WEB_SVG_URL or run bun run publish:web.",
     );
   }
 
@@ -55,14 +59,14 @@ export async function getPublishedSvgMarkup(): Promise<string> {
 export async function getPublishedUsagePayload(): Promise<PublishedUsagePayload | null> {
   const dataUrl = process.env.SLOPMETER_WEB_DATA_URL?.trim();
 
-  if (!dataUrl) {
-    if (!existsSync(DEFAULT_LOCAL_JSON_OUTPUT_PATH)) {
-      return null;
-    }
-
+  if (shouldUseLocalPublishedArtifacts(DEFAULT_LOCAL_JSON_OUTPUT_PATH)) {
     return JSON.parse(
       await readFile(DEFAULT_LOCAL_JSON_OUTPUT_PATH, "utf8"),
     ) as PublishedUsagePayload;
+  }
+
+  if (!dataUrl) {
+    return null;
   }
 
   const response = await fetch(dataUrl, {

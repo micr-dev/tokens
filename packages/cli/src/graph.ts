@@ -197,18 +197,18 @@ export const heatmapThemes: Record<HeatmapThemeId, HeatmapTheme> = {
     title: "Droid",
     colors: {
       light: [
-        "#f8fafc", // slate-50
-        "#cbd5e1", // slate-300
-        "#94a3b8", // slate-400
-        "#475569", // slate-600
-        "#1e293b", // slate-800
+        "#fef2f2", // red-50
+        "#fecaca", // red-200
+        "#fca5a5", // red-300
+        "#ef4444", // red-500
+        "#991b1b", // red-800
       ],
       dark: [
-        "#0f172a", // slate-900
-        "#1e293b", // slate-800
-        "#334155", // slate-700
-        "#64748b", // slate-500
-        "#cbd5e1", // slate-300
+        "#450a0a", // red-950
+        "#991b1b", // red-800
+        "#dc2626", // red-600
+        "#f87171", // red-400
+        "#fecaca", // red-200
       ],
     },
   },
@@ -544,8 +544,6 @@ function drawHeatmapSection(
   let totalInputTokens = 0;
   let totalOutputTokens = 0;
   let totalTokens = 0;
-  let firstActivityOnlyDate: string | null = null;
-  let firstMeasuredDate: string | null = null;
 
   for (const row of daily) {
     const dateKey = formatLocalDate(row.date);
@@ -554,16 +552,6 @@ function drawHeatmapSection(
     valueByDate.set(dateKey, displayValue);
     rowByDate.set(dateKey, row);
     maxValue = Math.max(maxValue, displayValue);
-    if (row.total <= 0 && displayValue > 0) {
-      if (!firstActivityOnlyDate || dateKey < firstActivityOnlyDate) {
-        firstActivityOnlyDate = dateKey;
-      }
-    } else if (
-      row.total > 0 &&
-      (!firstMeasuredDate || dateKey < firstMeasuredDate)
-    ) {
-      firstMeasuredDate = dateKey;
-    }
     totalInputTokens += row.input;
     totalOutputTokens += row.output;
     totalTokens += row.total;
@@ -826,24 +814,6 @@ function drawHeatmapSection(
     },
     caption("More"),
   );
-
-  if (firstActivityOnlyDate && firstMeasuredDate) {
-    const noteX = x + layout.width / 2;
-    const noteY = y + layout.gridTop + 7 * layout.cellSize + 6 * layout.gap + 8;
-
-    svg = svg.text(
-      {
-        x: noteX,
-        y: noteY,
-        fill: palette.muted,
-        "font-size": 10,
-        "text-anchor": "middle",
-        "dominant-baseline": "hanging",
-        "font-family": fontFamily,
-      },
-      `Claude started logging full token telemetry on ${formatShortDate(firstMeasuredDate)}; earlier activity may be undercounted.`,
-    );
-  }
 
   const rightColumnX = rightEdge;
   const leftSecondaryX = leftColumnX + 250;
