@@ -17,17 +17,28 @@ import { hasUsage, mergeUsageSummaries } from "./lib/utils";
 
 export { providerIds, providerStatusLabel, type ProviderId };
 
+/** Options for {@link aggregateUsage}. */
 interface AggregateUsageOptions {
   start: Date;
   end: Date;
   requestedProviders?: ProviderId[];
 }
 
+/** Result of aggregating usage across providers. */
 export interface AggregateUsageResult {
+  /** Per-provider usage summaries; null entries indicate no data found. */
   rowsByProvider: Record<ProviderId, UsageSummary | null>;
+  /** Warning messages emitted during provider data loading. */
   warnings: string[];
 }
 
+/**
+ * Merges usage data from all providers into a single aggregated summary.
+ *
+ * @param rowsByProvider - Per-provider usage summaries (null if no data found).
+ * @param end - The end date of the reporting window, used for streak computation.
+ * @returns A merged {@link UsageSummary} with provider "all", or null if no provider has data.
+ */
 export function mergeProviderUsage(
   rowsByProvider: Record<ProviderId, UsageSummary | null>,
   end: Date,
@@ -43,6 +54,17 @@ export function mergeProviderUsage(
   return mergeUsageSummaries("all", summaries, end);
 }
 
+/**
+ * Aggregates usage data from one or more providers within the given date range.
+ *
+ * Iterates over requested providers (or all if none specified), loads their
+ * local usage data, and returns a map of provider IDs to their summaries.
+ *
+ * @param options.start - Start of the reporting window.
+ * @param options.end - End of the reporting window.
+ * @param options.requestedProviders - Optional subset of providers to load; defaults to all.
+ * @returns Per-provider summaries and any warnings encountered during loading.
+ */
 export async function aggregateUsage({
   start,
   end,
