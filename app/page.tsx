@@ -1,1 +1,1 @@
-export { default, dynamic } from "../packages/web/app/page";
+export { default } from "../packages/web/app/page";
