@@ -1,4 +1,6 @@
 # slopmeter
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![npm version](https://img.shields.io/npm/v/slopmeter.svg)](https://www.npmjs.com/package/slopmeter)
 
 CLI tool that generates usage heatmaps for Claude Code, Codex, Cursor, Open Code, Pi Coding Agent, Droid, Hermes Agent, and Helios for the rolling past year (ending today).
 
@@ -19,6 +21,15 @@ tooling/
 bun install
 bun run check
 ```
+
+## Installation
+
+```bash
+# Using bun (recommended)
+bun add -g slopmeter
+
+# Using npm
+npm install -g slopmeter
 
 ## Usage
 
@@ -212,3 +223,7 @@ Canonical operator instructions now live in [`docs/tokens-micr-dev-runbook.md`](
 - Helios: `$HELIOS_HOME/helios.db` or `~/.helios/helios.db`
 - T3 Chat hosted import: `SLOPMETER_WEB_T3_IMPORT_PATH` or `~/.local/share/slopmeter/t3-chat-export.json`
 - OpenCode recovery import: `SLOPMETER_WEB_OPENCODE_RECOVERY_IMPORT_PATH` or `~/.local/share/opencode/recovery/t3-chat-export-opencode-recovered.json`
+
+## License
+
+[MIT](./LICENSE)
