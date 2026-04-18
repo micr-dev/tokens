@@ -117,6 +117,13 @@ cp /path/to/windows-export.json .slopmeter-data/imports/windows-history.json
 mkdir -p ~/.local/share/slopmeter
 cp /path/to/t3-chat-export.json ~/.local/share/slopmeter/t3-chat-export.json
 
+# optional recovered OpenCode history exported in T3-compatible format
+mkdir -p ~/.local/share/opencode/recovery
+cp /path/to/t3-chat-export-opencode-recovered.json ~/.local/share/opencode/recovery/t3-chat-export-opencode-recovered.json
+
+# or rebuild the canonical OpenCode recovery import from the salvage DB on this machine
+bun run opencode:recovery:export
+
 # merge local usage + import and write only the local published artifact
 SLOPMETER_WEB_SKIP_BLOB_UPLOAD=1 bun run publish:web
 
@@ -126,20 +133,39 @@ bun run dev:web
 
 ### Publish flow
 
+Canonical operator instructions now live in [`docs/tokens-micr-dev-runbook.md`](docs/tokens-micr-dev-runbook.md).
+
 - The page reads `SLOPMETER_WEB_SVG_URL` at runtime.
 - The hosted app serves from `/` by default. Set `SLOPMETER_WEB_BASE_PATH` only if you intentionally want a subpath deployment.
-- `bun run publish:web` scans this machine's current usage, merges the optional Windows import at `.slopmeter-data/imports/windows-history.json`, merges the optional one-time T3 import at `~/.local/share/slopmeter/t3-chat-export.json`, writes `.slopmeter-data/published/daily-usage.json` plus `.slopmeter-data/published/heatmap-last-year.svg`, and uploads both artifacts to Vercel Blob.
+- `bun run publish:web` scans this machine's current usage, merges the optional Windows import at `.slopmeter-data/imports/windows-history.json`, merges the optional one-time T3 import at `~/.local/share/slopmeter/t3-chat-export.json`, appends the optional recovered OpenCode import at `~/.local/share/opencode/recovery/t3-chat-export-opencode-recovered.json` into the `opencode` provider, writes `.slopmeter-data/published/daily-usage.json` plus `.slopmeter-data/published/heatmap-last-year.svg`, and uploads both artifacts to Vercel Blob.
+- `bun run opencode:recovery:export` rebuilds `~/.local/share/opencode/recovery/t3-chat-export-opencode-recovered.json` from `~/.local/share/opencode/recovery/opencode-salvage-merged.db` and validates it with the same loader used by the hosted publish step.
+- `bun run publish:web:refresh-opencode-recovery` refreshes that canonical recovery import and then runs the normal publish flow.
+- Every `bun run publish:web` also writes an immutable timestamped backup snapshot under `.slopmeter-data/history/<timestamp>/`.
 - Set `BLOB_READ_WRITE_TOKEN` for real uploads.
 - Optional overrides:
   - `SLOPMETER_WEB_BASE_PATH`
   - `SLOPMETER_WEB_IMPORT_PATH`
   - `SLOPMETER_WEB_T3_IMPORT_PATH`
+  - `SLOPMETER_WEB_OPENCODE_RECOVERY_IMPORT_PATH`
+  - `SLOPMETER_WEB_OPENCODE_RECOVERY_SOURCE_DB`
   - `SLOPMETER_WEB_T3_MAX_BYTES`
   - `SLOPMETER_WEB_LOCAL_OUTPUT_PATH`
   - `SLOPMETER_WEB_LOCAL_SVG_OUTPUT_PATH`
+  - `SLOPMETER_WEB_LOCAL_HISTORY_DIR`
+  - `SLOPMETER_WEB_GIT_BACKUP_REPO_DIR`
+  - `SLOPMETER_WEB_GIT_BACKUP_PUSH=1`
   - `SLOPMETER_WEB_BLOB_PATH`
   - `SLOPMETER_WEB_SVG_BLOB_PATH`
   - `SLOPMETER_WEB_SKIP_BLOB_UPLOAD=1`
+
+### Backup safety
+
+- The published JSON contains aggregated usage metadata only: dates, providers, model names, token totals, streaks, and top-model summaries.
+- The published JSON does not contain prompt text, conversation bodies, or raw message content.
+- A public GitHub repo would still expose private work patterns such as when you were active, which providers/models you used, and rough usage volume.
+- If you want GitHub-based versioning, prefer a private repo that mirrors `.slopmeter-data/history/` rather than publishing the raw snapshots publicly.
+- If `SLOPMETER_WEB_GIT_BACKUP_REPO_DIR` points at a local clone of a private backup repo, `bun run publish:web` will write `history/<timestamp>/...`, refresh `latest/...`, and create a git commit only when the payload changed materially.
+- `SLOPMETER_WEB_GIT_BACKUP_PUSH=1` makes the publish step run `git push` after committing. Leave it unset if you only want local commits in the backup clone.
 
 ## Provider/data behavior
 
@@ -185,3 +211,4 @@ bun run dev:web
 - Hermes Agent: `$HERMES_HOME/state.db` or `~/.hermes/state.db`
 - Helios: `$HELIOS_HOME/helios.db` or `~/.helios/helios.db`
 - T3 Chat hosted import: `SLOPMETER_WEB_T3_IMPORT_PATH` or `~/.local/share/slopmeter/t3-chat-export.json`
+- OpenCode recovery import: `SLOPMETER_WEB_OPENCODE_RECOVERY_IMPORT_PATH` or `~/.local/share/opencode/recovery/t3-chat-export-opencode-recovered.json`
