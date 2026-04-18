@@ -1,3 +1,7 @@
+/**
+ * Identifier for a locally-installed AI coding tool provider.
+ * Excludes aggregated pseudo-providers ("all", "t3") which are not backed by local data.
+ */
 export type ProviderId =
   | "claude"
   | "codex"
@@ -9,6 +13,7 @@ export type ProviderId =
   | "hermes"
   | "helios";
 
+/** Ordered list of all supported provider identifiers. */
 export const providerIds: ProviderId[] = [
   "claude",
   "codex",
@@ -21,6 +26,7 @@ export const providerIds: ProviderId[] = [
   "helios",
 ];
 
+/** Human-readable display names for each provider, used in CLI output. */
 export const providerStatusLabel: Record<ProviderId, string> = {
   claude: "Claude code",
   codex: "Codex",

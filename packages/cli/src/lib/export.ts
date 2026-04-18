@@ -8,8 +8,15 @@ import type {
 import { providerIds, type ProviderId } from "./interfaces";
 import { formatLocalDate, mergeUsageSummaries } from "./utils";
 
+/** Schema version for JSON export payloads. */
 export const JSON_EXPORT_VERSION = "2026-03-03";
 
+/**
+ * Converts a single daily usage row to its JSON-serializable form.
+ *
+ * @param row - A daily usage entry from a {@link UsageSummary}.
+ * @returns A JSON-serializable daily usage object.
+ */
 export function toJsonDailyUsage(row: UsageSummary["daily"][number]): JsonDailyUsage {
   return {
     date: formatLocalDate(row.date),
@@ -22,6 +29,12 @@ export function toJsonDailyUsage(row: UsageSummary["daily"][number]): JsonDailyU
   };
 }
 
+/**
+ * Converts a full usage summary to its JSON-serializable form.
+ *
+ * @param summary - The usage summary to convert.
+ * @returns A JSON-serializable usage summary.
+ */
 export function toJsonUsageSummary(summary: UsageSummary): JsonUsageSummary {
   return {
     provider: summary.provider,
@@ -30,6 +43,14 @@ export function toJsonUsageSummary(summary: UsageSummary): JsonUsageSummary {
   };
 }
 
+/**
+ * Creates a complete JSON export payload from usage summaries.
+ *
+ * @param start - Start of the reporting window.
+ * @param end - End of the reporting window.
+ * @param providers - Usage summaries to include.
+ * @returns A JSON-serializable export payload.
+ */
 export function createJsonExportPayload(
   start: Date,
   end: Date,
@@ -43,6 +64,12 @@ export function createJsonExportPayload(
   };
 }
 
+/**
+ * Writes a JSON export payload to disk as pretty-printed JSON.
+ *
+ * @param outputPath - File path to write to.
+ * @param payload - The payload to serialize and write.
+ */
 export function writeJsonExport(
   outputPath: string,
   payload: JsonExportPayload,
@@ -76,6 +103,13 @@ function parseJsonUsageSummary(summary: JsonUsageSummary): UsageSummary {
   };
 }
 
+/**
+ * Parses a JSON export payload back into typed objects with Date instances.
+ *
+ * @param payload - The raw JSON export payload.
+ * @returns Parsed start/end dates and provider usage summaries.
+ * @throws If start or end dates are invalid.
+ */
 export function parseJsonExportPayload(payload: JsonExportPayload) {
   const start = parseDateOnly(payload.start, "start");
   const end = parseDateOnly(payload.end, "end");
@@ -84,6 +118,7 @@ export function parseJsonExportPayload(payload: JsonExportPayload) {
   return { start, end, providers };
 }
 
+/** Payload structure for published usage data served by the web dashboard. */
 export interface PublishedUsagePayload {
   version: string;
   start: string;
@@ -122,6 +157,15 @@ function mergeUsageSummariesByProvider(
   });
 }
 
+/**
+ * Merges multiple JSON export payloads into a single published usage payload.
+ * Deduplicates provider data and merges usage summaries per provider.
+ *
+ * @param payloads - One or more JSON export payloads to merge.
+ * @param updatedAt - Timestamp for the merged payload (defaults to now).
+ * @returns A merged and deduplicated published usage payload.
+ * @throws If payloads is empty, versions are unsupported, or no provider data is found.
+ */
 export function mergeJsonExportsToPublishedUsage(
   payloads: JsonExportPayload[],
   updatedAt = new Date(),

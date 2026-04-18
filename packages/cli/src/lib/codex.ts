@@ -585,11 +585,16 @@ async function processCodexFile(
   };
 }
 
+/**
+ * Loads Codex (OpenAI CLI) usage data from local session JSONL files.
+ * Uses prefix-based classification to efficiently skip irrelevant records.
+ *
+ * @param start - Start of the reporting window.
+ * @param end - End of the reporting window.
+ * @param warnings - Array to push warning messages into.
+ * @returns A usage summary for the "codex" provider.
+ */
 export async function loadCodexRows(
-  start: Date,
-  end: Date,
-  warnings: string[] = [],
-): Promise<UsageSummary> {
   const files = await getCodexFiles();
   const totals: DailyTotalsByDate = new Map();
   const modelTotals = new Map<string, ModelTokenTotals>();

@@ -3,6 +3,12 @@ import { readdir } from "node:fs/promises";
 import { join } from "node:path";
 import type { DailyUsage, Insights, ModelUsage, UsageSummary } from "../interfaces";
 
+/**
+ * Formats a Date as a local ISO date string (YYYY-MM-DD).
+ *
+ * @param date - The date to format.
+ * @returns The date in YYYY-MM-DD format.
+ */
 export function formatLocalDate(date: Date) {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");
@@ -11,6 +17,7 @@ export function formatLocalDate(date: Date) {
   return `${y}-${m}-${d}`;
 }
 
+/** Token totals for a single day (input, output, cache, total). */
 export interface DailyTokenTotals {
   input: number;
   output: number;
@@ -18,6 +25,7 @@ export interface DailyTokenTotals {
   total: number;
 }
 
+/** Token totals for a specific model (input, output, cache, total). */
 export interface ModelTokenTotals {
   input: number;
   output: number;
@@ -30,20 +38,30 @@ interface TokenTotals {
   models: Map<string, ModelTokenTotals>;
 }
 
+/** Map of ISO date strings to token totals and per-model breakdowns for that day. */
 export type DailyTotalsByDate = Map<string, TokenTotals>;
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
+/** Default concurrency for processing JSONL files in parallel. */
 export const DEFAULT_FILE_PROCESS_CONCURRENCY = 16;
+/** Environment variable name for overriding file processing concurrency. */
 export const FILE_PROCESS_CONCURRENCY_ENV =
   "SLOPMETER_FILE_PROCESS_CONCURRENCY";
+/** Environment variable name for overriding the maximum JSONL record size. */
 export const MAX_JSONL_RECORD_BYTES_ENV = "SLOPMETER_MAX_JSONL_RECORD_BYTES";
+/** Default maximum size (bytes) for a single JSONL record before throwing. */
 export const DEFAULT_MAX_JSONL_RECORD_BYTES = 64 * 1024 * 1024;
 
+/** A single JSONL record with metadata from the stream parser. */
 export interface JsonlRecord<TClassification = void> {
+  /** 1-based line number in the file. */
   lineNumber: number;
+  /** Raw JSON line text. */
   rawLine: string;
+  /** Byte length of the original line. */
   byteLength: number;
+  /** Classification assigned by the `classify` callback. */
   classification: TClassification;
 }
 
@@ -108,6 +126,14 @@ function mergeTokenTotals(
   target.total += source.total;
 }
 
+/**
+ * Accumulates token totals for a specific model into the given map.
+ * Creates a new entry if the model does not yet exist.
+ *
+ * @param modelTotals - Map of model names to accumulated totals.
+ * @param modelName - Name of the model.
+ * @param tokenTotals - Token totals to add.
+ */
 export function addModelTokenTotals(
   modelTotals: Map<string, ModelTokenTotals>,
   modelName: string,
@@ -124,6 +150,14 @@ export function addModelTokenTotals(
   mergeTokenTotals(existing, tokenTotals);
 }
 
+/**
+ * Accumulates daily token totals for a given date, optionally tracking per-model breakdown.
+ *
+ * @param totals - The daily totals map to accumulate into.
+ * @param date - The date of the usage.
+ * @param tokenTotals - Token totals for this entry.
+ * @param modelName - Optional model name for per-model tracking.
+ */
 export function addDailyTokenTotals(
   totals: DailyTotalsByDate,
   date: Date,
@@ -151,6 +185,12 @@ export function addDailyTokenTotals(
   }
 }
 
+/**
+ * Merges source daily totals into the target map, creating new entries as needed.
+ *
+ * @param target - The map to merge into.
+ * @param source - The map to merge from.
+ */
 export function mergeDailyTotalsByDate(
   target: DailyTotalsByDate,
   source: DailyTotalsByDate,
@@ -180,6 +220,12 @@ export function mergeDailyTotalsByDate(
   }
 }
 
+/**
+ * Merges per-model token totals from source into target.
+ *
+ * @param target - Target model totals map.
+ * @param source - Source model totals map.
+ */
 export function mergeModelTotals(
   target: Map<string, ModelTokenTotals>,
   source: Map<string, ModelTokenTotals>,
@@ -189,6 +235,15 @@ export function mergeModelTotals(
   }
 }
 
+/**
+ * Converts accumulated daily totals into an array of {@link DailyUsage} rows,
+ * sorted chronologically. Uses `displayValuesByDate` for days where token totals
+ * are zero but activity was recorded (e.g. message counts).
+ *
+ * @param totals - Accumulated daily token totals by date.
+ * @param displayValuesByDate - Optional fallback display values by date.
+ * @returns Sorted array of daily usage rows.
+ */
 export function totalsToRows(
   totals: DailyTotalsByDate,
   displayValuesByDate = new Map<string, number>(),
@@ -234,6 +289,14 @@ export function totalsToRows(
     });
 }
 
+/**
+ * Recursively lists all files under `rootDir` with the given extension.
+ * Silently skips directories that cannot be read.
+ *
+ * @param rootDir - Root directory to search.
+ * @param extension - File extension to filter (e.g. ".jsonl").
+ * @returns Sorted array of absolute file paths.
+ */
 export async function listFilesRecursive(rootDir: string, extension: string) {
   const files: string[] = [];
   const stack = [rootDir];
@@ -311,6 +374,17 @@ function keepAllJsonlRecords<TClassification>(): JsonlRecordDecision<TClassifica
   return { kind: "keep", classification: undefined as TClassification };
 }
 
+/**
+ * Streaming JSONL record reader with prefix-based classification and size limits.
+ *
+ * Reads a file line-by-line, optionally classifying records from a prefix of each
+ * line to skip irrelevant entries early (before buffering the full record).
+ *
+ * @typeParam TClassification - The classification type assigned to kept records.
+ * @param filePath - Path to the JSONL file.
+ * @param options - Classification, size limit, and error message options.
+ * @yields {@link JsonlRecord} objects for each kept line.
+ */
 export async function* readJsonlRecords<TClassification = void>(
   filePath: string,
   options: ReadJsonlRecordsOptions<TClassification> = {},
@@ -506,6 +580,13 @@ export async function* readJsonlRecords<TClassification = void>(
   }
 }
 
+/**
+ * Reads a JSONL file and yields parsed JSON objects, skipping malformed lines.
+ *
+ * @typeParam T - The expected type of each parsed JSON line.
+ * @param filePath - Path to the JSONL file.
+ * @yields Parsed JSON objects of type T.
+ */
 export async function* readJsonLines<T>(filePath: string): AsyncGenerator<T> {
   for await (const record of readJsonlRecords(filePath)) {
     try {
@@ -516,6 +597,15 @@ export async function* readJsonLines<T>(filePath: string): AsyncGenerator<T> {
   }
 }
 
+/**
+ * Reads and parses a JSON document from disk with an optional byte-size limit.
+ *
+ * @typeParam T - Expected type of the parsed JSON.
+ * @param filePath - Path to the JSON file.
+ * @param options - Size limit and error message options.
+ * @returns The parsed JSON object.
+ * @throws If the file exceeds the configured byte limit.
+ */
 export async function readJsonDocument<T>(
   filePath: string,
   options: ReadJsonDocumentOptions = {},
@@ -565,6 +655,16 @@ export async function readJsonDocument<T>(
   );
 }
 
+/**
+ * Parses a JSON string with an optional byte-size limit.
+ *
+ * @typeParam T - Expected type of the parsed JSON.
+ * @param content - The JSON string to parse.
+ * @param sourceLabel - Label for error messages (e.g. file path).
+ * @param options - Size limit and error message options.
+ * @returns The parsed JSON object.
+ * @throws If the content exceeds the configured byte limit.
+ */
 export function parseJsonTextWithLimit<T>(
   content: string,
   sourceLabel: string,
@@ -592,6 +692,13 @@ export function parseJsonTextWithLimit<T>(
   return JSON.parse(content) as T;
 }
 
+/**
+ * Reads a positive integer from an environment variable, falling back to a default.
+ *
+ * @param name - Environment variable name.
+ * @param fallback - Default value if the variable is unset or invalid.
+ * @returns The parsed positive integer or the fallback.
+ */
 export function getPositiveIntegerEnv(name: string, fallback: number) {
   const raw = process.env[name]?.trim();
 
@@ -608,6 +715,14 @@ export function getPositiveIntegerEnv(name: string, fallback: number) {
   return parsed;
 }
 
+/**
+ * Runs an async worker over an array of items with bounded concurrency.
+ *
+ * @typeParam T - Item type.
+ * @param items - Items to process.
+ * @param concurrency - Maximum number of concurrent workers.
+ * @param worker - Async function called for each item with its index.
+ */
 export async function runWithConcurrency<T>(
   items: T[],
   concurrency: number,
@@ -637,6 +752,13 @@ export async function runWithConcurrency<T>(
   );
 }
 
+/**
+ * Computes the start date of a recent window ending at `endDate`.
+ *
+ * @param endDate - The end of the window.
+ * @param days - Number of days in the window (default 30).
+ * @returns The start date of the window, set to midnight.
+ */
 export function getRecentWindowStart(endDate: Date, days = 30) {
   const start = new Date(endDate);
 
@@ -646,10 +768,22 @@ export function getRecentWindowStart(endDate: Date, days = 30) {
   return start;
 }
 
+/**
+ * Strips a trailing date stamp (e.g. "-20250315") from a model name.
+ *
+ * @param modelName - Raw model name.
+ * @returns Normalized model name without the date suffix.
+ */
 export function normalizeModelName(modelName: string) {
   return modelName.replace(/-\d{8}$/, "");
 }
 
+/**
+ * Finds the model with the highest total token usage.
+ *
+ * @param modelTotals - Map of model names to their token totals.
+ * @returns The top model's usage, or undefined if no model has usage > 0.
+ */
 export function getTopModel(
   modelTotals: Map<string, ModelTokenTotals>,
 ): ModelUsage | undefined {
@@ -694,6 +828,12 @@ function isConsecutiveDay(prevDate: Date, currDate: Date): boolean {
   return diff === ONE_DAY_MS;
 }
 
+/**
+ * Computes the longest streak of consecutive days with usage.
+ *
+ * @param daily - Daily usage entries (must be sorted chronologically).
+ * @returns The length of the longest consecutive-day streak.
+ */
 export function computeLongestStreak(daily: DailyUsage[]): number {
   if (daily.length === 0) {
     return 0;
@@ -716,6 +856,13 @@ export function computeLongestStreak(daily: DailyUsage[]): number {
   return longest;
 }
 
+/**
+ * Computes the current active streak of consecutive days ending at `end`.
+ *
+ * @param daily - Daily usage entries (must be sorted chronologically).
+ * @param end - The reference end date (typically today).
+ * @returns The current streak length, or 0 if not currently active.
+ */
 export function computeCurrentStreak(daily: DailyUsage[], end: Date): number {
   if (daily.length === 0) {
     return 0;
@@ -745,6 +892,15 @@ export function computeCurrentStreak(daily: DailyUsage[], end: Date): number {
   return current;
 }
 
+/**
+ * Computes provider-level insights: most-used models and usage streaks.
+ *
+ * @param modelTotals - Cumulative per-model token totals.
+ * @param recentModelTotals - Per-model totals for the last 30 days.
+ * @param daily - Daily usage rows (chronological).
+ * @param end - The end of the reporting window.
+ * @returns Computed insights.
+ */
 export function getProviderInsights(
   modelTotals: Map<string, ModelTokenTotals>,
   recentModelTotals: Map<string, ModelTokenTotals>,
@@ -767,6 +923,17 @@ export function getProviderInsights(
   };
 }
 
+/**
+ * Creates a complete {@link UsageSummary} from accumulated totals and model data.
+ *
+ * @param provider - Provider identifier.
+ * @param totals - Accumulated daily token totals.
+ * @param modelTotals - Cumulative per-model token totals.
+ * @param recentModelTotals - Per-model totals for the last 30 days.
+ * @param end - End of the reporting window.
+ * @param displayValuesByDate - Optional display values for days without token totals.
+ * @returns A fully populated usage summary with computed insights.
+ */
 export function createUsageSummary(
   provider: UsageSummary["provider"],
   totals: DailyTotalsByDate,
@@ -784,12 +951,27 @@ export function createUsageSummary(
   };
 }
 
+/**
+ * Checks whether a usage summary contains any meaningful usage data.
+ *
+ * @param summary - The summary to check.
+ * @returns True if any day has total > 0 or a display value > 0.
+ */
 export function hasUsage(summary: UsageSummary) {
   return summary.daily.some(
     (row) => row.total > 0 || (row.displayValue ?? 0) > 0,
   );
 }
 
+/**
+ * Merges multiple usage summaries for the same provider into a single summary.
+ * Accumulates daily totals, model breakdowns, and recomputes insights.
+ *
+ * @param provider - The provider identifier for the merged summary.
+ * @param summaries - One or more usage summaries to merge.
+ * @param end - End of the reporting window, used for streak and recent-window computation.
+ * @returns A merged usage summary with recomputed insights.
+ */
 export function mergeUsageSummaries(
   provider: UsageSummary["provider"],
   summaries: UsageSummary[],

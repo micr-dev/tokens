@@ -456,6 +456,16 @@ function createUniqueHash(messageId?: string, requestId?: string) {
   return `${messageId}:${requestId}`;
 }
 
+/**
+ * Loads Claude Code usage data from local JSONL log files and stats-cache.json.
+ *
+ * Reads project session logs, deduplicates entries by message+request ID,
+ * and falls back to stats-cache and history data for dates not covered by logs.
+ *
+ * @param startDate - Start of the reporting window.
+ * @param endDate - End of the reporting window.
+ * @returns A usage summary for the "claude" provider.
+ */
 export async function loadClaudeRows(
   startDate: Date,
   endDate: Date,
