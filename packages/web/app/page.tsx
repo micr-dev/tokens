@@ -1,7 +1,6 @@
 import { buildAnalytics } from "../lib/analytics";
-import { getPublishedSvgMarkup } from "../lib/usage";
+import { getPublishedSvgMarkup, getPublishedUsagePayload } from "../lib/usage";
 import { SvgUsage } from "./svg-usage";
-import { getPublishedUsagePayload } from "../lib/usage";
 
 export default async function Page() {
   const [svgMarkup, publishedUsage] = await Promise.all([
