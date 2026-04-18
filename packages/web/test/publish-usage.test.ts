@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  buildBundledPublishedDataModule,
   buildPublishedBackupPaths,
   mergePublishedUsagePayloads,
   writePublishedBackupArtifacts,
@@ -555,4 +556,42 @@ test("writePublishedBackupArtifacts writes versioned json and svg snapshots", ()
   assert.equal(existsSync(paths.svgPath), true);
   assert.match(readFileSync(paths.jsonPath, "utf8"), /"provider": "codex"/);
   assert.equal(readFileSync(paths.svgPath, "utf8"), svg);
+});
+
+
+test("buildBundledPublishedDataModule emits a typed module with payload and svg", () => {
+  const payload = mergePublishedUsagePayloads({
+    currentPayload: {
+      version: "2026-03-03",
+      start: "2026-04-12",
+      end: "2026-04-15",
+      providers: [
+        {
+          provider: "codex",
+          daily: [
+            {
+              date: "2026-04-13",
+              input: 7,
+              output: 3,
+              cache: { input: 0, output: 0 },
+              total: 10,
+              breakdown: [],
+            },
+          ],
+        },
+      ],
+    },
+    hostedPayload: null,
+    importedPayload: null,
+    opencodeDailyRecoveryPayload: null,
+    t3Summary: null,
+    updatedAt: new Date("2026-04-15T00:00:00.000Z"),
+  });
+
+  const moduleSource = buildBundledPublishedDataModule(payload, "<svg>ok</svg>");
+
+  assert.match(moduleSource, /publishedUsagePayload/);
+  assert.match(moduleSource, /publishedSvgMarkup/);
+  assert.match(moduleSource, /<svg>ok<\/svg>/);
+  assert.match(moduleSource, /"provider": "codex"/);
 });

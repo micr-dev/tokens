@@ -30,6 +30,8 @@ const DEFAULT_LOCAL_OUTPUT_PATH = ".slopmeter-data/published/daily-usage.json";
 const DEFAULT_LOCAL_SVG_OUTPUT_PATH =
   ".slopmeter-data/published/heatmap-last-year.svg";
 const DEFAULT_LOCAL_HISTORY_DIR = ".slopmeter-data/history";
+const DEFAULT_BUNDLED_MODULE_OUTPUT_PATH =
+  "packages/web/lib/published-data.generated.ts";
 const DEFAULT_BLOB_PATH = "slopmeter/daily-usage.json";
 const DEFAULT_SVG_BLOB_PATH = "slopmeter/heatmap-last-year.svg";
 const REPO_ROOT = resolve(fileURLToPath(new URL("../../..", import.meta.url)));
@@ -142,6 +144,36 @@ export function writePublishedBackupArtifacts({
   writeFileSync(paths.svgPath, svg, "utf8");
 
   return paths;
+}
+
+// Keep the published dataset in the web bundle so production serves the recovered snapshot directly.
+export function buildBundledPublishedDataModule(
+  payload: PublishedUsagePayload,
+  svg: string,
+) {
+  return [
+    'import type { PublishedUsagePayload } from "./types";',
+    "",
+    "export const publishedUsagePayload: PublishedUsagePayload = " +
+      JSON.stringify(payload, null, 2) +
+      ";",
+    "",
+    "export const publishedSvgMarkup = " + JSON.stringify(svg) + ";",
+    "",
+  ].join("\n");
+}
+
+export function writeBundledPublishedArtifacts({
+  modulePath,
+  payload,
+  svg,
+}: {
+  modulePath: string;
+  payload: PublishedUsagePayload;
+  svg: string;
+}) {
+  mkdirSync(dirname(modulePath), { recursive: true });
+  writeFileSync(modulePath, buildBundledPublishedDataModule(payload, svg), "utf8");
 }
 
 function filterPayloadWithSeenProviderDates(
@@ -438,6 +470,11 @@ async function main() {
       ? process.env.SLOPMETER_WEB_LOCAL_HISTORY_DIR.trim()
       : resolveRepoPath(DEFAULT_LOCAL_HISTORY_DIR),
   );
+  const localBundledModuleOutputPath = resolve(
+    process.env.SLOPMETER_WEB_LOCAL_BUNDLED_MODULE_OUTPUT_PATH?.trim()
+      ? process.env.SLOPMETER_WEB_LOCAL_BUNDLED_MODULE_OUTPUT_PATH.trim()
+      : resolveRepoPath(DEFAULT_BUNDLED_MODULE_OUTPUT_PATH),
+  );
   const gitBackupRepoDir = process.env.SLOPMETER_WEB_GIT_BACKUP_REPO_DIR?.trim()
     ? resolve(process.env.SLOPMETER_WEB_GIT_BACKUP_REPO_DIR.trim())
     : null;
@@ -486,6 +523,11 @@ async function main() {
   );
   mkdirSync(dirname(localSvgOutputPath), { recursive: true });
   writeFileSync(localSvgOutputPath, svg, "utf8");
+  writeBundledPublishedArtifacts({
+    modulePath: localBundledModuleOutputPath,
+    payload: mergedPayload,
+    svg,
+  });
   const backupPaths = writePublishedBackupArtifacts({
     historyDir: localHistoryDir,
     payload: mergedPayload,
@@ -524,6 +566,7 @@ async function main() {
           localOutputPath,
           localSvgOutputPath,
           localHistoryDir,
+          localBundledModuleOutputPath,
           backupJsonPath: backupPaths.jsonPath,
           backupSvgPath: backupPaths.svgPath,
           gitBackup,
@@ -572,6 +615,7 @@ async function main() {
         localOutputPath,
         localSvgOutputPath,
         localHistoryDir,
+        localBundledModuleOutputPath,
         backupJsonPath: backupPaths.jsonPath,
         backupSvgPath: backupPaths.svgPath,
         gitBackup,

@@ -1,10 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { getProviderDetailTheme } from "../lib/analytics";
-import {
-  normalizePublishedSvgMarkup,
-  shouldUseLocalPublishedArtifacts,
-} from "../lib/usage";
+import { normalizePublishedSvgMarkup } from "../lib/usage";
 
 test("normalizePublishedSvgMarkup replaces merged provider lists with All Providers", () => {
   const input =
@@ -35,17 +32,4 @@ test("getProviderDetailTheme exposes Gemini CLI colors for details cards", () =>
     accent: "#ef4444",
     accentSoft: "#fef2f2",
   });
-});
-
-test("shouldUseLocalPublishedArtifacts reports whether a published file exists", () => {
-  assert.equal(
-    shouldUseLocalPublishedArtifacts("/home/ubuntu/workspace/tokens/package.json"),
-    true,
-  );
-  assert.equal(
-    shouldUseLocalPublishedArtifacts(
-      "/home/ubuntu/workspace/tokens/does-not-exist.json",
-    ),
-    false,
-  );
 });

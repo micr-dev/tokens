@@ -3,8 +3,6 @@ import { getPublishedSvgMarkup } from "../lib/usage";
 import { SvgUsage } from "./svg-usage";
 import { getPublishedUsagePayload } from "../lib/usage";
 
-export const dynamic = "force-dynamic";
-
 export default async function Page() {
   const [svgMarkup, publishedUsage] = await Promise.all([
     getPublishedSvgMarkup(),
