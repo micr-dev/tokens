@@ -80,6 +80,20 @@ function readTextIfExists(pathValue: string) {
   return readFileSync(pathValue, "utf8");
 }
 
+function hasPackageScript(scriptName: string) {
+  const packageJsonText = readTextIfExists(resolve(REPO_ROOT, "package.json"));
+
+  if (!packageJsonText) {
+    return false;
+  }
+
+  const parsed = JSON.parse(packageJsonText) as {
+    scripts?: Record<string, string>;
+  };
+
+  return typeof parsed.scripts?.[scriptName] === "string";
+}
+
 function normalizePublishedJson(jsonText: string | null) {
   if (!jsonText) {
     return null;
@@ -157,7 +171,9 @@ function main() {
     readTextIfExists(resolve(REPO_ROOT, GENERATED_ARTIFACTS[0])),
   );
   const beforeSvg = readTextIfExists(resolve(REPO_ROOT, GENERATED_ARTIFACTS[1]));
-  const useRecoveryRefresh = existsSync(DEFAULT_RECOVERY_DB_PATH);
+  const recoveryRefreshAvailable = hasPackageScript("publish:web:refresh-opencode-recovery");
+  const useRecoveryRefresh =
+    existsSync(DEFAULT_RECOVERY_DB_PATH) && recoveryRefreshAvailable;
   const publishEnv = {
     SLOPMETER_WEB_SKIP_BLOB_UPLOAD: "1",
   } satisfies NodeJS.ProcessEnv;
