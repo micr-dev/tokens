@@ -7,5 +7,5 @@ After=network-online.target
 Type=oneshot
 WorkingDirectory=%h/.local/share/tokens-publish/repo
 Environment=HOME=%h
-Environment=PATH=%h/.bun/bin:/home/linuxbrew/.linuxbrew/bin:/usr/local/bin:/usr/bin:/bin
+Environment=PATH=%h/.nvm/versions/node/v24.13.0/bin:%h/.bun/bin:/home/linuxbrew/.linuxbrew/bin:/usr/local/bin:/usr/bin:/bin
 ExecStart=/usr/bin/env bun scripts/auto-publish-web.ts
