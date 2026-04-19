@@ -214,6 +214,17 @@ function filterPayloadWithSeenProviderDates(
   };
 }
 
+function filterImportableProviders(
+  payload: JsonExportPayload,
+): JsonExportPayload {
+  return {
+    ...payload,
+    providers: payload.providers.filter(
+      (provider) => provider.provider !== "all" && provider.provider !== "t3",
+    ),
+  };
+}
+
 function buildCanonicalPayloadInputs({
   currentPayload,
   importedPayload,
@@ -234,6 +245,7 @@ function buildCanonicalPayloadInputs({
     currentPayload,
   ]
     .filter((payload): payload is JsonExportPayload => payload !== null)
+    .map((payload) => filterImportableProviders(payload))
     .map((payload) =>
       filterPayloadWithSeenProviderDates(payload, seenProviderDates),
     )
