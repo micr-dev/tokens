@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily tokens.micr.dev publish timer
+
+[Timer]
+Unit=tokens-publish.service
+OnCalendar=*-*-* 03:15:00
+RandomizedDelaySec=15m
+Persistent=true
+
+[Install]
+WantedBy=timers.target

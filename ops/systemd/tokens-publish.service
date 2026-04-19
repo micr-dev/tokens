@@ -1,0 +1,11 @@
+[Unit]
+Description=Publish tokens.micr.dev data from local histories
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/.local/share/tokens-publish/repo
+Environment=HOME=%h
+Environment=PATH=/home/linuxbrew/.linuxbrew/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/home/linuxbrew/.linuxbrew/bin/bun scripts/auto-publish-web.ts

@@ -89,3 +89,42 @@ bun run opencode:recovery:export
 - Git is the deployment path.
 - Vercel deploys `main`.
 - `tokens.micr.dev` should be treated as the production alias for the latest successful production deploy.
+
+## Daily Automation
+
+The daily publish job runs from a dedicated clean clone on the machine that holds the local usage histories.
+
+- Automation clone: `~/.local/share/tokens-publish/repo`
+- Service unit: `~/.config/systemd/user/tokens-publish.service`
+- Timer unit: `~/.config/systemd/user/tokens-publish.timer`
+- Last run summary: `~/.local/state/slopmeter-automation/last-run.json`
+
+The service executes:
+
+```bash
+bun scripts/auto-publish-web.ts
+```
+
+That script:
+
+- pulls `origin/main` fast-forward only
+- installs dependencies
+- refreshes OpenCode recovery first when `~/.local/share/opencode/recovery/opencode-salvage-merged.db` exists
+- runs the publish pipeline
+- writes an immutable backup under `.slopmeter-data/history/<timestamp>/`
+- commits only the canonical published artifacts when the dataset materially changed
+
+To inspect or rerun it manually:
+
+```bash
+systemctl --user status tokens-publish.timer --no-pager
+systemctl --user status tokens-publish.service --no-pager
+journalctl --user -u tokens-publish.service -n 100 --no-pager
+systemctl --user start tokens-publish.service
+```
+
+If the machine must keep publishing while logged out, verify user linger is enabled:
+
+```bash
+loginctl show-user "$USER" -p Linger
+```
