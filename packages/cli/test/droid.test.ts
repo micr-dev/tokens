@@ -98,7 +98,7 @@ test("loadDroidRows aggregates Factory Droid session settings", async (t) => {
         output: 9,
         cache: { input: 2, output: 1 },
         total: 21,
-        model: "custom:gpt-5.4-[CLIProxy]-24",
+        model: "gpt-5.4",
       },
       {
         date: "2026-03-15",

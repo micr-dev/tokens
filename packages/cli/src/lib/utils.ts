@@ -647,7 +647,11 @@ export function getRecentWindowStart(endDate: Date, days = 30) {
 }
 
 export function normalizeModelName(modelName: string) {
-  return modelName.replace(/-\d{8}$/, "");
+  return modelName
+    .trim()
+    .replace(/^custom:/i, "")
+    .replace(/-\[cliproxy\]-\d+$/i, "")
+    .replace(/-\d{8}$/, "");
 }
 
 export function getTopModel(

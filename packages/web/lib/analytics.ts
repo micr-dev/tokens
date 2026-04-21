@@ -129,6 +129,18 @@ const vendorBaseHues: Record<VendorCompanyId, number> = {
 };
 
 const vendorToneOffsets = [0, -10, 12, -18, 22, -28, 32, -38, 42, -48];
+const preferredVendorOrder: VendorCompanyId[] = [
+  "openai",
+  "z-ai",
+  "anthropic",
+  "google",
+  "moonshot",
+  "deepseek",
+  "alibaba",
+  "minimax",
+  "xai",
+  "nvidia",
+];
 
 interface FlattenedModelUsage {
   date: string;
@@ -236,6 +248,8 @@ function sortSeries<T extends AnalyticsSeriesPoint>(series: T[]) {
 function normalizeModelName(modelName: string) {
   let normalized = modelName.trim().toLowerCase();
 
+  normalized = normalized.replace(/^custom:/, "");
+
   for (const prefix of modelAliasPrefixes) {
     if (normalized.startsWith(prefix) && normalized.length > prefix.length) {
       normalized = normalized.slice(prefix.length);
@@ -243,6 +257,7 @@ function normalizeModelName(modelName: string) {
     }
   }
 
+  normalized = normalized.replace(/-\[cliproxy\]-\d+$/, "");
   normalized = normalized.replace(/-free$/, "");
 
   return normalized;
@@ -433,6 +448,36 @@ function getVisibleVendorIds(entries: FlattenedModelUsage[]) {
   }
 
   return visible;
+}
+
+function compareVendors(
+  left: VendorCompanyId,
+  right: VendorCompanyId,
+  leftTotal: number,
+  rightTotal: number,
+) {
+  const leftOrder = preferredVendorOrder.indexOf(left);
+  const rightOrder = preferredVendorOrder.indexOf(right);
+
+  if (leftOrder !== -1 || rightOrder !== -1) {
+    if (leftOrder === -1) {
+      return 1;
+    }
+
+    if (rightOrder === -1) {
+      return -1;
+    }
+
+    if (leftOrder !== rightOrder) {
+      return leftOrder - rightOrder;
+    }
+  }
+
+  if (leftTotal !== rightTotal) {
+    return rightTotal - leftTotal;
+  }
+
+  return left.localeCompare(right);
 }
 
 function extractModelVersionParts(modelName: string) {
@@ -819,7 +864,9 @@ function buildVendorAnalytics(
         },
       };
     })
-    .sort((left, right) => right.total - left.total);
+    .sort((left, right) =>
+      compareVendors(left.vendor, right.vendor, left.total, right.total),
+    );
 }
 
 export function formatCompactNumber(value: number) {

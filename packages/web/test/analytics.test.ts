@@ -476,6 +476,104 @@ test("buildAnalytics derives major vendor rows and period buckets for the models
   ]);
 });
 
+test("buildAnalytics uses the preferred vendor row order for the models tab", () => {
+  const payload = {
+    version: "1",
+    start: "2026-04-01",
+    end: "2026-04-01",
+    updatedAt: "2026-04-01T00:00:00.000Z",
+    providers: [
+      {
+        provider: "codex",
+        insights: {
+          streaks: {
+            longest: 1,
+            current: 1,
+          },
+        },
+        daily: [
+          {
+            date: "2026-04-01",
+            input: 100,
+            output: 0,
+            cache: { input: 0, output: 0 },
+            total: 100,
+            breakdown: [{ name: "gpt-5.4", tokens: createTokens(100) }],
+          },
+        ],
+      },
+      {
+        provider: "opencode",
+        insights: {
+          streaks: {
+            longest: 1,
+            current: 1,
+          },
+        },
+        daily: [
+          {
+            date: "2026-04-01",
+            input: 40,
+            output: 0,
+            cache: { input: 0, output: 0 },
+            total: 40,
+            breakdown: [{ name: "z-ai/glm-5", tokens: createTokens(40) }],
+          },
+        ],
+      },
+      {
+        provider: "claude",
+        insights: {
+          streaks: {
+            longest: 1,
+            current: 1,
+          },
+        },
+        daily: [
+          {
+            date: "2026-04-01",
+            input: 30,
+            output: 0,
+            cache: { input: 0, output: 0 },
+            total: 30,
+            breakdown: [
+              { name: "claude-4.5-opus", tokens: createTokens(30) },
+            ],
+          },
+        ],
+      },
+      {
+        provider: "gemini",
+        insights: {
+          streaks: {
+            longest: 1,
+            current: 1,
+          },
+        },
+        daily: [
+          {
+            date: "2026-04-01",
+            input: 90,
+            output: 0,
+            cache: { input: 0, output: 0 },
+            total: 90,
+            breakdown: [
+              { name: "gemini-3-pro", tokens: createTokens(90) },
+            ],
+          },
+        ],
+      },
+    ],
+  } satisfies PublishedUsagePayload;
+
+  const analytics = buildAnalytics(payload);
+
+  assert.deepEqual(
+    analytics.vendors.map((vendor) => vendor.name),
+    ["OpenAI", "Z.AI", "Anthropic", "Google"],
+  );
+});
+
 test("buildAnalytics assigns stable non-repeating model colors per vendor row", () => {
   const first = buildAnalytics(modelsPayload);
   const second = buildAnalytics(modelsPayload);
@@ -499,8 +597,8 @@ test("buildAnalytics groups aliased vendor model names together", () => {
   const payload = {
     version: "1",
     start: "2026-04-01",
-    end: "2026-04-02",
-    updatedAt: "2026-04-02T00:00:00.000Z",
+    end: "2026-04-03",
+    updatedAt: "2026-04-03T00:00:00.000Z",
     providers: [
       {
         provider: "codex",
@@ -527,18 +625,31 @@ test("buildAnalytics groups aliased vendor model names together", () => {
             total: 10,
             breakdown: [{ name: "gpt-5.4", tokens: createTokens(10) }],
           },
-          {
-            date: "2026-04-02",
-            input: 12,
-            output: 0,
-            cache: { input: 0, output: 0 },
-            total: 12,
-            breakdown: [
+        {
+          date: "2026-04-02",
+          input: 12,
+          output: 0,
+          cache: { input: 0, output: 0 },
+          total: 12,
+          breakdown: [
               { name: "cliproxyapi/gpt-5.4", tokens: createTokens(12) },
-            ],
-          },
-        ],
-      },
+          ],
+        },
+        {
+          date: "2026-04-03",
+          input: 8,
+          output: 0,
+          cache: { input: 0, output: 0 },
+          total: 8,
+          breakdown: [
+            {
+              name: "custom:gpt-5.4-[CLIProxy]-24",
+              tokens: createTokens(8),
+            },
+          ],
+        },
+      ],
+    },
       {
         provider: "opencode",
         insights: {
@@ -579,7 +690,7 @@ test("buildAnalytics groups aliased vendor model names together", () => {
   assert.deepEqual(openai?.topModels, [
     {
       name: "gpt-5.4",
-      total: 22,
+      total: 30,
       share: 1,
     },
   ]);
@@ -593,7 +704,7 @@ test("buildAnalytics groups aliased vendor model names together", () => {
   assert.deepEqual(openai?.scales.day.at(-1)?.segments, [
     {
       name: "gpt-5.4",
-      total: 12,
+      total: 8,
       color: openai?.modelColors[0]?.color ?? "",
     },
   ]);
