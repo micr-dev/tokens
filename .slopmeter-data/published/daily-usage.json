@@ -2,7 +2,7 @@
   "version": "2026-03-03",
   "start": "2025-03-15",
   "end": "2026-04-21",
-  "updatedAt": "2026-04-21T03:17:04.216Z",
+  "updatedAt": "2026-04-21T10:46:08.460Z",
   "providers": [
     {
       "provider": "codex",
@@ -10,30 +10,30 @@
         "mostUsedModel": {
           "name": "gpt-5.4",
           "tokens": {
-            "input": 6284146899,
-            "output": 22480217,
+            "input": 6336253727,
+            "output": 22646077,
             "cache": {
-              "input": 5886978411,
+              "input": 5934661995,
               "output": 0
             },
-            "total": 6306627116
+            "total": 6358899804
           }
         },
         "recentMostUsedModel": {
           "name": "gpt-5.4",
           "tokens": {
-            "input": 4140186984,
-            "output": 14084831,
+            "input": 4192293812,
+            "output": 14250691,
             "cache": {
-              "input": 3856637291,
+              "input": 3904320875,
               "output": 0
             },
-            "total": 4154271815
+            "total": 4206544503
           }
         },
         "streaks": {
-          "longest": 41,
-          "current": 41
+          "longest": 42,
+          "current": 42
         }
       },
       "daily": [
@@ -1334,6 +1334,31 @@
                   "output": 0
                 },
                 "total": 111020152
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-04-21",
+          "input": 52106828,
+          "output": 165860,
+          "cache": {
+            "input": 47683584,
+            "output": 0
+          },
+          "total": 52272688,
+          "displayValue": 52272688,
+          "breakdown": [
+            {
+              "name": "gpt-5.4",
+              "tokens": {
+                "input": 52106828,
+                "output": 165860,
+                "cache": {
+                  "input": 47683584,
+                  "output": 0
+                },
+                "total": 52272688
               }
             }
           ]
@@ -11406,7 +11431,7 @@
         },
         "streaks": {
           "longest": 6,
-          "current": 3
+          "current": 4
         }
       },
       "daily": [
@@ -12953,6 +12978,31 @@
                   "output": 0
                 },
                 "total": 24998545
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-04-21",
+          "input": 3294820,
+          "output": 544358,
+          "cache": {
+            "input": 2899728,
+            "output": 0
+          },
+          "total": 3839178,
+          "displayValue": 3839178,
+          "breakdown": [
+            {
+              "name": "gemini-2.5-flash",
+              "tokens": {
+                "input": 3294820,
+                "output": 544358,
+                "cache": {
+                  "input": 2899728,
+                  "output": 0
+                },
+                "total": 3839178
               }
             }
           ]
