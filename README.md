@@ -1,6 +1,24 @@
 # slopmeter
 
-CLI tool that generates usage heatmaps for Claude Code, Codex, Cursor, Open Code, Pi Coding Agent, Droid, Hermes Agent, and Helios for the rolling past year (ending today).
+[![License](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
+[![Node](https://img.shields.io/badge/node-%E2%89%A522-green.svg)](https://nodejs.org)
+[![Bun](https://img.shields.io/badge/bun-%E2%89%A51.3-orange.svg)](https://bun.sh)
+
+CLI tool that generates usage heatmaps for **Claude Code**, **Codex**, **Cursor**, **Open Code**, **Pi Coding Agent**, **Droid**, **Hermes Agent**, and **Helios** for the rolling past year (ending today).
+
+## Table of Contents
+
+- [Setup](#setup)
+- [Usage](#usage)
+- [What the Image Shows](#what-the-image-shows)
+- [Format Behavior](#format-behavior)
+- [JSON Export](#json-export)
+- [Hosted Daily Page](#hosted-daily-page)
+- [Provider/Data Behavior](#providerdata-behavior)
+- [Environment Knobs](#environment-knobs)
+- [Data Locations](#data-locations)
+
+
 
 ## Monorepo layout
 
