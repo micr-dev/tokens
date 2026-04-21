@@ -176,23 +176,30 @@ export function writeBundledPublishedArtifacts({
   writeFileSync(modulePath, buildBundledPublishedDataModule(payload, svg), "utf8");
 }
 
-function filterPayloadWithSeenProviderDates(
+function collectProviderDateKeys(payloads: JsonExportPayload[]) {
+  const keys = new Set<string>();
+
+  for (const payload of payloads) {
+    for (const provider of payload.providers) {
+      for (const row of provider.daily) {
+        keys.add(`${provider.provider}:${row.date}`);
+      }
+    }
+  }
+
+  return keys;
+}
+
+function filterPayloadByProviderDateKeys(
   payload: JsonExportPayload,
-  seenProviderDates: Set<string>,
+  excludedProviderDates: Set<string>,
 ): JsonExportPayload | null {
   const providers: JsonExportPayload["providers"] = [];
 
   for (const provider of payload.providers) {
-    const daily = provider.daily.filter((row) => {
-      const key = `${provider.provider}:${row.date}`;
-
-      if (seenProviderDates.has(key)) {
-        return false;
-      }
-
-      seenProviderDates.add(key);
-      return true;
-    });
+    const daily = provider.daily.filter(
+      (row) => !excludedProviderDates.has(`${provider.provider}:${row.date}`),
+    );
 
     if (daily.length === 0) {
       continue;
@@ -236,20 +243,24 @@ function buildCanonicalPayloadInputs({
   opencodeDailyRecoveryPayload: JsonExportPayload | null;
   hostedPayload: PublishedUsagePayload | null;
 }) {
-  const seenProviderDates = new Set<string>();
-
-  return [
+  const freshPayloads = [
     opencodeDailyRecoveryPayload,
-    hostedPayload ? toJsonExportPayload(hostedPayload) : null,
     importedPayload,
     currentPayload,
   ]
     .filter((payload): payload is JsonExportPayload => payload !== null)
-    .map((payload) => filterImportableProviders(payload))
-    .map((payload) =>
-      filterPayloadWithSeenProviderDates(payload, seenProviderDates),
-    )
-    .filter((payload): payload is JsonExportPayload => payload !== null);
+    .map((payload) => filterImportableProviders(payload));
+  const freshProviderDates = collectProviderDateKeys(freshPayloads);
+  const filteredHostedPayload = hostedPayload
+    ? filterPayloadByProviderDateKeys(
+        filterImportableProviders(toJsonExportPayload(hostedPayload)),
+        freshProviderDates,
+      )
+    : null;
+
+  return [filteredHostedPayload, ...freshPayloads].filter(
+    (payload): payload is JsonExportPayload => payload !== null,
+  );
 }
 
 function parseDateOnly(value: string) {
