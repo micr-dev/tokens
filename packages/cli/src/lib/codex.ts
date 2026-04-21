@@ -1,3 +1,4 @@
+import { statSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import type { UsageSummary } from "../interfaces";
@@ -23,6 +24,7 @@ import {
   runWithConcurrency,
 } from "./utils";
 const CLASSIFICATION_PREFIX_BYTES = 32 * 1024;
+const DUPLICATE_SESSION_WINDOW_MS = 60 * 1000;
 
 interface CodexRawUsage {
   input_tokens?: number;
@@ -68,6 +70,13 @@ interface CodexFileProcessingResult {
   modelTotals: Map<string, ModelTokenTotals>;
   recentModelTotals: Map<string, ModelTokenTotals>;
   skippedOversizedIrrelevantRecords: number;
+}
+
+interface CodexFileFingerprint {
+  filePath: string;
+  fileSizeBytes: number;
+  startTimestampMs: number;
+  firstCumulativeUsageKey: string;
 }
 
 type JsonContext =
@@ -116,6 +125,16 @@ function addCodexUsage(
       (base?.reasoning_output_tokens ?? 0) + delta.reasoning_output_tokens,
     total_tokens: (base?.total_tokens ?? 0) + delta.total_tokens,
   };
+}
+
+function getCodexUsageFingerprint(value: CodexNormalizedUsage) {
+  return [
+    value.input_tokens,
+    value.cached_input_tokens,
+    value.output_tokens,
+    value.reasoning_output_tokens,
+    value.total_tokens,
+  ].join(":");
 }
 
 function subtractCodexUsage(
@@ -209,6 +228,12 @@ async function getCodexFiles() {
     : join(homedir(), ".codex");
 
   return listFilesRecursive(join(codexHome, "sessions"), ".jsonl");
+}
+
+function parseCodexTimestampMs(value: string) {
+  const parsed = Date.parse(value);
+
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function readJsonString(source: string, start: number) {
@@ -585,6 +610,163 @@ async function processCodexFile(
   };
 }
 
+async function readCodexFileFingerprint(
+  filePath: string,
+  maxRecordBytes: number,
+): Promise<CodexFileFingerprint | null> {
+  let startTimestampMs: number | null = null;
+  let firstCumulativeUsageKey: string | null = null;
+
+  for await (const record of readJsonlRecords<"turn_context" | "token_count">(
+    filePath,
+    {
+      classificationPrefixBytes: CLASSIFICATION_PREFIX_BYTES,
+      classify: classifyCodexRecord,
+      maxRecordBytes,
+      oversizedErrorMessage: ({ filePath, lineNumber, maxRecordBytes }) =>
+        `Relevant Codex record exceeds ${maxRecordBytes} bytes in ${filePath}:${lineNumber}. Increase ${MAX_JSONL_RECORD_BYTES_ENV} to process this file.`,
+    },
+  )) {
+    let entry: CodexEventEntry;
+
+    try {
+      entry = JSON.parse(record.rawLine) as CodexEventEntry;
+    } catch {
+      continue;
+    }
+
+    if (startTimestampMs === null) {
+      startTimestampMs = parseCodexTimestampMs(entry.timestamp);
+    }
+
+    if (
+      record.classification === "token_count" &&
+      firstCumulativeUsageKey === null
+    ) {
+      const totalUsage = normalizeCodexUsage(
+        entry.payload?.info?.total_token_usage,
+      );
+
+      if (totalUsage && totalUsage.total_tokens > 0) {
+        firstCumulativeUsageKey = getCodexUsageFingerprint(totalUsage);
+      }
+    }
+
+    if (startTimestampMs !== null && firstCumulativeUsageKey !== null) {
+      break;
+    }
+  }
+
+  if (startTimestampMs === null || firstCumulativeUsageKey === null) {
+    return null;
+  }
+
+  return {
+    filePath,
+    fileSizeBytes: statSync(filePath).size,
+    startTimestampMs,
+    firstCumulativeUsageKey,
+  };
+}
+
+function chooseFingerprintWinner(group: CodexFileFingerprint[]) {
+  return group.reduce((best, current) => {
+    if (current.fileSizeBytes !== best.fileSizeBytes) {
+      return current.fileSizeBytes > best.fileSizeBytes ? current : best;
+    }
+
+    return current.filePath.localeCompare(best.filePath) < 0 ? current : best;
+  });
+}
+
+async function dedupeCodexFiles(
+  files: string[],
+  maxRecordBytes: number,
+  fileConcurrency: number,
+) {
+  const fingerprints = new Array<CodexFileFingerprint | null>(files.length);
+
+  await runWithConcurrency(files, fileConcurrency, async (file, index) => {
+    fingerprints[index] = await readCodexFileFingerprint(file, maxRecordBytes);
+  });
+
+  const groupedByUsage = new Map<string, CodexFileFingerprint[]>();
+
+  for (const fingerprint of fingerprints) {
+    if (!fingerprint) {
+      continue;
+    }
+
+    const matches =
+      groupedByUsage.get(fingerprint.firstCumulativeUsageKey) ?? [];
+
+    matches.push(fingerprint);
+    groupedByUsage.set(fingerprint.firstCumulativeUsageKey, matches);
+  }
+
+  const skippedFiles = new Set<string>();
+  let duplicateGroups = 0;
+
+  for (const matches of groupedByUsage.values()) {
+    matches.sort(
+      (left, right) =>
+        left.startTimestampMs - right.startTimestampMs ||
+        right.fileSizeBytes - left.fileSizeBytes ||
+        left.filePath.localeCompare(right.filePath),
+    );
+
+    let currentGroup: CodexFileFingerprint[] = [];
+    let currentGroupStart = 0;
+
+    const flushGroup = () => {
+      if (currentGroup.length <= 1) {
+        currentGroup = [];
+        return;
+      }
+
+      duplicateGroups += 1;
+
+      const winner = chooseFingerprintWinner(currentGroup);
+
+      for (const fingerprint of currentGroup) {
+        if (fingerprint.filePath !== winner.filePath) {
+          skippedFiles.add(fingerprint.filePath);
+        }
+      }
+
+      currentGroup = [];
+    };
+
+    for (const fingerprint of matches) {
+      if (currentGroup.length === 0) {
+        currentGroup = [fingerprint];
+        currentGroupStart = fingerprint.startTimestampMs;
+        continue;
+      }
+
+      if (
+        fingerprint.startTimestampMs - currentGroupStart <=
+        DUPLICATE_SESSION_WINDOW_MS
+      ) {
+        currentGroup.push(fingerprint);
+        continue;
+      }
+
+      flushGroup();
+      currentGroup = [fingerprint];
+      currentGroupStart = fingerprint.startTimestampMs;
+    }
+
+    flushGroup();
+  }
+
+  return {
+    files: files.filter((file) => !skippedFiles.has(file)),
+    duplicateGroups,
+    skippedFiles: skippedFiles.size,
+  };
+}
+
 export async function loadCodexRows(
   start: Date,
   end: Date,
@@ -602,9 +784,15 @@ export async function loadCodexRows(
     FILE_PROCESS_CONCURRENCY_ENV,
     DEFAULT_FILE_PROCESS_CONCURRENCY,
   );
-  const results = new Array<CodexFileProcessingResult>(files.length);
+  const dedupedFiles = await dedupeCodexFiles(
+    files,
+    maxRecordBytes,
+    fileConcurrency,
+  );
+  const filesToProcess = dedupedFiles.files;
+  const results = new Array<CodexFileProcessingResult>(filesToProcess.length);
 
-  await runWithConcurrency(files, fileConcurrency, async (file, index) => {
+  await runWithConcurrency(filesToProcess, fileConcurrency, async (file, index) => {
     results[index] = await processCodexFile(file, start, end, maxRecordBytes);
   });
 
@@ -626,6 +814,12 @@ export async function loadCodexRows(
   if (skippedOversizedIrrelevantRecords > 0) {
     warnings.push(
       `Skipped ${skippedOversizedIrrelevantRecords} oversized irrelevant Codex record(s) across ${skippedFiles} file(s); usage totals exclude those records. Relevant oversized records fail the file. Override ${MAX_JSONL_RECORD_BYTES_ENV} to raise the cap.`,
+    );
+  }
+
+  if (dedupedFiles.skippedFiles > 0) {
+    warnings.push(
+      `Deduplicated ${dedupedFiles.skippedFiles} duplicate Codex session file(s) across ${dedupedFiles.duplicateGroups} group(s) by matching the first cumulative total within a 60 second start window.`,
     );
   }
 

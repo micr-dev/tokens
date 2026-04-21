@@ -519,6 +519,132 @@ test("Codex derives token usage from cumulative totals and ignores duplicate sna
   );
 });
 
+test("Codex deduplicates parallel rollout session files by first cumulative total and start window", async (t) => {
+  const workspace = createTempWorkspace("codex-parallel-rollout-dedup");
+
+  t.after(() => {
+    rmSync(workspace, { recursive: true, force: true });
+  });
+
+  const codexHome = join(workspace, "codex");
+  const outputPath = join(workspace, "out.json");
+  const baseTimestamp = new Date();
+
+  baseTimestamp.setUTCHours(0, 0, 0, 0);
+
+  writeJsonlFile(join(codexHome, "sessions", "parallel-a.jsonl"), [
+    JSON.stringify({
+      type: "turn_context",
+      timestamp: new Date(baseTimestamp.getTime()).toISOString(),
+      payload: { model: "gpt-5.4" },
+    }),
+    codexTokenCount({
+      timestamp: new Date(baseTimestamp.getTime() + 1_000).toISOString(),
+      totalUsage: { input: 70, output: 30, total: 100 },
+    }),
+    codexTokenCount({
+      timestamp: new Date(baseTimestamp.getTime() + 2_000).toISOString(),
+      totalUsage: { input: 90, output: 40, total: 130 },
+    }),
+  ]);
+  writeJsonlFile(join(codexHome, "sessions", "parallel-b.jsonl"), [
+    JSON.stringify({
+      type: "turn_context",
+      timestamp: new Date(baseTimestamp.getTime() + 20_000).toISOString(),
+      payload: { model: "gpt-5.4" },
+    }),
+    codexTokenCount({
+      timestamp: new Date(baseTimestamp.getTime() + 21_000).toISOString(),
+      totalUsage: { input: 70, output: 30, total: 100 },
+      padding: "x".repeat(512),
+    }),
+    codexTokenCount({
+      timestamp: new Date(baseTimestamp.getTime() + 22_000).toISOString(),
+      totalUsage: { input: 90, output: 40, total: 130 },
+    }),
+    codexTokenCount({
+      timestamp: new Date(baseTimestamp.getTime() + 23_000).toISOString(),
+      totalUsage: { input: 120, output: 40, total: 160 },
+    }),
+  ]);
+
+  const result = await runCli(
+    ["--codex", "--format", "json", "--output", outputPath],
+    {
+      CODEX_HOME: codexHome,
+    },
+  );
+
+  assert.equal(result.code, 0, result.stderr || result.stdout);
+
+  const payload = JSON.parse(readFileSync(outputPath, "utf8")) as {
+    providers: Array<{ provider: string; daily: Array<{ total: number }> }>;
+  };
+
+  assert.equal(payload.providers[0]?.daily[0]?.total, 160);
+});
+
+test("Codex keeps matching cumulative totals when session starts are outside the dedup window", async (t) => {
+  const workspace = createTempWorkspace("codex-parallel-rollout-window");
+
+  t.after(() => {
+    rmSync(workspace, { recursive: true, force: true });
+  });
+
+  const codexHome = join(workspace, "codex");
+  const outputPath = join(workspace, "out.json");
+  const baseTimestamp = new Date();
+
+  baseTimestamp.setUTCHours(0, 0, 0, 0);
+
+  writeJsonlFile(join(codexHome, "sessions", "session-a.jsonl"), [
+    JSON.stringify({
+      type: "turn_context",
+      timestamp: new Date(baseTimestamp.getTime()).toISOString(),
+      payload: { model: "gpt-5.4" },
+    }),
+    codexTokenCount({
+      timestamp: new Date(baseTimestamp.getTime() + 1_000).toISOString(),
+      totalUsage: { input: 70, output: 30, total: 100 },
+    }),
+    codexTokenCount({
+      timestamp: new Date(baseTimestamp.getTime() + 2_000).toISOString(),
+      totalUsage: { input: 90, output: 40, total: 130 },
+    }),
+  ]);
+  writeJsonlFile(join(codexHome, "sessions", "session-b.jsonl"), [
+    JSON.stringify({
+      type: "turn_context",
+      timestamp: new Date(baseTimestamp.getTime() + 61_000).toISOString(),
+      payload: { model: "gpt-5.4" },
+    }),
+    codexTokenCount({
+      timestamp: new Date(baseTimestamp.getTime() + 62_000).toISOString(),
+      totalUsage: { input: 70, output: 30, total: 100 },
+      padding: "x".repeat(512),
+    }),
+    codexTokenCount({
+      timestamp: new Date(baseTimestamp.getTime() + 63_000).toISOString(),
+      totalUsage: { input: 120, output: 40, total: 160 },
+    }),
+  ]);
+
+  const result = await runCli(
+    ["--codex", "--format", "json", "--output", outputPath],
+    {
+      CODEX_HOME: codexHome,
+    },
+  );
+
+  assert.equal(result.code, 0, result.stderr || result.stdout);
+
+  const payload = JSON.parse(readFileSync(outputPath, "utf8")) as {
+    providers: Array<{ provider: string; daily: Array<{ total: number }> }>;
+  };
+
+  assert.equal(payload.providers[0]?.daily[0]?.total, 290);
+});
+
 test("Codex falls back to last usage when cumulative totals roll back", async (t) => {
   const workspace = createTempWorkspace("codex-total-rollback");
 
