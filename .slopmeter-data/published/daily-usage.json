@@ -1,8 +1,8 @@
 {
   "version": "2026-03-03",
   "start": "2025-03-15",
-  "end": "2026-05-25",
-  "updatedAt": "2026-05-25T03:16:43.023Z",
+  "end": "2026-05-26",
+  "updatedAt": "2026-05-26T03:17:38.019Z",
   "providers": [
     {
       "provider": "codex",
@@ -22,18 +22,18 @@
         "recentMostUsedModel": {
           "name": "gpt-5.5",
           "tokens": {
-            "input": 8841004649,
-            "output": 16324191,
+            "input": 8729075815,
+            "output": 16236084,
             "cache": {
-              "input": 8428324608,
+              "input": 8332333568,
               "output": 0
             },
-            "total": 8857328840
+            "total": 8745311899
           }
         },
         "streaks": {
-          "longest": 75,
-          "current": 75
+          "longest": 76,
+          "current": 76
         }
       },
       "daily": [
@@ -2340,6 +2340,31 @@
                   "output": 0
                 },
                 "total": 307096681
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-05-25",
+          "input": 253512783,
+          "output": 543565,
+          "cache": {
+            "input": 242509568,
+            "output": 0
+          },
+          "total": 254056348,
+          "displayValue": 254056348,
+          "breakdown": [
+            {
+              "name": "gpt-5.5",
+              "tokens": {
+                "input": 253512783,
+                "output": 543565,
+                "cache": {
+                  "input": 242509568,
+                  "output": 0
+                },
+                "total": 254056348
               }
             }
           ]
@@ -11068,30 +11093,30 @@
         "mostUsedModel": {
           "name": "glm-5-turbo",
           "tokens": {
-            "input": 115360045,
-            "output": 5584870,
+            "input": 116508491,
+            "output": 5652346,
             "cache": {
               "input": 0,
               "output": 0
             },
-            "total": 120944915
+            "total": 122160837
           }
         },
         "recentMostUsedModel": {
           "name": "glm-5-turbo",
           "tokens": {
-            "input": 60835833,
-            "output": 3416683,
+            "input": 60289915,
+            "output": 3296788,
             "cache": {
               "input": 0,
               "output": 0
             },
-            "total": 64252516
+            "total": 63586703
           }
         },
         "streaks": {
-          "longest": 69,
-          "current": 69
+          "longest": 70,
+          "current": 70
         }
       },
       "daily": [
@@ -14272,14 +14297,14 @@
         },
         {
           "date": "2026-05-24",
-          "input": 8866007,
-          "output": 416620,
+          "input": 8629247,
+          "output": 404000,
           "cache": {
             "input": 0,
             "output": 0
           },
-          "total": 9282627,
-          "displayValue": 9282627,
+          "total": 9033247,
+          "displayValue": 9033247,
           "breakdown": [
             {
               "name": "star-gemini-3.5-flash",
@@ -14308,13 +14333,13 @@
             {
               "name": "glm-5-turbo",
               "tokens": {
-                "input": 1322956,
-                "output": 86707,
+                "input": 1086196,
+                "output": 74087,
                 "cache": {
                   "input": 0,
                   "output": 0
                 },
-                "total": 1409663
+                "total": 1160283
               }
             },
             {
@@ -14345,49 +14370,86 @@
         },
         {
           "date": "2026-05-25",
-          "input": 2441980,
-          "output": 15995,
+          "input": 16040951,
+          "output": 165819,
           "cache": {
             "input": 0,
             "output": 0
           },
-          "total": 2457975,
-          "displayValue": 2457975,
+          "total": 16206770,
+          "displayValue": 16206770,
           "breakdown": [
             {
               "name": "star-gemini-3.5-flash",
               "tokens": {
-                "input": 2316297,
-                "output": 14762,
+                "input": 13987021,
+                "output": 70971,
                 "cache": {
                   "input": 0,
                   "output": 0
                 },
-                "total": 2331059
-              }
-            },
-            {
-              "name": "glm-5.1",
-              "tokens": {
-                "input": 118066,
-                "output": 876,
-                "cache": {
-                  "input": 0,
-                  "output": 0
-                },
-                "total": 118942
+                "total": 14057992
               }
             },
             {
               "name": "glm-5-turbo",
               "tokens": {
-                "input": 7617,
-                "output": 357,
+                "input": 1384676,
+                "output": 80075,
                 "cache": {
                   "input": 0,
                   "output": 0
                 },
-                "total": 7974
+                "total": 1464751
+              }
+            },
+            {
+              "name": "glm-5.1",
+              "tokens": {
+                "input": 669254,
+                "output": 14773,
+                "cache": {
+                  "input": 0,
+                  "output": 0
+                },
+                "total": 684027
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-05-26",
+          "input": 100349,
+          "output": 2196,
+          "cache": {
+            "input": 0,
+            "output": 0
+          },
+          "total": 102545,
+          "displayValue": 102545,
+          "breakdown": [
+            {
+              "name": "glm-5.1",
+              "tokens": {
+                "input": 92202,
+                "output": 1818,
+                "cache": {
+                  "input": 0,
+                  "output": 0
+                },
+                "total": 94020
+              }
+            },
+            {
+              "name": "glm-5-turbo",
+              "tokens": {
+                "input": 8147,
+                "output": 378,
+                "cache": {
+                  "input": 0,
+                  "output": 0
+                },
+                "total": 8525
               }
             }
           ]
