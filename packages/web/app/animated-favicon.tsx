@@ -7,29 +7,31 @@ const FRAME_MS = 140;
 const LOGO_WIDTH = 23;
 const LOGO_HEIGHT = 8;
 
-function getFaviconLink() {
+function getFaviconLinks() {
   const existingLinks = Array.from(
     document.querySelectorAll<HTMLLinkElement>('link[rel~="icon"]'),
   );
-  const faviconLink =
-    existingLinks.find((link) => link.href.includes("/favicon.ico")) ??
-    existingLinks[0];
 
-  if (faviconLink) {
-    return faviconLink;
+  if (existingLinks.length > 0) {
+    return existingLinks;
   }
 
   const link = document.createElement("link");
   link.rel = "icon";
+  link.type = "image/png";
   document.head.appendChild(link);
-  return link;
+  return [link];
 }
 
 export function AnimatedFavicon() {
   useEffect(() => {
-    const favicon = getFaviconLink();
-    const originalHref = favicon.href;
-    const originalType = favicon.type;
+    const favicons = getFaviconLinks();
+    const originalFavicons = favicons.map((favicon) => ({
+      favicon,
+      href: favicon.href,
+      type: favicon.type,
+      sizes: favicon.sizes.value,
+    }));
     const canvas = document.createElement("canvas");
     canvas.width = SIZE;
     canvas.height = SIZE;
@@ -39,7 +41,10 @@ export function AnimatedFavicon() {
       return;
     }
 
-    favicon.type = "image/png";
+    for (const favicon of favicons) {
+      favicon.type = "image/png";
+      favicon.sizes.value = `${SIZE}x${SIZE}`;
+    }
 
     let x = 1;
     let y = 5;
@@ -53,7 +58,11 @@ export function AnimatedFavicon() {
       context.textBaseline = "top";
       context.fillText("DVD", x, y);
 
-      favicon.href = canvas.toDataURL("image/png");
+      const frameUrl = canvas.toDataURL("image/png");
+
+      for (const favicon of favicons) {
+        favicon.href = frameUrl;
+      }
 
       const nextX = x + xVelocity;
       const nextY = y + yVelocity;
@@ -76,8 +85,12 @@ export function AnimatedFavicon() {
 
     return () => {
       window.clearInterval(intervalId);
-      favicon.href = originalHref;
-      favicon.type = originalType;
+
+      for (const original of originalFavicons) {
+        original.favicon.href = original.href;
+        original.favicon.type = original.type;
+        original.favicon.sizes.value = original.sizes;
+      }
     };
   }, []);
 
