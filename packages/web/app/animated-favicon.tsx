@@ -4,8 +4,8 @@ import { useEffect } from "react";
 
 const SIZE = 32;
 const FRAME_MS = 140;
-const LOGO_WIDTH = 23;
-const LOGO_HEIGHT = 8;
+const FRAME_COUNT = 61;
+const SPRITE_URL = "/favicon-sprite.png";
 
 function getFaviconLinks() {
   const existingLinks = Array.from(
@@ -35,23 +35,29 @@ export function AnimatedFavicon() {
     const canvas = document.createElement("canvas");
     canvas.width = SIZE;
     canvas.height = SIZE;
+    const sprite = new Image();
 
     const context = canvas.getContext("2d");
     if (!context) {
       return;
     }
 
-    let x = 1;
-    let y = 5;
-    let xVelocity = 1;
-    let yVelocity = 1;
+    let frameIndex = 0;
+    let intervalId: number | undefined;
 
     const drawFrame = () => {
       context.clearRect(0, 0, SIZE, SIZE);
-      context.fillStyle = "#16a34a";
-      context.font = "bold 9px Arial, sans-serif";
-      context.textBaseline = "top";
-      context.fillText("DVD", x, y);
+      context.drawImage(
+        sprite,
+        frameIndex * SIZE,
+        0,
+        SIZE,
+        SIZE,
+        0,
+        0,
+        SIZE,
+        SIZE,
+      );
 
       const frameUrl = canvas.toDataURL("image/png");
 
@@ -63,27 +69,23 @@ export function AnimatedFavicon() {
         favicon.href = frameUrl;
       }
 
-      const nextX = x + xVelocity;
-      const nextY = y + yVelocity;
-
-      if (nextX <= 0 || nextX + LOGO_WIDTH >= SIZE) {
-        xVelocity *= -1;
-      } else {
-        x = nextX;
-      }
-
-      if (nextY <= 0 || nextY + LOGO_HEIGHT >= SIZE) {
-        yVelocity *= -1;
-      } else {
-        y = nextY;
-      }
+      frameIndex = (frameIndex + 1) % FRAME_COUNT;
     };
 
-    drawFrame();
-    const intervalId = window.setInterval(drawFrame, FRAME_MS);
+    const handleSpriteLoad = () => {
+      drawFrame();
+      intervalId = window.setInterval(drawFrame, FRAME_MS);
+    };
+
+    sprite.addEventListener("load", handleSpriteLoad, { once: true });
+    sprite.src = SPRITE_URL;
 
     return () => {
-      window.clearInterval(intervalId);
+      sprite.removeEventListener("load", handleSpriteLoad);
+
+      if (intervalId !== undefined) {
+        window.clearInterval(intervalId);
+      }
 
       for (const original of originalFavicons) {
         original.favicon.href = original.href;
