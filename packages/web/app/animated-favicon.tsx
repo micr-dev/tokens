@@ -41,11 +41,6 @@ export function AnimatedFavicon() {
       return;
     }
 
-    for (const favicon of favicons) {
-      favicon.type = "image/png";
-      favicon.sizes.value = `${SIZE}x${SIZE}`;
-    }
-
     let x = 1;
     let y = 5;
     let xVelocity = 1;
@@ -60,7 +55,11 @@ export function AnimatedFavicon() {
 
       const frameUrl = canvas.toDataURL("image/png");
 
-      for (const favicon of favicons) {
+      // Next can insert metadata icon tags after hydration. Re-scan each frame
+      // so the browser never keeps a later static icon link selected.
+      for (const favicon of getFaviconLinks()) {
+        favicon.type = "image/png";
+        favicon.sizes.value = `${SIZE}x${SIZE}`;
         favicon.href = frameUrl;
       }
 
