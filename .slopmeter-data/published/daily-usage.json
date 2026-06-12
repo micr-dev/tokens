@@ -1,8 +1,8 @@
 {
   "version": "2026-03-03",
   "start": "2025-03-15",
-  "end": "2026-06-11",
-  "updatedAt": "2026-06-11T03:29:36.516Z",
+  "end": "2026-06-12",
+  "updatedAt": "2026-06-12T03:24:52.207Z",
   "providers": [
     {
       "provider": "codex",
@@ -10,30 +10,30 @@
         "mostUsedModel": {
           "name": "gpt-5.5",
           "tokens": {
-            "input": 13370011930,
-            "output": 27643881,
+            "input": 13598587489,
+            "output": 28169025,
             "cache": {
-              "input": 12711962624,
+              "input": 12927196160,
               "output": 0
             },
-            "total": 13397655811
+            "total": 13626756514
           }
         },
         "recentMostUsedModel": {
           "name": "gpt-5.5",
           "tokens": {
-            "input": 7947105366,
-            "output": 17790201,
+            "input": 7881430159,
+            "output": 17846056,
             "cache": {
-              "input": 7557158144,
+              "input": 7493196288,
               "output": 0
             },
-            "total": 7964895567
+            "total": 7899276215
           }
         },
         "streaks": {
-          "longest": 93,
-          "current": 93
+          "longest": 94,
+          "current": 94
         }
       },
       "daily": [
@@ -2819,25 +2819,50 @@
         },
         {
           "date": "2026-06-11",
-          "input": 26243426,
-          "output": 61584,
+          "input": 186476904,
+          "output": 417121,
           "cache": {
-            "input": 24558592,
+            "input": 175262464,
             "output": 0
           },
-          "total": 26305010,
-          "displayValue": 26305010,
+          "total": 186894025,
+          "displayValue": 186894025,
           "breakdown": [
             {
               "name": "gpt-5.5",
               "tokens": {
-                "input": 26243426,
-                "output": 61584,
+                "input": 186476904,
+                "output": 417121,
                 "cache": {
-                  "input": 24558592,
+                  "input": 175262464,
                   "output": 0
                 },
-                "total": 26305010
+                "total": 186894025
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-06-12",
+          "input": 68342081,
+          "output": 169607,
+          "cache": {
+            "input": 64529664,
+            "output": 0
+          },
+          "total": 68511688,
+          "displayValue": 68511688,
+          "breakdown": [
+            {
+              "name": "gpt-5.5",
+              "tokens": {
+                "input": 68342081,
+                "output": 169607,
+                "cache": {
+                  "input": 64529664,
+                  "output": 0
+                },
+                "total": 68511688
               }
             }
           ]
@@ -2862,18 +2887,18 @@
         "recentMostUsedModel": {
           "name": "glm-5.1",
           "tokens": {
-            "input": 46588298,
-            "output": 100570,
+            "input": 67159928,
+            "output": 232320,
             "cache": {
-              "input": 43499008,
+              "input": 63073728,
               "output": 0
             },
-            "total": 46688868
+            "total": 67392248
           }
         },
         "streaks": {
           "longest": 103,
-          "current": 3
+          "current": 4
         }
       },
       "daily": [
@@ -10860,25 +10885,50 @@
         },
         {
           "date": "2026-06-11",
-          "input": 4525572,
-          "output": 13166,
+          "input": 24888080,
+          "output": 144668,
           "cache": {
-            "input": 4236160,
+            "input": 23645056,
             "output": 0
           },
-          "total": 4538738,
-          "displayValue": 4538738,
+          "total": 25032748,
+          "displayValue": 25032748,
           "breakdown": [
             {
               "name": "glm-5.1",
               "tokens": {
-                "input": 4525572,
-                "output": 13166,
+                "input": 24888080,
+                "output": 144668,
                 "cache": {
-                  "input": 4236160,
+                  "input": 23645056,
                   "output": 0
                 },
-                "total": 4538738
+                "total": 25032748
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-06-12",
+          "input": 209122,
+          "output": 248,
+          "cache": {
+            "input": 165824,
+            "output": 0
+          },
+          "total": 209370,
+          "displayValue": 209370,
+          "breakdown": [
+            {
+              "name": "glm-5.1",
+              "tokens": {
+                "input": 209122,
+                "output": 248,
+                "cache": {
+                  "input": 165824,
+                  "output": 0
+                },
+                "total": 209370
               }
             }
           ]
@@ -11890,30 +11940,30 @@
         "mostUsedModel": {
           "name": "glm-5-turbo",
           "tokens": {
-            "input": 131620173,
-            "output": 6328466,
+            "input": 132798610,
+            "output": 6378939,
             "cache": {
               "input": 0,
               "output": 0
             },
-            "total": 137948639
+            "total": 139177549
           }
         },
         "recentMostUsedModel": {
           "name": "glm-5-turbo",
           "tokens": {
-            "input": 38126275,
-            "output": 1914929,
+            "input": 36695514,
+            "output": 1846197,
             "cache": {
               "input": 0,
               "output": 0
             },
-            "total": 40041204
+            "total": 38541711
           }
         },
         "streaks": {
-          "longest": 86,
-          "current": 86
+          "longest": 87,
+          "current": 87
         }
       },
       "daily": [
@@ -15646,25 +15696,25 @@
         },
         {
           "date": "2026-06-05",
-          "input": 1324521,
-          "output": 72847,
+          "input": 1097351,
+          "output": 57194,
           "cache": {
             "input": 0,
             "output": 0
           },
-          "total": 1397368,
-          "displayValue": 1397368,
+          "total": 1154545,
+          "displayValue": 1154545,
           "breakdown": [
             {
               "name": "glm-5-turbo",
               "tokens": {
-                "input": 1297244,
-                "output": 72207,
+                "input": 1070074,
+                "output": 56554,
                 "cache": {
                   "input": 0,
                   "output": 0
                 },
-                "total": 1369451
+                "total": 1126628
               }
             },
             {
@@ -15831,25 +15881,25 @@
         },
         {
           "date": "2026-06-10",
-          "input": 770167,
-          "output": 36505,
+          "input": 608068,
+          "output": 24296,
           "cache": {
             "input": 0,
             "output": 0
           },
-          "total": 806672,
-          "displayValue": 806672,
+          "total": 632364,
+          "displayValue": 632364,
           "breakdown": [
             {
               "name": "glm-5-turbo",
               "tokens": {
-                "input": 710912,
-                "output": 35967,
+                "input": 548813,
+                "output": 23758,
                 "cache": {
                   "input": 0,
                   "output": 0
                 },
-                "total": 746879
+                "total": 572571
               }
             },
             {
@@ -15868,25 +15918,62 @@
         },
         {
           "date": "2026-06-11",
-          "input": 13359,
-          "output": 1798,
+          "input": 1539149,
+          "output": 79300,
           "cache": {
             "input": 0,
             "output": 0
           },
-          "total": 15157,
-          "displayValue": 15157,
+          "total": 1618449,
+          "displayValue": 1618449,
           "breakdown": [
             {
               "name": "glm-5-turbo",
               "tokens": {
-                "input": 13359,
-                "output": 1798,
+                "input": 1511513,
+                "output": 78816,
                 "cache": {
                   "input": 0,
                   "output": 0
                 },
-                "total": 15157
+                "total": 1590329
+              }
+            },
+            {
+              "name": "gpt-5.4-mini",
+              "tokens": {
+                "input": 27636,
+                "output": 484,
+                "cache": {
+                  "input": 0,
+                  "output": 0
+                },
+                "total": 28120
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-06-12",
+          "input": 69552,
+          "output": 1317,
+          "cache": {
+            "input": 0,
+            "output": 0
+          },
+          "total": 70869,
+          "displayValue": 70869,
+          "breakdown": [
+            {
+              "name": "glm-5-turbo",
+              "tokens": {
+                "input": 69552,
+                "output": 1317,
+                "cache": {
+                  "input": 0,
+                  "output": 0
+                },
+                "total": 70869
               }
             }
           ]
