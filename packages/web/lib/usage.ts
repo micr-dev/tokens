@@ -9,12 +9,12 @@ const mergedProvidersCaption = "TOTAL USAGE FROM";
 const mergedProvidersLabel = "All Providers";
 const lightSvgThemeReplacements = [
   ["#ffffff", "#121212"],
-  ["#f5f5f5", "#1a1a1a"],
+  ["#f5f5f5", "#ffffff"],
   ["#0f172a", "#ffffff"],
   ["#737373", "#8b8b8b"],
   [
     "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
-    "Helvetica Neue, Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif",
+    "helveticaNeue, Helvetica Neue, sans-serif",
   ],
 ] as const;
 

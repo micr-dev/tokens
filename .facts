@@ -7,3 +7,8 @@
 - label: the web token report presents Antigravity CLI as the current successor to legacy Gemini CLI
   command: grep -Fq 'agy: "Antigravity CLI"' packages/web/lib/analytics.ts && grep -Fq 'gemini: "Gemini CLI (legacy)"' packages/web/lib/analytics.ts && grep -Fq 'Gemini CLI (legacy)' packages/cli/src/lib/interfaces.ts && grep -Fq 'provider labels treat Antigravity CLI as the Gemini CLI successor' packages/web/test/analytics.test.ts
   tags: [spec, implemented]
+
+## design
+- label: the web report uses a flat reference-font background, white heatmap cells, and a visible Antigravity no-data state
+  command: grep -Fq 'background: var(--color-bg);' packages/web/app/globals.css && grep -Fq '["#f5f5f5", "#ffffff"]' packages/web/lib/usage.ts && grep -Fq 'No published Antigravity CLI usage yet' packages/web/app/svg-usage.tsx && grep -Fq 'colorMode: "light"' packages/web/scripts/publish-usage.ts
+  tags: [spec, implemented]

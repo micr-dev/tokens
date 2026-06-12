@@ -31,6 +31,38 @@
 }
 
 @font-face {
+  font-family: "helveticaNeue";
+  src: url("/assets/fonts/helvetica-neue/HelveticaNeue-Roman.otf") format("opentype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "helveticaNeue";
+  src: url("/assets/fonts/helvetica-neue/HelveticaNeue-Medium.otf") format("opentype");
+  font-style: normal;
+  font-weight: 500 600;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "helveticaNeue";
+  src: url("/assets/fonts/helvetica-neue/HelveticaNeueBold.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "helveticaNeue";
+  src: url("/assets/fonts/helvetica-neue/HelveticaNeueItalic.ttf") format("truetype");
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
   font-family: "Ioskeley Mono";
   src: url("/assets/fonts/ioskeley-mono/IoskeleyMono-Regular.woff2") format("woff2");
   font-style: normal;
@@ -47,8 +79,8 @@
 }
 
 :root {
-  --font-sans: "Helvetica Neue", Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: "Ioskeley Mono", "TermiusTTF", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-sans: "helveticaNeue", "Helvetica Neue", sans-serif;
+  --font-mono: "Ioskeley Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --color-bg: #121212;
   --color-bg-raised: #181818;
   --color-bg-panel: #151515;
@@ -89,10 +121,7 @@ body {
 .page-root {
   min-height: 100vh;
   padding: 16px 14px 28px;
-  background:
-    linear-gradient(rgba(255, 255, 255, 0.028) 1px, transparent 1px) 0 0 / 22px 22px,
-    linear-gradient(90deg, rgba(255, 255, 255, 0.028) 1px, transparent 1px) 0 0 / 22px 22px,
-    var(--color-bg);
+  background: var(--color-bg);
 }
 
 .page-root,
@@ -171,6 +200,30 @@ body {
 
 .page-shell--details {
   padding-top: 10px;
+}
+
+.provider-empty {
+  width: min(855px, 100%);
+  margin: 8px auto 0;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: rgba(21, 21, 21, 0.92);
+}
+
+.provider-empty__title {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.provider-empty__body {
+  margin: 4px 0 0;
+  color: var(--color-muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.4;
 }
 
 .page-shell--models {

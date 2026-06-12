@@ -352,8 +352,13 @@ function LegacyProviderCards({
 }: {
   providers: ProviderAnalytics[];
 }) {
+  const hasAntigravityUsage = providers.some(
+    (provider) => provider.provider === "agy",
+  );
+
   return (
     <section className="details-grid">
+      {hasAntigravityUsage ? null : <AntigravityNoDataCard />}
       {providers.map((provider) => {
         const theme = getProviderDetailTheme(provider.provider);
         const cardStyle = {
@@ -498,6 +503,19 @@ function LegacyProviderCards({
           </section>
         );
       })}
+    </section>
+  );
+}
+
+function AntigravityNoDataCard() {
+  return (
+    <section className="provider-empty provider-card--agy">
+      <h2 className="provider-empty__title">Antigravity CLI</h2>
+      <p className="provider-empty__body">
+        No published Antigravity CLI usage yet. The report treats agy as the
+        current Gemini CLI successor, but token totals are only shown after agy
+        rows exist in the published data.
+      </p>
     </section>
   );
 }
@@ -822,6 +840,9 @@ export function SvgUsage({ svgMarkup, analytics }: SvgUsageProps) {
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
   const [activeView, setActiveView] = useState<ActiveView>("heatmap");
   const [modelsScale, setModelsScale] = useState<ModelsTimeScale>("month");
+  const showAntigravityNoData =
+    analytics !== null &&
+    !analytics.providers.some((provider) => provider.provider === "agy");
 
   useEffect(() => {
     cursorTargetRef.current = null;
@@ -1021,6 +1042,9 @@ export function SvgUsage({ svgMarkup, analytics }: SvgUsageProps) {
           ) : null}
         </div>
       </div>
+      {activeView === "heatmap" && showAntigravityNoData ? (
+        <AntigravityNoDataCard />
+      ) : null}
       {activeView === "heatmap" || !analytics ? (
         <HeatmapView
           containerRef={containerRef}
