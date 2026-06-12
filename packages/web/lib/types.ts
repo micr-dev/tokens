@@ -1,6 +1,7 @@
 export type ProviderId =
   | "claude"
   | "codex"
+  | "agy"
   | "gemini"
   | "cursor"
   | "opencode"

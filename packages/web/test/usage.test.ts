@@ -27,9 +27,9 @@ test("getProviderDetailTheme exposes Droid red colors for details cards", () => 
   });
 });
 
-test("getProviderDetailTheme exposes Gemini CLI colors for details cards", () => {
+test("getProviderDetailTheme exposes legacy Gemini CLI colors for details cards", () => {
   assert.deepEqual(getProviderDetailTheme("gemini"), {
-    accent: "#ef4444",
-    accentSoft: "#fef2f2",
+    accent: "#a3a3a3",
+    accentSoft: "#202020",
   });
 });

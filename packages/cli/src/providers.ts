@@ -54,6 +54,7 @@ export async function aggregateUsage({
   const rowsByProvider: Record<ProviderId, UsageSummary | null> = {
     claude: null,
     codex: null,
+    agy: null,
     gemini: null,
     cursor: null,
     opencode: null,
@@ -65,11 +66,15 @@ export async function aggregateUsage({
   const warnings: string[] = [];
 
   for (const provider of providersToLoad) {
-    const summary =
+    const summary: UsageSummary | null =
       provider === "claude"
         ? await loadClaudeRows(start, end)
         : provider === "codex"
           ? await loadCodexRows(start, end, warnings)
+          : provider === "agy"
+            // Antigravity CLI stores usage in opaque SQLite blobs. Keep the
+            // provider visible, but do not invent token totals without a parser.
+            ? null
           : provider === "gemini"
             ? await loadGeminiRows(start, end)
           : provider === "cursor"
@@ -84,7 +89,7 @@ export async function aggregateUsage({
                   ? await loadHermesRows(start, end)
                   : await loadHeliosRows(start, end);
 
-    rowsByProvider[provider] = hasUsage(summary) ? summary : null;
+    rowsByProvider[provider] = summary && hasUsage(summary) ? summary : null;
   }
 
   return { rowsByProvider, warnings };

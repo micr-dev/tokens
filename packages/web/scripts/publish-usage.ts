@@ -39,6 +39,7 @@ const CLAUDE_EXCLUDED_DATES = new Set(["2026-03-10", "2026-03-17"]);
 export const WEB_PROVIDER_ORDER = [
   "codex",
   "opencode",
+  "agy",
   "pi",
   "droid",
   "hermes",
@@ -362,7 +363,7 @@ function renderPublishedSvg(payload: PublishedUsagePayload) {
   return renderUsageHeatmapsSvg({
     startDate: parseDateOnly(payload.start),
     endDate: parseDateOnly(payload.end),
-    colorMode: "light",
+    colorMode: "dark",
     sections: [
       {
         daily: mergedSummary.daily,

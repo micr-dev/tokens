@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildAnalytics } from "../lib/analytics";
+import {
+  buildAnalytics,
+  getProviderDetailTheme,
+  getProviderTitle,
+} from "../lib/analytics";
 import type { PublishedUsagePayload } from "../lib/types";
 
 function createTokens(total: number) {
@@ -322,6 +326,30 @@ const modelsPayload: PublishedUsagePayload = {
       ],
     },
     {
+      provider: "agy",
+      insights: {
+        streaks: {
+          longest: 1,
+          current: 1,
+        },
+      },
+      daily: [
+        {
+          date: "2026-03-25",
+          input: 55,
+          output: 0,
+          cache: { input: 0, output: 0 },
+          total: 55,
+          breakdown: [
+            {
+              name: "antigravity-gemini-3-flash-agent",
+              tokens: createTokens(55),
+            },
+          ],
+        },
+      ],
+    },
+    {
       provider: "gemini",
       insights: {
         streaks: {
@@ -446,6 +474,10 @@ test("buildAnalytics derives major vendor rows and period buckets for the models
   assert.equal(openai?.total, 570);
   assert.equal(zAi?.total, 280);
   assert.equal(anthropic?.total, 83);
+  assert.equal(
+    analytics.providers.find((provider) => provider.provider === "agy")?.total,
+    55,
+  );
   assert.ok(!analytics.vendors.some((vendor) => vendor.name === "Other"));
   assert.equal(openai?.scales.year.length, 5);
   assert.equal(openai?.scales.month.length, 12);
@@ -474,6 +506,15 @@ test("buildAnalytics derives major vendor rows and period buckets for the models
       color: openai?.modelColors[1]?.color ?? "",
     },
   ]);
+});
+
+test("provider labels treat Antigravity CLI as the Gemini CLI successor", () => {
+  assert.equal(getProviderTitle("agy"), "Antigravity CLI");
+  assert.equal(getProviderTitle("gemini"), "Gemini CLI (legacy)");
+  assert.deepEqual(getProviderDetailTheme("agy"), {
+    accent: "#ef4444",
+    accentSoft: "#2a1414",
+  });
 });
 
 test("buildAnalytics uses the preferred vendor row order for the models tab", () => {

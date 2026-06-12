@@ -91,6 +91,12 @@ test("renderUsageHeatmapsSvg renders stacked provider sections", () => {
   assert.match(svg, />Open Code<\/text>/);
 });
 
+test("heatmapThemes includes Antigravity CLI provider theme", () => {
+  assert.equal(heatmapThemes.agy.title, "Antigravity CLI");
+  assert.equal(heatmapThemes.agy.titleCaption, "Gemini CLI successor");
+  assert.equal(heatmapThemes.agy.colors.light[3], "#ef4444");
+});
+
 test("renderUsageHeatmapsSvg adds structured tooltip payloads for active cells", () => {
   const svg = renderUsageHeatmapsSvg({
     startDate: new Date("2026-03-15T00:00:00"),

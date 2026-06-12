@@ -1,0 +1,9 @@
+# web
+
+## providers
+- label: the web token report recognizes Antigravity CLI as the agy provider when agy usage is present
+  command: grep -q '"agy"' packages/web/lib/types.ts && grep -q 'Antigravity CLI' packages/web/lib/analytics.ts && grep -q '"agy"' packages/web/scripts/publish-usage.ts && grep -q 'agy:' packages/cli/src/graph.ts
+  tags: [spec, implemented]
+- label: the web token report presents Antigravity CLI as the current successor to legacy Gemini CLI
+  command: grep -Fq 'agy: "Antigravity CLI"' packages/web/lib/analytics.ts && grep -Fq 'gemini: "Gemini CLI (legacy)"' packages/web/lib/analytics.ts && grep -Fq 'Gemini CLI (legacy)' packages/cli/src/lib/interfaces.ts && grep -Fq 'provider labels treat Antigravity CLI as the Gemini CLI successor' packages/web/test/analytics.test.ts
+  tags: [spec, implemented]

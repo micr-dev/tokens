@@ -7,16 +7,33 @@ import type { PublishedUsagePayload } from "./types";
 // Bundle the published artifacts into the app so production cannot drift to stale runtime files.
 const mergedProvidersCaption = "TOTAL USAGE FROM";
 const mergedProvidersLabel = "All Providers";
+const lightSvgThemeReplacements = [
+  ["#ffffff", "#121212"],
+  ["#f5f5f5", "#1a1a1a"],
+  ["#0f172a", "#ffffff"],
+  ["#737373", "#8b8b8b"],
+  [
+    "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
+    "Helvetica Neue, Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif",
+  ],
+] as const;
 
 export function normalizePublishedSvgMarkup(svgMarkup: string) {
+  let normalizedSvgMarkup = svgMarkup;
   const mergedProvidersPattern = new RegExp(
     `(<text\\b[^>]*>${mergedProvidersCaption}<\\/text>\\s*<text\\b[^>]*>)([^<]+)(<\\/text>)`,
   );
 
-  return svgMarkup.replace(
+  normalizedSvgMarkup = normalizedSvgMarkup.replace(
     mergedProvidersPattern,
     `$1${mergedProvidersLabel}$3`,
   );
+
+  for (const [from, to] of lightSvgThemeReplacements) {
+    normalizedSvgMarkup = normalizedSvgMarkup.replaceAll(from, to);
+  }
+
+  return normalizedSvgMarkup;
 }
 
 export async function getPublishedSvgMarkup(): Promise<string> {

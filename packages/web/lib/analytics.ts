@@ -46,7 +46,8 @@ const MAJOR_VENDOR_SHARE_THRESHOLD = 0.01;
 const providerTitles: Record<ProviderId, string> = {
   claude: "Claude Code",
   codex: "Codex",
-  gemini: "Gemini CLI",
+  agy: "Antigravity CLI",
+  gemini: "Gemini CLI (legacy)",
   cursor: "Cursor",
   opencode: "Open Code",
   pi: "Pi Coding Agent",
@@ -68,9 +69,13 @@ const providerDetailThemes: Record<
     accent: "#4f46e5",
     accentSoft: "#e0e7ff",
   },
-  gemini: {
+  agy: {
     accent: "#ef4444",
-    accentSoft: "#fef2f2",
+    accentSoft: "#2a1414",
+  },
+  gemini: {
+    accent: "#a3a3a3",
+    accentSoft: "#202020",
   },
   cursor: {
     accent: "#f97316",

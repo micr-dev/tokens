@@ -1,6 +1,7 @@
 export type ProviderId =
   | "claude"
   | "codex"
+  | "agy"
   | "gemini"
   | "cursor"
   | "opencode"
@@ -12,6 +13,7 @@ export type ProviderId =
 export const providerIds: ProviderId[] = [
   "claude",
   "codex",
+  "agy",
   "gemini",
   "cursor",
   "opencode",
@@ -24,7 +26,8 @@ export const providerIds: ProviderId[] = [
 export const providerStatusLabel: Record<ProviderId, string> = {
   claude: "Claude code",
   codex: "Codex",
-  gemini: "Gemini CLI",
+  agy: "Antigravity CLI",
+  gemini: "Gemini CLI (legacy)",
   cursor: "Cursor",
   opencode: "Open Code",
   pi: "Pi Coding Agent",
