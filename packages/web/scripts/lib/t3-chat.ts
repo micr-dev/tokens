@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 const T3_MAX_IMPORT_BYTES_ENV = "SLOPMETER_WEB_T3_MAX_BYTES";
 const DEFAULT_T3_MAX_IMPORT_BYTES = 256 * 1024 * 1024;
+type T3ImportProvider = "t3" | "opencode";
 
 interface TokenTotals {
   input: number;
@@ -14,7 +15,7 @@ interface TokenTotals {
 }
 
 interface JsonUsageSummary {
-  provider: "t3";
+  provider: T3ImportProvider;
   daily: Array<{
     date: string;
     input: number;
@@ -486,6 +487,7 @@ export async function loadT3PublishedSummary(
   importPath: string,
   start: Date,
   end: Date,
+  provider: T3ImportProvider = "t3",
 ): Promise<JsonUsageSummary | null> {
   if (!existsSync(importPath)) {
     return null;
@@ -563,7 +565,7 @@ export async function loadT3PublishedSummary(
   const daily = totalsToRows(totals);
 
   return {
-    provider: "t3",
+    provider,
     daily: daily.map(toJsonDailyUsage),
     insights: buildInsights(modelTotals, recentModelTotals, daily, end),
   };
