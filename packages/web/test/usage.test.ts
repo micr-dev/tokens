@@ -19,7 +19,7 @@ test("normalizePublishedSvgMarkup preserves dark heatmap colors and applies refe
 
   assert.equal(
     normalizePublishedSvgMarkup(input),
-    '<svg><rect fill="#171717"></rect><rect fill="#262626"></rect><rect fill="#bbf7d0"></rect><text font-family="helveticaNeue, Helvetica Neue, sans-serif">Jun</text></svg>',
+    '<svg><rect fill="#171717"></rect><rect fill="#262626"></rect><rect fill="#bbf7d0"></rect><text font-family="helveticaNeue, Helvetica Neue">Jun</text></svg>',
   );
 });
 

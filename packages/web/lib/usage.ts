@@ -10,7 +10,7 @@ const mergedProvidersLabel = "All Providers";
 const svgFontReplacements = [
   [
     "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
-    "helveticaNeue, Helvetica Neue, sans-serif",
+    "helveticaNeue, Helvetica Neue",
   ],
 ] as const;
 

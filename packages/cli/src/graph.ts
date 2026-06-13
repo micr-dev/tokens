@@ -312,7 +312,7 @@ export const heatmapThemes: Record<HeatmapThemeId, HeatmapTheme> = {
 
 const daysOfWeekMonday = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const numberFormatter = new Intl.NumberFormat("en-US");
-const fontFamily = "helveticaNeue, Helvetica Neue, sans-serif";
+const fontFamily = "helveticaNeue, Helvetica Neue";
 const providerTitleFontSize = 20;
 const metricCaptionFontSize = 9;
 const metricValueFontSize = 14;
