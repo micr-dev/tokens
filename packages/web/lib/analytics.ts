@@ -90,8 +90,8 @@ const providerDetailThemes: Record<
     accentSoft: "#ecfdf5",
   },
   droid: {
-    accent: "#ef4444",
-    accentSoft: "#fef2f2",
+    accent: "#d46922",
+    accentSoft: "#fff7ed",
   },
   hermes: {
     accent: "#ffc107",

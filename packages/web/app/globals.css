@@ -606,10 +606,14 @@ body {
   --provider-accent-soft: #431407;
 }
 
-.provider-card--agy,
-.provider-card--droid {
+.provider-card--agy {
   --provider-accent: #ef4444;
   --provider-accent-soft: #2a1414;
+}
+
+.provider-card--droid {
+  --provider-accent: #d46922;
+  --provider-accent-soft: #2a231f;
 }
 
 .provider-card--gemini,

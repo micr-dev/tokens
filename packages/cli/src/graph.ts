@@ -216,18 +216,18 @@ export const heatmapThemes: Record<HeatmapThemeId, HeatmapTheme> = {
     title: "Droid",
     colors: {
       light: [
-        "#fef2f2", // red-50
-        "#fecaca", // red-200
-        "#fca5a5", // red-300
-        "#ef4444", // red-500
-        "#991b1b", // red-800
+        "#fff7ed", // orange-50
+        "#fed7aa", // orange-200
+        "#fdba74", // orange-300
+        "#d46922", // Droid red-orange
+        "#9a3412", // orange-800
       ],
       dark: [
-        "#2a2020", // nearly gray low usage
-        "#4f2222", // muted red-brown
-        "#7f1d1d", // red-900
-        "#b91c1c", // red-700
-        "#ef4444", // red-500, saturated high usage
+        "#2a231f", // nearly gray low usage
+        "#4a2b1f", // muted orange-brown
+        "#7c2d12", // orange-900
+        "#9a3412", // orange-800
+        "#d46922", // Droid red-orange high usage
       ],
     },
   },

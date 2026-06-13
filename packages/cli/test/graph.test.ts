@@ -112,6 +112,7 @@ test("dark heatmap themes increase usage with saturation instead of pale colors"
     "#7f1d1d",
   ]);
   assert.equal(heatmapThemes.agy.colors.dark.at(-1), "#ef4444");
+  assert.equal(heatmapThemes.droid.colors.dark.at(-1), "#d46922");
   assert.equal(heatmapThemes.codex.colors.dark.at(-1), "#6366f1");
   assert.equal(heatmapThemes.claude.colors.dark.at(-1), "#f97316");
 

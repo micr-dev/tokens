@@ -20,3 +20,6 @@
 - label: the deployed web app serves the reference font assets from the root public font URLs
   command: test -f public/assets/fonts/helvetica-neue/HelveticaNeue-Roman.otf && test -f public/assets/fonts/helvetica-neue/HelveticaNeue-Medium.otf && test -f public/assets/fonts/helvetica-neue/HelveticaNeueBold.ttf && test -f public/assets/fonts/helvetica-neue/HelveticaNeueItalic.ttf && test -f public/assets/fonts/ioskeley-mono/IoskeleyMono-Regular.woff2 && test -f public/assets/fonts/ioskeley-mono/IoskeleyMono-Bold.woff2 && grep -Fq 'url("/assets/fonts/helvetica-neue/HelveticaNeue-Roman.otf")' packages/web/app/globals.css && grep -Fq 'url("/assets/fonts/ioskeley-mono/IoskeleyMono-Regular.woff2")' packages/web/app/globals.css
   tags: [implemented]
+- label: Droid CLI uses a red-orange accent closer to #d46922 than pure red
+  command: grep -Fq 'accent: "#d46922"' packages/web/lib/analytics.ts && grep -Fq '"#d46922", // Droid red-orange high usage' packages/cli/src/graph.ts && grep -Fq 'provider-card--droid' packages/web/app/globals.css
+  tags: [implemented]

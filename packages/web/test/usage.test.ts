@@ -30,10 +30,10 @@ test("getProviderDetailTheme keeps Hermes aligned with the heatmap palette", () 
   });
 });
 
-test("getProviderDetailTheme exposes Droid red colors for details cards", () => {
+test("getProviderDetailTheme exposes Droid red-orange colors for details cards", () => {
   assert.deepEqual(getProviderDetailTheme("droid"), {
-    accent: "#ef4444",
-    accentSoft: "#fef2f2",
+    accent: "#d46922",
+    accentSoft: "#fff7ed",
   });
 });
 
