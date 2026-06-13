@@ -90,11 +90,11 @@ export const heatmapThemes: Record<HeatmapThemeId, HeatmapTheme> = {
         "#c2410c", // orange-700
       ],
       dark: [
-        "#292524", // stone-800
-        "#9a3412", // orange-800
+        "#292524", // stone-800, muted low usage
+        "#7c2d12", // orange-900
         "#c2410c", // orange-700
-        "#f97316", // orange-500
-        "#fdba74", // orange-300
+        "#ea580c", // orange-600
+        "#f97316", // orange-500, saturated high usage
       ],
     },
   },
@@ -109,11 +109,11 @@ export const heatmapThemes: Record<HeatmapThemeId, HeatmapTheme> = {
         "#312e81", // indigo-900
       ],
       dark: [
-        "#1e1b4b", // indigo-950
+        "#27213f", // muted indigo low usage
         "#312e81", // indigo-900
         "#4338ca", // indigo-700
-        "#818cf8", // indigo-400
-        "#c7d2fe", // indigo-200
+        "#4f46e5", // indigo-600
+        "#6366f1", // indigo-500, saturated high usage
       ],
     },
   },
@@ -128,11 +128,11 @@ export const heatmapThemes: Record<HeatmapThemeId, HeatmapTheme> = {
         "#991b1b", // red-800
       ],
       dark: [
-        "#450a0a", // red-950
-        "#991b1b", // red-800
+        "#2b1d1d", // muted red low usage
+        "#7f1d1d", // red-900
+        "#b91c1c", // red-700
         "#dc2626", // red-600
-        "#f87171", // red-400
-        "#fecaca", // red-200
+        "#ef4444", // red-500, saturated high usage
       ],
     },
   },
@@ -147,11 +147,11 @@ export const heatmapThemes: Record<HeatmapThemeId, HeatmapTheme> = {
         "#991b1b", // red-800
       ],
       dark: [
-        "#450a0a", // red-950
-        "#991b1b", // red-800
+        "#2b1d1d", // muted red low usage
+        "#7f1d1d", // red-900
+        "#b91c1c", // red-700
         "#dc2626", // red-600
-        "#f87171", // red-400
-        "#fecaca", // red-200
+        "#ef4444", // red-500, saturated high usage
       ],
     },
   },
@@ -166,11 +166,11 @@ export const heatmapThemes: Record<HeatmapThemeId, HeatmapTheme> = {
         "#9a3412", // orange-800
       ],
       dark: [
-        "#431407", // orange-950
-        "#9a3412", // orange-800
+        "#2f211a", // muted orange low usage
+        "#7c2d12", // orange-900
         "#c2410c", // orange-700
-        "#f97316", // orange-500
-        "#fdba74", // orange-300
+        "#ea580c", // orange-600
+        "#f97316", // orange-500, saturated high usage
       ],
     },
   },
@@ -186,10 +186,10 @@ export const heatmapThemes: Record<HeatmapThemeId, HeatmapTheme> = {
       ],
       dark: [
         "#262626", // neutral-800
+        "#404040", // neutral-700
         "#525252", // neutral-600
         "#737373", // neutral-500
         "#a3a3a3", // neutral-400
-        "#fafafa", // neutral-50
       ],
     },
   },
@@ -204,11 +204,11 @@ export const heatmapThemes: Record<HeatmapThemeId, HeatmapTheme> = {
         "#047857", // emerald-700
       ],
       dark: [
-        "#022c22", // emerald-950
-        "#065f46", // emerald-800
-        "#059669", // emerald-600
-        "#34d399", // emerald-400
-        "#a7f3d0", // emerald-200
+        "#1c2b22", // muted emerald low usage
+        "#14532d", // green-900
+        "#166534", // green-800
+        "#16a34a", // green-600
+        "#22c55e", // green-500, saturated high usage
       ],
     },
   },
@@ -223,11 +223,11 @@ export const heatmapThemes: Record<HeatmapThemeId, HeatmapTheme> = {
         "#991b1b", // red-800
       ],
       dark: [
-        "#450a0a", // red-950
-        "#991b1b", // red-800
+        "#2b1d1d", // muted red low usage
+        "#7f1d1d", // red-900
+        "#b91c1c", // red-700
         "#dc2626", // red-600
-        "#f87171", // red-400
-        "#fecaca", // red-200
+        "#ef4444", // red-500, saturated high usage
       ],
     },
   },
@@ -242,11 +242,11 @@ export const heatmapThemes: Record<HeatmapThemeId, HeatmapTheme> = {
         "#D4AF37", // gold
       ],
       dark: [
-        "#3e3528",
+        "#3e3528", // muted gold low usage
         "#5c4e38",
         "#8c7348",
-        "#c7a040",
-        "#B8860B", // dark gold
+        "#b8860b",
+        "#d4af37", // saturated gold high usage
       ],
     },
   },
@@ -261,11 +261,11 @@ export const heatmapThemes: Record<HeatmapThemeId, HeatmapTheme> = {
         "#b45309",
       ],
       dark: [
-        "#451a03",
-        "#92400e",
+        "#3a2818", // muted amber low usage
+        "#78350f",
+        "#b45309",
         "#d97706",
-        "#fbbf24",
-        "#fde68a",
+        "#f59e0b", // saturated amber high usage
       ],
     },
   },
@@ -280,11 +280,11 @@ export const heatmapThemes: Record<HeatmapThemeId, HeatmapTheme> = {
         "#A95381",
       ],
       dark: [
-        "#391326",
-        "#5A2340",
-        "#7A3259",
-        "#A95381",
-        "#D9A1BA",
+        "#391326", // muted pink low usage
+        "#5a2340",
+        "#7a3259",
+        "#a95381",
+        "#db2777", // saturated pink high usage
       ],
     },
   },
@@ -300,11 +300,11 @@ export const heatmapThemes: Record<HeatmapThemeId, HeatmapTheme> = {
         "#14532d", // green-900
       ],
       dark: [
-        "#052e16", // green-950
-        "#15803d", // green-700
+        "#1c2b22", // muted green low usage
+        "#14532d", // green-900
+        "#166534", // green-800
         "#16a34a", // green-600
-        "#4ade80", // green-400
-        "#bbf7d0", // green-200
+        "#22c55e", // green-500, saturated high usage
       ],
     },
   },

@@ -97,6 +97,23 @@ test("heatmapThemes includes Antigravity CLI provider theme", () => {
   assert.equal(heatmapThemes.agy.colors.light[3], "#ef4444");
 });
 
+test("dark heatmap themes increase usage with saturation instead of pale colors", () => {
+  assert.deepEqual(heatmapThemes.all.colors.dark, [
+    "#1c2b22",
+    "#14532d",
+    "#166534",
+    "#16a34a",
+    "#22c55e",
+  ]);
+  assert.equal(heatmapThemes.agy.colors.dark.at(-1), "#ef4444");
+  assert.equal(heatmapThemes.codex.colors.dark.at(-1), "#6366f1");
+  assert.equal(heatmapThemes.claude.colors.dark.at(-1), "#f97316");
+
+  for (const theme of Object.values(heatmapThemes)) {
+    assert.doesNotMatch(theme.colors.dark.join(","), /#(?:bbf7d0|c7d2fe|fdba74|fecaca|fafafa)/i);
+  }
+});
+
 test("renderUsageHeatmapsSvg adds structured tooltip payloads for active cells", () => {
   const svg = renderUsageHeatmapsSvg({
     startDate: new Date("2026-03-15T00:00:00"),

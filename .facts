@@ -14,6 +14,6 @@
   tags: [implemented]
 
 ## design
-- label: the web report uses the reference fonts, a flat background, dark heatmap cells, and lighter colors for higher usage
-  command: grep -Fq 'background: var(--color-bg);' packages/web/app/globals.css && grep -Fq 'colorMode: "dark"' packages/web/scripts/publish-usage.ts && grep -Fq 'fill="#171717"' .slopmeter-data/published/heatmap-last-year.svg && grep -Fq 'fill="#262626"' .slopmeter-data/published/heatmap-last-year.svg && ! grep -Fq 'fill="#ffffff"' .slopmeter-data/published/heatmap-last-year.svg && grep -Fq 'font-family="helveticaNeue, Helvetica Neue, sans-serif"' .slopmeter-data/published/heatmap-last-year.svg
+- label: the web report uses the reference fonts, a flat background, dark heatmap cells, and more saturated colors for higher usage
+  command: grep -Fq 'background: var(--color-bg);' packages/web/app/globals.css && grep -Fq 'colorMode: "dark"' packages/web/scripts/publish-usage.ts && grep -Fq 'fill="#171717"' .slopmeter-data/published/heatmap-last-year.svg && grep -Fq 'fill="#262626"' .slopmeter-data/published/heatmap-last-year.svg && grep -Fq 'fill="#22c55e"' .slopmeter-data/published/heatmap-last-year.svg && ! grep -Fq 'fill="#ffffff"' .slopmeter-data/published/heatmap-last-year.svg && ! grep -Fq 'fill="#bbf7d0"' .slopmeter-data/published/heatmap-last-year.svg && grep -Fq 'font-family="helveticaNeue, Helvetica Neue, sans-serif"' .slopmeter-data/published/heatmap-last-year.svg
   tags: [implemented]
