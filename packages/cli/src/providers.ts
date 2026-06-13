@@ -1,4 +1,5 @@
 import type { UsageSummary } from "./interfaces";
+import { loadAntigravityRows } from "./lib/antigravity";
 import { loadClaudeRows } from "./lib/claude-code";
 import { loadCodexRows } from "./lib/codex";
 import { loadCursorRows } from "./lib/cursor";
@@ -72,9 +73,7 @@ export async function aggregateUsage({
         : provider === "codex"
           ? await loadCodexRows(start, end, warnings)
           : provider === "agy"
-            // Antigravity CLI stores usage in opaque SQLite blobs. Keep the
-            // provider visible, but do not invent token totals without a parser.
-            ? null
+            ? await loadAntigravityRows(start, end)
           : provider === "gemini"
             ? await loadGeminiRows(start, end)
           : provider === "cursor"
