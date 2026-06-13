@@ -13,6 +13,16 @@ test("normalizePublishedSvgMarkup replaces merged provider lists with All Provid
   );
 });
 
+test("normalizePublishedSvgMarkup preserves dark heatmap colors and applies reference fonts", () => {
+  const input =
+    '<svg><rect fill="#171717"></rect><rect fill="#262626"></rect><rect fill="#bbf7d0"></rect><text font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif">Jun</text></svg>';
+
+  assert.equal(
+    normalizePublishedSvgMarkup(input),
+    '<svg><rect fill="#171717"></rect><rect fill="#262626"></rect><rect fill="#bbf7d0"></rect><text font-family="helveticaNeue, Helvetica Neue, sans-serif">Jun</text></svg>',
+  );
+});
+
 test("getProviderDetailTheme keeps Hermes aligned with the heatmap palette", () => {
   assert.deepEqual(getProviderDetailTheme("hermes"), {
     accent: "#ffc107",

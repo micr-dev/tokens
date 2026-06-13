@@ -393,7 +393,7 @@ function renderPublishedSvg(payload: PublishedUsagePayload) {
   return renderUsageHeatmapsSvg({
     startDate: parseDateOnly(payload.start),
     endDate: parseDateOnly(payload.end),
-    colorMode: "light",
+    colorMode: "dark",
     sections: [
       {
         daily: mergedSummary.daily,

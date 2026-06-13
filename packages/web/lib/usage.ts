@@ -7,11 +7,7 @@ import type { PublishedUsagePayload } from "./types";
 // Bundle the published artifacts into the app so production cannot drift to stale runtime files.
 const mergedProvidersCaption = "TOTAL USAGE FROM";
 const mergedProvidersLabel = "All Providers";
-const lightSvgThemeReplacements = [
-  ["#ffffff", "#121212"],
-  ["#f5f5f5", "#ffffff"],
-  ["#0f172a", "#ffffff"],
-  ["#737373", "#8b8b8b"],
+const svgFontReplacements = [
   [
     "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
     "helveticaNeue, Helvetica Neue, sans-serif",
@@ -29,7 +25,7 @@ export function normalizePublishedSvgMarkup(svgMarkup: string) {
     `$1${mergedProvidersLabel}$3`,
   );
 
-  for (const [from, to] of lightSvgThemeReplacements) {
+  for (const [from, to] of svgFontReplacements) {
     normalizedSvgMarkup = normalizedSvgMarkup.replaceAll(from, to);
   }
 
