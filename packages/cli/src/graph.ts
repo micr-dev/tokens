@@ -90,10 +90,10 @@ export const heatmapThemes: Record<HeatmapThemeId, HeatmapTheme> = {
         "#c2410c", // orange-700
       ],
       dark: [
-        "#292524", // stone-800, muted low usage
+        "#26221f", // nearly gray low usage
+        "#4a2a1f", // muted orange-brown
         "#7c2d12", // orange-900
         "#c2410c", // orange-700
-        "#ea580c", // orange-600
         "#f97316", // orange-500, saturated high usage
       ],
     },
@@ -109,10 +109,10 @@ export const heatmapThemes: Record<HeatmapThemeId, HeatmapTheme> = {
         "#312e81", // indigo-900
       ],
       dark: [
-        "#27213f", // muted indigo low usage
+        "#252333", // nearly gray low usage
+        "#2e2a55", // muted indigo
         "#312e81", // indigo-900
         "#4338ca", // indigo-700
-        "#4f46e5", // indigo-600
         "#6366f1", // indigo-500, saturated high usage
       ],
     },
@@ -128,10 +128,10 @@ export const heatmapThemes: Record<HeatmapThemeId, HeatmapTheme> = {
         "#991b1b", // red-800
       ],
       dark: [
-        "#2b1d1d", // muted red low usage
+        "#2a2020", // nearly gray low usage
+        "#4f2222", // muted red-brown
         "#7f1d1d", // red-900
         "#b91c1c", // red-700
-        "#dc2626", // red-600
         "#ef4444", // red-500, saturated high usage
       ],
     },
@@ -147,10 +147,10 @@ export const heatmapThemes: Record<HeatmapThemeId, HeatmapTheme> = {
         "#991b1b", // red-800
       ],
       dark: [
-        "#2b1d1d", // muted red low usage
+        "#2a2020", // nearly gray low usage
+        "#4f2222", // muted red-brown
         "#7f1d1d", // red-900
         "#b91c1c", // red-700
-        "#dc2626", // red-600
         "#ef4444", // red-500, saturated high usage
       ],
     },
@@ -166,10 +166,10 @@ export const heatmapThemes: Record<HeatmapThemeId, HeatmapTheme> = {
         "#9a3412", // orange-800
       ],
       dark: [
-        "#2f211a", // muted orange low usage
+        "#2a231f", // nearly gray low usage
+        "#4a2a1f", // muted orange-brown
         "#7c2d12", // orange-900
         "#c2410c", // orange-700
-        "#ea580c", // orange-600
         "#f97316", // orange-500, saturated high usage
       ],
     },
@@ -204,10 +204,10 @@ export const heatmapThemes: Record<HeatmapThemeId, HeatmapTheme> = {
         "#047857", // emerald-700
       ],
       dark: [
-        "#1c2b22", // muted emerald low usage
+        "#202822", // nearly gray low usage
+        "#203e29", // muted green
         "#14532d", // green-900
         "#166534", // green-800
-        "#16a34a", // green-600
         "#22c55e", // green-500, saturated high usage
       ],
     },
@@ -223,10 +223,10 @@ export const heatmapThemes: Record<HeatmapThemeId, HeatmapTheme> = {
         "#991b1b", // red-800
       ],
       dark: [
-        "#2b1d1d", // muted red low usage
+        "#2a2020", // nearly gray low usage
+        "#4f2222", // muted red-brown
         "#7f1d1d", // red-900
         "#b91c1c", // red-700
-        "#dc2626", // red-600
         "#ef4444", // red-500, saturated high usage
       ],
     },
@@ -242,9 +242,9 @@ export const heatmapThemes: Record<HeatmapThemeId, HeatmapTheme> = {
         "#D4AF37", // gold
       ],
       dark: [
-        "#3e3528", // muted gold low usage
-        "#5c4e38",
-        "#8c7348",
+        "#292721", // nearly gray low usage
+        "#4a3f2c", // muted gold
+        "#6f5a2f",
         "#b8860b",
         "#d4af37", // saturated gold high usage
       ],
@@ -261,10 +261,10 @@ export const heatmapThemes: Record<HeatmapThemeId, HeatmapTheme> = {
         "#b45309",
       ],
       dark: [
-        "#3a2818", // muted amber low usage
+        "#2a261f", // nearly gray low usage
+        "#4d3320", // muted amber
         "#78350f",
         "#b45309",
-        "#d97706",
         "#f59e0b", // saturated amber high usage
       ],
     },
@@ -280,9 +280,9 @@ export const heatmapThemes: Record<HeatmapThemeId, HeatmapTheme> = {
         "#A95381",
       ],
       dark: [
-        "#391326", // muted pink low usage
-        "#5a2340",
-        "#7a3259",
+        "#2a2026", // nearly gray low usage
+        "#4a2638", // muted pink
+        "#6b2d4f",
         "#a95381",
         "#db2777", // saturated pink high usage
       ],
@@ -300,10 +300,10 @@ export const heatmapThemes: Record<HeatmapThemeId, HeatmapTheme> = {
         "#14532d", // green-900
       ],
       dark: [
-        "#1c2b22", // muted green low usage
+        "#202822", // nearly gray low usage
+        "#203e29", // muted green
         "#14532d", // green-900
         "#166534", // green-800
-        "#16a34a", // green-600
         "#22c55e", // green-500, saturated high usage
       ],
     },

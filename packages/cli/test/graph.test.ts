@@ -99,11 +99,16 @@ test("heatmapThemes includes Antigravity CLI provider theme", () => {
 
 test("dark heatmap themes increase usage with saturation instead of pale colors", () => {
   assert.deepEqual(heatmapThemes.all.colors.dark, [
-    "#1c2b22",
+    "#202822",
+    "#203e29",
     "#14532d",
     "#166534",
-    "#16a34a",
     "#22c55e",
+  ]);
+  assert.deepEqual(heatmapThemes.agy.colors.dark.slice(0, 3), [
+    "#2a2020",
+    "#4f2222",
+    "#7f1d1d",
   ]);
   assert.equal(heatmapThemes.agy.colors.dark.at(-1), "#ef4444");
   assert.equal(heatmapThemes.codex.colors.dark.at(-1), "#6366f1");
