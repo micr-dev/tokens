@@ -965,14 +965,7 @@ export function renderUsageHeatmapsSvg({
     .create()
     .width(width)
     .height(height)
-    .viewBox(`0 0 ${width} ${height}`)
-    .rect({
-      x: -2,
-      y: -2,
-      width: width + 4,
-      height: height + 4,
-      fill: palette.background,
-    });
+    .viewBox(`0 0 ${width} ${height}`);
 
   sections.forEach((section, index) => {
     const sectionY = topPadding + index * (layout.height + sectionGap);
