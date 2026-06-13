@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, resolve } from "node:path";
@@ -13,6 +14,12 @@ import {
 import { mergeUsageSummaries } from "../../cli/src/lib/utils";
 import { providerIds, aggregateUsage } from "../../cli/src/providers";
 import type {
+  PublishedCostHarness,
+  PublishedCostModel,
+  PublishedCostMonthlyRow,
+  PublishedCostPayload,
+} from "../lib/types";
+import type {
   JsonExportPayload,
   JsonUsageSummary,
   UsageSummary,
@@ -26,7 +33,10 @@ const DEFAULT_OPENCODE_RECOVERY_IMPORT_PATH =
   ".local/share/opencode/recovery/t3-chat-export-opencode-recovered.json";
 const DEFAULT_OPENCODE_DAILY_RECOVERY_IMPORT_PATH =
   ".local/share/opencode/recovery/opencode-daily-recovered.json";
+const DEFAULT_COST_ANALYSIS_IMPORT_PATH = "token-usage-analysis.json";
 const DEFAULT_LOCAL_OUTPUT_PATH = ".slopmeter-data/published/daily-usage.json";
+const DEFAULT_LOCAL_COST_OUTPUT_PATH =
+  ".slopmeter-data/published/cost-analysis.json";
 const DEFAULT_LOCAL_SVG_OUTPUT_PATH =
   ".slopmeter-data/published/heatmap-last-year.svg";
 const DEFAULT_LOCAL_HISTORY_DIR = ".slopmeter-data/history";
@@ -36,6 +46,15 @@ const DEFAULT_BLOB_PATH = "slopmeter/daily-usage.json";
 const DEFAULT_SVG_BLOB_PATH = "slopmeter/heatmap-last-year.svg";
 const REPO_ROOT = resolve(fileURLToPath(new URL("../../..", import.meta.url)));
 const CLAUDE_EXCLUDED_DATES = new Set(["2026-03-10", "2026-03-17"]);
+const COST_COVERAGE_NOTE =
+  "API-price equivalent for this token usage. Most or all of these tokens were used through subscription plans rather than metered API billing.";
+const CCUSAGE_BACKED_COST_HARNESSES = [
+  { id: "codex", label: "Codex" },
+  { id: "droid", label: "Droid" },
+  { id: "hermes", label: "Hermes Agent" },
+  { id: "pi", label: "Pi Coding Agent" },
+] as const;
+const MODEL_ESTIMATED_COST_HARNESSES = new Set(["pi"]);
 export const WEB_PROVIDER_ORDER = [
   "codex",
   "opencode",
@@ -95,7 +114,13 @@ function readExistingPublishedPayload(localOutputPath: string) {
     return null;
   }
 
-  return JSON.parse(readFileSync(localOutputPath, "utf8")) as PublishedUsagePayload;
+  return JSON.parse(
+    readFileSync(localOutputPath, "utf8"),
+  ) as PublishedUsagePayload;
+}
+
+function readJsonFile(pathValue: string) {
+  return JSON.parse(readFileSync(pathValue, "utf8")) as unknown;
 }
 
 function resolveRepoPath(pathValue: string) {
@@ -106,17 +131,716 @@ function resolveHomePath(pathValue: string) {
   return resolve(homedir(), pathValue);
 }
 
-function formatBackupTimestamp(value: Date) {
-  return value
-    .toISOString()
-    .replaceAll(":", "-")
-    .replaceAll(".", "-");
+function readCostAnalysisPayload(importPath: string) {
+  if (!existsSync(importPath)) {
+    return null;
+  }
+
+  return normalizeCostAnalysisPayload(readJsonFile(importPath));
 }
 
-export function buildPublishedBackupPaths(
-  historyDir: string,
-  updatedAt: Date,
+function numberOrZero(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function numberOrNull(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function stringOrNull(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function requireString(value: unknown, fieldName: string) {
+  const normalized = stringOrNull(value);
+
+  if (!normalized) {
+    throw new Error(`Cost analysis is missing ${fieldName}.`);
+  }
+
+  return normalized;
+}
+
+function asRecord(value: unknown, fieldName: string) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`Cost analysis ${fieldName} must be an object.`);
+  }
+
+  return value as Record<string, unknown>;
+}
+
+function asArray(value: unknown, fieldName: string) {
+  if (!Array.isArray(value)) {
+    throw new Error(`Cost analysis ${fieldName} must be an array.`);
+  }
+
+  return value;
+}
+
+function normalizeCostMonthlyRow(value: unknown): PublishedCostMonthlyRow {
+  const row = asRecord(value, "monthly row");
+
+  return {
+    month: requireString(row.month, "monthly row month"),
+    inputTokens: numberOrZero(row.input_tokens),
+    outputTokens: numberOrZero(row.output_tokens),
+    cacheReadTokens: numberOrZero(row.cache_read_tokens),
+    totalTokens: numberOrZero(row.total_tokens),
+    activeDays: numberOrZero(row.active_days),
+    costUsd: numberOrNull(row.cost_usd),
+  };
+}
+
+function normalizeCostHarness(
+  key: string,
+  value: unknown,
+): PublishedCostHarness {
+  const harness = asRecord(value, `provider ${key}`);
+  const totals = asRecord(harness.totals, `provider ${key} totals`);
+  const dateRange =
+    harness.date_range && typeof harness.date_range === "object"
+      ? (harness.date_range as Record<string, unknown>)
+      : {};
+
+  return {
+    id: key,
+    label: stringOrNull(harness.label) ?? key,
+    activeDays: numberOrZero(harness.active_days),
+    firstDate: stringOrNull(dateRange.first),
+    lastDate: stringOrNull(dateRange.last),
+    totalCostUsd: numberOrNull(harness.total_cost_usd),
+    totalTokens: numberOrZero(totals.total_tokens),
+    inputTokens: numberOrZero(totals.input_tokens),
+    outputTokens: numberOrZero(totals.output_tokens),
+    cacheReadTokens: numberOrZero(totals.cache_read_tokens),
+    monthly: asArray(harness.monthly, `provider ${key} monthly`).map(
+      normalizeCostMonthlyRow,
+    ),
+  };
+}
+
+function normalizeCostModel(value: unknown): PublishedCostModel {
+  const model = asRecord(value, "model cost summary row");
+
+  return {
+    name: requireString(model.model, "model name"),
+    totalCostUsd: numberOrZero(model.cost_usd),
+    totalTokens: numberOrZero(model.total_tokens),
+    inputTokens: numberOrZero(model.total_input),
+    outputTokens: numberOrZero(model.total_output),
+    cacheReadTokens: numberOrZero(model.total_cache_read),
+    monthsActive: numberOrZero(model.months_active),
+  };
+}
+
+function todayDateKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function getCcusageCost(value: Record<string, unknown>) {
+  return (
+    numberOrNull(value.totalCost) ??
+    numberOrNull(value.costUSD) ??
+    numberOrNull(value.costUsd) ??
+    numberOrNull(value.total_cost_usd) ??
+    0
+  );
+}
+
+function getCcusageNumber(value: Record<string, unknown>, key: string) {
+  return numberOrZero(value[key]);
+}
+
+function runCcusageJson({
+  harnessId,
+  command,
+  since,
+  until,
+}: {
+  harnessId: string;
+  command: "daily" | "monthly";
+  since: string;
+  until: string;
+}) {
+  const result = spawnSync(
+    "ccusage",
+    [harnessId, command, "--json", "--offline", "--since", since, "--until", until],
+    {
+      encoding: "utf8",
+      maxBuffer: 128 * 1024 * 1024,
+    },
+  );
+
+  if (result.status !== 0) {
+    throw new Error(
+      `ccusage ${harnessId} ${command} failed: ${
+        result.stderr.trim() || result.stdout.trim() || "unknown error"
+      }`,
+    );
+  }
+
+  return asRecord(JSON.parse(result.stdout) as unknown, `ccusage ${harnessId}`);
+}
+
+function rowsFromCcusagePayload(
+  payload: Record<string, unknown>,
+  key: "daily" | "monthly",
 ) {
+  return asArray(payload[key], `ccusage ${key}`).map((row) =>
+    asRecord(row, `ccusage ${key} row`),
+  );
+}
+
+function getCcusageModelsUsed(row: Record<string, unknown>) {
+  const modelsUsed = row.modelsUsed;
+
+  if (Array.isArray(modelsUsed)) {
+    return modelsUsed
+      .filter((model): model is string => typeof model === "string")
+      .sort((left, right) => left.localeCompare(right));
+  }
+
+  const models = row.models;
+
+  if (models && typeof models === "object" && !Array.isArray(models)) {
+    return Object.keys(models).sort((left, right) => left.localeCompare(right));
+  }
+
+  return [];
+}
+
+function activeDaysByMonth(dailyRows: Record<string, unknown>[]) {
+  const counts = new Map<string, number>();
+
+  for (const row of dailyRows) {
+    const date = requireString(row.date, "ccusage daily date");
+    const month = date.slice(0, 7);
+
+    counts.set(month, (counts.get(month) ?? 0) + 1);
+  }
+
+  return counts;
+}
+
+function toCostMonthlyRow(
+  row: Record<string, unknown>,
+  monthlyActiveDays: Map<string, number>,
+) {
+  const month = requireString(row.month, "ccusage monthly month");
+
+  return {
+    month,
+    input_tokens: getCcusageNumber(row, "inputTokens"),
+    output_tokens: getCcusageNumber(row, "outputTokens"),
+    cache_read_tokens: getCcusageNumber(row, "cacheReadTokens"),
+    total_tokens: getCcusageNumber(row, "totalTokens"),
+    active_days: monthlyActiveDays.get(month) ?? 0,
+    models_used: getCcusageModelsUsed(row),
+    cost_usd: getCcusageCost(row),
+  };
+}
+
+function toSourceCostMonthlyRow(row: PublishedCostMonthlyRow) {
+  return {
+    month: row.month,
+    input_tokens: row.inputTokens,
+    output_tokens: row.outputTokens,
+    cache_read_tokens: row.cacheReadTokens,
+    total_tokens: row.totalTokens,
+    active_days: row.activeDays ?? 0,
+    cost_usd: row.costUsd,
+  };
+}
+
+function buildCcusageCostHarness({
+  id,
+  label,
+  since,
+  until,
+}: {
+  id: string;
+  label: string;
+  since: string;
+  until: string;
+}) {
+  const dailyPayload = runCcusageJson({
+    harnessId: id,
+    command: "daily",
+    since,
+    until,
+  });
+  const monthlyPayload = runCcusageJson({
+    harnessId: id,
+    command: "monthly",
+    since,
+    until,
+  });
+  const dailyRows = rowsFromCcusagePayload(dailyPayload, "daily");
+  const monthlyRows = rowsFromCcusagePayload(monthlyPayload, "monthly");
+  const totals = asRecord(dailyPayload.totals, `ccusage ${id} totals`);
+  const dates = dailyRows
+    .map((row) => requireString(row.date, "ccusage daily date"))
+    .sort((left, right) => left.localeCompare(right));
+
+  if (dates.length === 0) {
+    throw new Error(`ccusage ${id} returned no daily rows.`);
+  }
+
+  const monthlyActiveDays = activeDaysByMonth(dailyRows);
+
+  return {
+    label,
+    active_days: dates.length,
+    date_range: {
+      first: dates[0],
+      last: dates[dates.length - 1],
+    },
+    totals: {
+      input_tokens: getCcusageNumber(totals, "inputTokens"),
+      output_tokens: getCcusageNumber(totals, "outputTokens"),
+      cache_read_tokens: getCcusageNumber(totals, "cacheReadTokens"),
+      total_tokens: getCcusageNumber(totals, "totalTokens"),
+    },
+    total_cost_usd: getCcusageCost(totals),
+    monthly: monthlyRows.map((row) =>
+      toCostMonthlyRow(row, monthlyActiveDays),
+    ),
+  };
+}
+
+function buildCostMonthlyTotals(
+  providers: Record<string, ReturnType<typeof buildCcusageCostHarness> | unknown>,
+) {
+  const monthly = new Map<
+    string,
+    {
+      month: string;
+      input_tokens: number;
+      output_tokens: number;
+      cache_read_tokens: number;
+      total_tokens: number;
+      active_days: number;
+      cost_usd: number;
+      cost_note: string;
+    }
+  >();
+
+  for (const provider of Object.values(providers)) {
+    const record = asRecord(provider, "cost provider");
+
+    for (const row of asArray(record.monthly, "cost provider monthly")) {
+      const monthlyRow = asRecord(row, "cost provider monthly row");
+      const month = requireString(monthlyRow.month, "monthly row month");
+      const current =
+        monthly.get(month) ??
+        {
+          month,
+          input_tokens: 0,
+          output_tokens: 0,
+          cache_read_tokens: 0,
+          total_tokens: 0,
+          active_days: 0,
+          cost_usd: 0,
+          cost_note:
+            "cost_usd includes live ccusage-backed harnesses plus preserved recovered history where available",
+        };
+
+      current.input_tokens += numberOrZero(monthlyRow.input_tokens);
+      current.output_tokens += numberOrZero(monthlyRow.output_tokens);
+      current.cache_read_tokens += numberOrZero(monthlyRow.cache_read_tokens);
+      current.total_tokens += numberOrZero(monthlyRow.total_tokens);
+      current.active_days += numberOrZero(monthlyRow.active_days);
+      current.cost_usd += numberOrZero(monthlyRow.cost_usd);
+      monthly.set(month, current);
+    }
+  }
+
+  return [...monthly.values()].sort((left, right) =>
+    left.month.localeCompare(right.month),
+  );
+}
+
+function buildCostSourceCoverage(
+  harnesses: PublishedCostHarness[],
+  refreshedHarnessIds: Set<string>,
+  modelEstimatedHarnessIds: Set<string>,
+) {
+  return harnesses.map((harness) => ({
+    harness: harness.id,
+    source: modelEstimatedHarnessIds.has(harness.id)
+      ? ("model-estimated" as const)
+      : refreshedHarnessIds.has(harness.id)
+        ? ("live-ccusage" as const)
+        : ("preserved-import" as const),
+    expectedMonths: harness.monthly.map((row) => row.month),
+    generatedMonths: harness.monthly.map((row) => row.month),
+    missingMonths: [],
+    firstDate: harness.firstDate,
+    lastDate: harness.lastDate,
+  }));
+}
+
+function buildCostValidation(
+  harnesses: PublishedCostHarness[],
+  refreshedHarnessIds: Set<string>,
+  modelEstimatedHarnessIds: Set<string>,
+) {
+  return harnesses.map((harness) => ({
+    harness: harness.id,
+    status: modelEstimatedHarnessIds.has(harness.id)
+      ? ("estimated" as const)
+      : refreshedHarnessIds.has(harness.id)
+        ? ("ok" as const)
+        : ("preserved" as const),
+    computedUsd: harness.totalCostUsd,
+    sourceUsd: harness.totalCostUsd,
+    deltaUsd: 0,
+    note: modelEstimatedHarnessIds.has(harness.id)
+      ? "estimated from published model token breakdown because local ccusage does not cover all displayed harness history"
+      : refreshedHarnessIds.has(harness.id)
+        ? "refreshed from local ccusage during publish"
+        : "preserved from imported or recovered history; local ccusage is not a completeness oracle for this harness",
+  }));
+}
+
+function buildMissingModelCostWarnings(models: PublishedCostModel[]) {
+  return models
+    .filter((model) => model.totalTokens > 0 && model.totalCostUsd <= 0)
+    .map((model) => ({
+      model: model.name,
+      totalTokens: model.totalTokens,
+      status: "missing-cost" as const,
+    }));
+}
+
+function canonicalCostModelName(value: string) {
+  const normalized = value.trim().toLowerCase();
+  const prefixes = [
+    "cliproxyapi/",
+    "google/",
+    "anthropic/",
+    "openai/",
+    "xai/",
+    "moonshot/",
+    "minimax/",
+    "deepseek/",
+    "alibaba/",
+    "nvidia/",
+    "z-ai/",
+    "[pi] ",
+  ];
+
+  for (const prefix of prefixes) {
+    if (normalized.startsWith(prefix)) {
+      return normalized.slice(prefix.length);
+    }
+  }
+
+  return normalized;
+}
+
+function buildModelCostRates(models: PublishedCostModel[]) {
+  const rates = new Map<string, number>();
+
+  for (const model of models) {
+    if (model.totalCostUsd <= 0 || model.totalTokens <= 0) {
+      continue;
+    }
+
+    rates.set(
+      canonicalCostModelName(model.name),
+      model.totalCostUsd / model.totalTokens,
+    );
+  }
+
+  return rates;
+}
+
+function buildModelEstimatedHarness({
+  harness,
+  usageProvider,
+  modelCostRates,
+}: {
+  harness: PublishedCostHarness;
+  usageProvider: PublishedUsagePayload["providers"][number];
+  modelCostRates: Map<string, number>;
+}): PublishedCostHarness | null {
+  const monthly = new Map<
+    string,
+    {
+      month: string;
+      inputTokens: number;
+      outputTokens: number;
+      cacheReadTokens: number;
+      totalTokens: number;
+      activeDays: number;
+      costUsd: number;
+    }
+  >();
+  let totalCostUsd = 0;
+
+  for (const day of usageProvider.daily) {
+    const month = day.date.slice(0, 7);
+    const current =
+      monthly.get(month) ??
+      {
+        month,
+        inputTokens: 0,
+        outputTokens: 0,
+        cacheReadTokens: 0,
+        totalTokens: 0,
+        activeDays: 0,
+        costUsd: 0,
+      };
+    let dayCostUsd = 0;
+
+    for (const model of day.breakdown) {
+      const rate = modelCostRates.get(canonicalCostModelName(model.name));
+
+      if (!rate) {
+        continue;
+      }
+
+      dayCostUsd += model.tokens.total * rate;
+    }
+
+    current.inputTokens += day.input;
+    current.outputTokens += day.output;
+    current.cacheReadTokens += day.cache.input;
+    current.totalTokens += day.total;
+    current.activeDays += 1;
+    current.costUsd += dayCostUsd;
+    totalCostUsd += dayCostUsd;
+    monthly.set(month, current);
+  }
+
+  if (usageProvider.daily.length === 0 || totalCostUsd <= 0) {
+    return null;
+  }
+
+  const sortedDaily = [...usageProvider.daily].sort((left, right) =>
+    left.date.localeCompare(right.date),
+  );
+  const monthlyRows = [...monthly.values()].sort((left, right) =>
+    left.month.localeCompare(right.month),
+  );
+
+  return {
+    ...harness,
+    activeDays: usageProvider.daily.length,
+    firstDate: sortedDaily[0]?.date ?? harness.firstDate,
+    lastDate: sortedDaily[sortedDaily.length - 1]?.date ?? harness.lastDate,
+    totalCostUsd,
+    totalTokens: monthlyRows.reduce((sum, row) => sum + row.totalTokens, 0),
+    inputTokens: monthlyRows.reduce((sum, row) => sum + row.inputTokens, 0),
+    outputTokens: monthlyRows.reduce((sum, row) => sum + row.outputTokens, 0),
+    cacheReadTokens: monthlyRows.reduce(
+      (sum, row) => sum + row.cacheReadTokens,
+      0,
+    ),
+    monthly: monthlyRows,
+  };
+}
+
+function refreshCostPayloadFromCcusage(
+  payload: PublishedCostPayload,
+  usagePayload?: PublishedUsagePayload,
+) {
+  const providerEntries = new Map(
+    payload.harnesses.map((harness) => [harness.id, harness]),
+  );
+  const until = todayDateKey();
+  const refreshedHarnessIds = new Set<string>();
+  const modelEstimatedHarnessIds = new Set<string>();
+
+  for (const harness of CCUSAGE_BACKED_COST_HARNESSES) {
+    const current = providerEntries.get(harness.id);
+    const since = current?.firstDate ?? payload.dateRange.start;
+    const refreshed = buildCcusageCostHarness({
+      id: harness.id,
+      label: current?.label ?? harness.label,
+      since,
+      until,
+    });
+
+    providerEntries.set(harness.id, normalizeCostHarness(harness.id, refreshed));
+    refreshedHarnessIds.add(harness.id);
+  }
+
+  if (usagePayload) {
+    const modelCostRates = buildModelCostRates(payload.models);
+
+    for (const harnessId of MODEL_ESTIMATED_COST_HARNESSES) {
+      const harness = providerEntries.get(harnessId);
+      const usageProvider = usagePayload.providers.find(
+        (provider) => provider.provider === harnessId,
+      );
+
+      if (!harness || !usageProvider) {
+        continue;
+      }
+
+      const estimated = buildModelEstimatedHarness({
+        harness,
+        usageProvider,
+        modelCostRates,
+      });
+
+      if (!estimated || estimated.totalCostUsd === null) {
+        continue;
+      }
+
+      if (estimated.totalCostUsd <= (harness.totalCostUsd ?? 0)) {
+        continue;
+      }
+
+      providerEntries.set(harnessId, estimated);
+      refreshedHarnessIds.delete(harnessId);
+      modelEstimatedHarnessIds.add(harnessId);
+    }
+  }
+
+  const harnesses = payload.harnesses.map((harness) =>
+    providerEntries.get(harness.id) ?? harness,
+  );
+  const firstDate =
+    harnesses
+      .flatMap((harness) => (harness.firstDate ? [harness.firstDate] : []))
+      .sort((left, right) => left.localeCompare(right))[0] ??
+    payload.dateRange.start;
+  const lastDate =
+    harnesses
+      .flatMap((harness) => (harness.lastDate ? [harness.lastDate] : []))
+      .sort((left, right) => right.localeCompare(left))[0] ??
+    payload.dateRange.end;
+  const harnessTotalCostUsd = harnesses.reduce(
+    (sum, harness) => sum + (harness.totalCostUsd ?? 0),
+    0,
+  );
+  const providerSourceRows = Object.fromEntries(
+    harnesses.map((harness) => [
+      harness.id,
+      {
+        label: harness.label,
+        active_days: harness.activeDays,
+        date_range: {
+          first: harness.firstDate,
+          last: harness.lastDate,
+        },
+        totals: {
+          input_tokens: harness.inputTokens,
+          output_tokens: harness.outputTokens,
+          cache_read_tokens: harness.cacheReadTokens,
+          total_tokens: harness.totalTokens,
+        },
+        total_cost_usd: harness.totalCostUsd,
+        monthly: harness.monthly.map(toSourceCostMonthlyRow),
+      },
+    ]),
+  );
+
+  return {
+    ...payload,
+    generatedAt: new Date().toISOString(),
+    source:
+      "tokens.micr.dev recovered history + live ccusage-backed harness refresh (offline pricing)",
+    dateRange: {
+      start: firstDate,
+      end: lastDate,
+    },
+    grandTotalTokens: harnesses.reduce(
+      (sum, harness) => sum + harness.totalTokens,
+      0,
+    ),
+    harnessTotalCostUsd: Math.round(harnessTotalCostUsd * 100) / 100,
+    harnesses,
+    monthlyTotals: buildCostMonthlyTotals(providerSourceRows).map(
+      normalizeCostMonthlyRow,
+    ),
+    sourceCoverage: buildCostSourceCoverage(
+      harnesses,
+      refreshedHarnessIds,
+      modelEstimatedHarnessIds,
+    ),
+    validation: buildCostValidation(
+      harnesses,
+      refreshedHarnessIds,
+      modelEstimatedHarnessIds,
+    ),
+    modelWarnings: buildMissingModelCostWarnings(payload.models),
+  };
+}
+
+export function normalizeCostAnalysisPayload(
+  value: unknown,
+): PublishedCostPayload {
+  const payload = asRecord(value, "payload");
+  const dateRange = asRecord(payload.date_range, "date_range");
+  const providers = asRecord(payload.providers, "providers");
+  const modelCostSummary = asArray(
+    payload.model_cost_summary ?? payload.model_summary,
+    "model_cost_summary",
+  );
+  const harnesses = Object.entries(providers).map(([key, provider]) =>
+    normalizeCostHarness(key, provider),
+  );
+  const models = modelCostSummary.map(normalizeCostModel);
+  const modelTotalCostUsd = models.reduce(
+    (sum, model) => sum + model.totalCostUsd,
+    0,
+  );
+
+  return {
+    version: "2026-06-19",
+    generatedAt: requireString(payload.generated_at, "generated_at"),
+    source: requireString(payload.source, "source"),
+    dateRange: {
+      start: requireString(dateRange.start, "date_range.start"),
+      end: requireString(dateRange.end, "date_range.end"),
+    },
+    grandTotalTokens: numberOrZero(payload.grand_total_tokens),
+    harnessTotalCostUsd: numberOrZero(payload.grand_total_cost_usd),
+    modelTotalCostUsd: Math.round(modelTotalCostUsd * 100) / 100,
+    coverageNote: COST_COVERAGE_NOTE,
+    harnesses,
+    models,
+    monthlyTotals: asArray(payload.monthly_totals, "monthly_totals").map(
+      normalizeCostMonthlyRow,
+    ),
+  };
+}
+
+export function writePublishedCostArtifact({
+  sourcePath,
+  outputPath,
+  usagePayload,
+}: {
+  sourcePath: string;
+  outputPath: string;
+  usagePayload?: PublishedUsagePayload;
+}) {
+  const payload = readCostAnalysisPayload(sourcePath);
+
+  if (!payload) {
+    throw new Error(`Cost analysis source not found: ${sourcePath}`);
+  }
+  const refreshedPayload = refreshCostPayloadFromCcusage(payload, usagePayload);
+
+  mkdirSync(dirname(outputPath), { recursive: true });
+  writeFileSync(
+    outputPath,
+    `${JSON.stringify(refreshedPayload, null, 2)}\n`,
+    "utf8",
+  );
+
+  return refreshedPayload;
+}
+
+function formatBackupTimestamp(value: Date) {
+  return value.toISOString().replaceAll(":", "-").replaceAll(".", "-");
+}
+
+export function buildPublishedBackupPaths(historyDir: string, updatedAt: Date) {
   const snapshotDir = resolve(historyDir, formatBackupTimestamp(updatedAt));
 
   return {
@@ -140,7 +864,11 @@ export function writePublishedBackupArtifacts({
   const paths = buildPublishedBackupPaths(historyDir, updatedAt);
 
   mkdirSync(paths.snapshotDir, { recursive: true });
-  writeFileSync(paths.jsonPath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
+  writeFileSync(
+    paths.jsonPath,
+    `${JSON.stringify(payload, null, 2)}\n`,
+    "utf8",
+  );
   writeFileSync(paths.svgPath, svg, "utf8");
 
   return paths;
@@ -150,12 +878,17 @@ export function writePublishedBackupArtifacts({
 export function buildBundledPublishedDataModule(
   payload: PublishedUsagePayload,
   svg: string,
+  costPayload: PublishedCostPayload | null = null,
 ) {
   return [
-    'import type { PublishedUsagePayload } from "./types";',
+    'import type { PublishedCostPayload, PublishedUsagePayload } from "./types";',
     "",
     "export const publishedUsagePayload: PublishedUsagePayload = " +
       JSON.stringify(payload, null, 2) +
+      ";",
+    "",
+    "export const publishedCostPayload: PublishedCostPayload | null = " +
+      JSON.stringify(costPayload, null, 2) +
       ";",
     "",
     "export const publishedSvgMarkup = " + JSON.stringify(svg) + ";",
@@ -167,13 +900,19 @@ export function writeBundledPublishedArtifacts({
   modulePath,
   payload,
   svg,
+  costPayload = null,
 }: {
   modulePath: string;
   payload: PublishedUsagePayload;
   svg: string;
+  costPayload?: PublishedCostPayload | null;
 }) {
   mkdirSync(dirname(modulePath), { recursive: true });
-  writeFileSync(modulePath, buildBundledPublishedDataModule(payload, svg), "utf8");
+  writeFileSync(
+    modulePath,
+    buildBundledPublishedDataModule(payload, svg, costPayload),
+    "utf8",
+  );
 }
 
 function collectProviderDateKeys(payloads: JsonExportPayload[]) {
@@ -312,7 +1051,9 @@ function sanitizePublishedProvider(
     return provider;
   }
 
-  const daily = provider.daily.filter((row) => !CLAUDE_EXCLUDED_DATES.has(row.date));
+  const daily = provider.daily.filter(
+    (row) => !CLAUDE_EXCLUDED_DATES.has(row.date),
+  );
 
   if (daily.length === provider.daily.length) {
     return provider;
@@ -361,16 +1102,13 @@ function foldGeminiIntoAntigravityProvider(
   }
 
   const antigravitySummary = toJsonUsageSummary(
-    mergeUsageSummaries(
-      "agy",
-      continuitySources.map(toUsageSummary),
-      endDate,
-    ),
+    mergeUsageSummaries("agy", continuitySources.map(toUsageSummary), endDate),
   );
 
   return [
     ...providers.filter(
-      (provider) => provider.provider !== "agy" && provider.provider !== "gemini",
+      (provider) =>
+        provider.provider !== "agy" && provider.provider !== "gemini",
     ),
     antigravitySummary,
   ];
@@ -509,10 +1247,20 @@ async function main() {
       ? process.env.SLOPMETER_WEB_OPENCODE_DAILY_RECOVERY_IMPORT_PATH.trim()
       : resolveHomePath(DEFAULT_OPENCODE_DAILY_RECOVERY_IMPORT_PATH),
   );
+  const costAnalysisImportPath = resolve(
+    process.env.SLOPMETER_WEB_COST_ANALYSIS_IMPORT_PATH?.trim()
+      ? process.env.SLOPMETER_WEB_COST_ANALYSIS_IMPORT_PATH.trim()
+      : resolveHomePath(DEFAULT_COST_ANALYSIS_IMPORT_PATH),
+  );
   const localOutputPath = resolve(
     process.env.SLOPMETER_WEB_LOCAL_OUTPUT_PATH?.trim()
       ? process.env.SLOPMETER_WEB_LOCAL_OUTPUT_PATH.trim()
       : resolveRepoPath(DEFAULT_LOCAL_OUTPUT_PATH),
+  );
+  const localCostOutputPath = resolve(
+    process.env.SLOPMETER_WEB_LOCAL_COST_OUTPUT_PATH?.trim()
+      ? process.env.SLOPMETER_WEB_LOCAL_COST_OUTPUT_PATH.trim()
+      : resolveRepoPath(DEFAULT_LOCAL_COST_OUTPUT_PATH),
   );
   const localSvgOutputPath = resolve(
     process.env.SLOPMETER_WEB_LOCAL_SVG_OUTPUT_PATH?.trim()
@@ -532,8 +1280,7 @@ async function main() {
   const gitBackupRepoDir = process.env.SLOPMETER_WEB_GIT_BACKUP_REPO_DIR?.trim()
     ? resolve(process.env.SLOPMETER_WEB_GIT_BACKUP_REPO_DIR.trim())
     : null;
-  const shouldPushGitBackup =
-    process.env.SLOPMETER_WEB_GIT_BACKUP_PUSH === "1";
+  const shouldPushGitBackup = process.env.SLOPMETER_WEB_GIT_BACKUP_PUSH === "1";
   const blobPath =
     process.env.SLOPMETER_WEB_BLOB_PATH?.trim() || DEFAULT_BLOB_PATH;
   const svgBlobPath =
@@ -544,7 +1291,8 @@ async function main() {
     opencodeDailyRecoveryImportPath,
   );
   const hostedPayload =
-    (await readHostedPayload()) ?? readExistingPublishedPayload(localOutputPath);
+    (await readHostedPayload()) ??
+    readExistingPublishedPayload(localOutputPath);
   const t3Summary = await loadT3PublishedSummary(t3ImportPath, start, end);
   const opencodeRecoverySummary = await loadT3PublishedSummary(
     opencodeRecoveryImportPath,
@@ -568,6 +1316,11 @@ async function main() {
     updatedAt: publishTimestamp,
   });
   const svg = renderPublishedSvg(mergedPayload);
+  const costPayload = writePublishedCostArtifact({
+    sourcePath: costAnalysisImportPath,
+    outputPath: localCostOutputPath,
+    usagePayload: mergedPayload,
+  });
 
   mkdirSync(dirname(localOutputPath), { recursive: true });
   writeFileSync(
@@ -581,6 +1334,7 @@ async function main() {
     modulePath: localBundledModuleOutputPath,
     payload: mergedPayload,
     svg,
+    costPayload,
   });
   const backupPaths = writePublishedBackupArtifacts({
     historyDir: localHistoryDir,
@@ -617,7 +1371,9 @@ async function main() {
           opencodeDailyRecoveryImportPath: opencodeDailyRecoveryPayload
             ? opencodeDailyRecoveryImportPath
             : null,
+          costAnalysisImportPath,
           localOutputPath,
+          localCostOutputPath,
           localSvgOutputPath,
           localHistoryDir,
           localBundledModuleOutputPath,
@@ -666,7 +1422,9 @@ async function main() {
         opencodeDailyRecoveryImportPath: opencodeDailyRecoveryPayload
           ? opencodeDailyRecoveryImportPath
           : null,
+        costAnalysisImportPath,
         localOutputPath,
+        localCostOutputPath,
         localSvgOutputPath,
         localHistoryDir,
         localBundledModuleOutputPath,

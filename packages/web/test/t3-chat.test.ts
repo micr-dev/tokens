@@ -104,6 +104,15 @@ test("loadT3PublishedSummary extracts provider-specific token fields from a one-
   );
 
   assert.equal(summary?.provider, "t3");
+
+  const opencodeSummary = await loadT3PublishedSummary(
+    exportPath,
+    new Date("2026-03-14T00:00:00.000Z"),
+    new Date("2026-03-15T23:59:59.999Z"),
+    "opencode",
+  );
+
+  assert.equal(opencodeSummary?.provider, "opencode");
   assert.deepEqual(
     summary?.daily.map((day) => ({
       date: day.date,

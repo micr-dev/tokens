@@ -1,8 +1,9 @@
 import {
+  publishedCostPayload,
   publishedSvgMarkup,
   publishedUsagePayload,
 } from "./published-data.generated";
-import type { PublishedUsagePayload } from "./types";
+import type { PublishedCostPayload, PublishedUsagePayload } from "./types";
 
 // Bundle the published artifacts into the app so production cannot drift to stale runtime files.
 const mergedProvidersCaption = "TOTAL USAGE FROM";
@@ -38,4 +39,8 @@ export async function getPublishedSvgMarkup(): Promise<string> {
 
 export async function getPublishedUsagePayload(): Promise<PublishedUsagePayload | null> {
   return publishedUsagePayload;
+}
+
+export async function getPublishedCostPayload(): Promise<PublishedCostPayload | null> {
+  return publishedCostPayload;
 }
