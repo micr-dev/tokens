@@ -119,7 +119,6 @@ export const heatmapThemes: Record<HeatmapThemeId, HeatmapTheme> = {
   },
   agy: {
     title: "Antigravity CLI",
-    titleCaption: "Gemini CLI successor",
     colors: {
       light: [
         "#fef2f2", // red-50

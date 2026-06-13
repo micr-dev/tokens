@@ -93,7 +93,7 @@ test("renderUsageHeatmapsSvg renders stacked provider sections", () => {
 
 test("heatmapThemes includes Antigravity CLI provider theme", () => {
   assert.equal(heatmapThemes.agy.title, "Antigravity CLI");
-  assert.equal(heatmapThemes.agy.titleCaption, "Gemini CLI successor");
+  assert.equal(heatmapThemes.agy.titleCaption, undefined);
   assert.equal(heatmapThemes.agy.colors.light[3], "#ef4444");
 });
 

@@ -136,13 +136,103 @@ test("mergePublishedUsagePayloads preserves hosted providers and applies canonic
 
   assert.deepEqual(
     merged.providers.map((provider) => provider.provider),
-    ["codex", "opencode", "droid", "gemini", "claude", "t3"],
+    ["codex", "opencode", "agy", "droid", "claude", "t3"],
   );
   assert.equal(merged.providers[0].daily[0]?.total, 10);
   assert.equal(merged.providers[1].daily[0]?.total, 6);
-  assert.equal(merged.providers[2].daily[0]?.total, 7);
-  assert.equal(merged.providers[3].daily[0]?.total, 5);
+  assert.equal(merged.providers[2].daily[0]?.total, 5);
+  assert.equal(merged.providers[3].daily[0]?.total, 7);
   assert.equal(merged.providers[4].daily[0]?.total, 12);
+});
+
+test("mergePublishedUsagePayloads folds Gemini CLI history into Antigravity CLI", () => {
+  const merged = mergePublishedUsagePayloads({
+    currentPayload: {
+      version: "2026-03-03",
+      start: "2026-06-12",
+      end: "2026-06-12",
+      providers: [
+        {
+          provider: "agy",
+          daily: [
+            {
+              date: "2026-06-12",
+              input: 20,
+              output: 5,
+              cache: { input: 0, output: 0 },
+              total: 25,
+              breakdown: [
+                {
+                  name: "gemini-3-flash-a",
+                  tokens: {
+                    input: 20,
+                    output: 5,
+                    cache: { input: 0, output: 0 },
+                    total: 25,
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+    hostedPayload: {
+      version: "2026-03-03",
+      start: "2026-04-20",
+      end: "2026-06-12",
+      updatedAt: "2026-06-12T00:00:00.000Z",
+      providers: [
+        {
+          provider: "gemini",
+          daily: [
+            {
+              date: "2026-04-20",
+              input: 80,
+              output: 20,
+              cache: { input: 0, output: 0 },
+              total: 100,
+              breakdown: [
+                {
+                  name: "gemini-2.5-pro",
+                  tokens: {
+                    input: 80,
+                    output: 20,
+                    cache: { input: 0, output: 0 },
+                    total: 100,
+                  },
+                },
+              ],
+            },
+          ],
+          insights: {
+            streaks: {
+              longest: 1,
+              current: 0,
+            },
+          },
+        },
+      ],
+    },
+    importedPayload: null,
+    opencodeDailyRecoveryPayload: null,
+    t3Summary: null,
+    updatedAt: new Date("2026-06-12T00:00:00.000Z"),
+  });
+
+  assert.deepEqual(
+    merged.providers.map((provider) => provider.provider),
+    ["agy"],
+  );
+  assert.deepEqual(
+    merged.providers[0]?.daily.map((row) => [row.date, row.total]),
+    [
+      ["2026-04-20", 100],
+      ["2026-06-12", 25],
+    ],
+  );
+  assert.equal(merged.providers[0]?.insights?.mostUsedModel?.name, "gemini-2.5-pro");
+  assert.equal(merged.providers[0]?.insights?.streaks.longest, 1);
 });
 
 test("mergePublishedUsagePayloads appends recovered OpenCode import into the opencode provider", () => {

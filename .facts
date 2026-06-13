@@ -4,11 +4,14 @@
 - label: the web token report recognizes Antigravity CLI as the agy provider when agy usage is present
   command: grep -q '"agy"' packages/web/lib/types.ts && grep -q 'Antigravity CLI' packages/web/lib/analytics.ts && grep -q '"agy"' packages/web/scripts/publish-usage.ts && grep -q 'agy:' packages/cli/src/graph.ts
   tags: [implemented]
-- label: the web token report presents Antigravity CLI as the current successor to legacy Gemini CLI
-  command: grep -Fq 'agy: "Antigravity CLI"' packages/web/lib/analytics.ts && grep -Fq 'gemini: "Gemini CLI (legacy)"' packages/web/lib/analytics.ts && grep -Fq 'Gemini CLI (legacy)' packages/cli/src/lib/interfaces.ts && grep -Fq 'provider labels treat Antigravity CLI as the Gemini CLI successor' packages/web/test/analytics.test.ts
+- label: the web token report presents Gemini CLI history as part of the Antigravity CLI provider row
+  command: grep -Fq 'agy: "Antigravity CLI"' packages/web/lib/analytics.ts && ! grep -R 'Gemini CLI successor' packages/cli/src packages/web/app packages/web/lib packages/web/scripts packages/web/test packages/cli/test
   tags: [implemented]
 - the CLI reads Antigravity CLI generation metadata from ~/.gemini/antigravity-cli/conversations and publishes agy token totals when usage blobs are present @implemented
-- the web report only shows the Antigravity CLI no-data state when the agy provider has no parsed usage rows @implemented
+- the web report only shows the Antigravity CLI no-data state when neither legacy Gemini CLI nor current agy rows are published @implemented
+- label: the published web report folds legacy Gemini CLI and current agy usage into one Antigravity CLI provider row instead of describing agy as a Gemini CLI successor
+  command: bunx tsx --test --test-name-pattern 'folds Gemini CLI history' packages/web/test/publish-usage.test.ts && grep -Fq 'foldGeminiIntoAntigravityProvider' packages/web/scripts/publish-usage.ts
+  tags: [implemented]
 
 ## design
 - label: the web report uses a flat reference-font background, white heatmap cells, and a conditional Antigravity no-data state

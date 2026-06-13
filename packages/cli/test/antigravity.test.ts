@@ -137,6 +137,20 @@ test("parseAntigravityGenerationMetadata reads protobuf token usage", () => {
   });
 });
 
+test("parseAntigravityGenerationMetadata ignores timestamp-less placeholders", () => {
+  const metadata = fieldMessage(1, [
+    fieldMessage(4, [
+      fieldVarint(2, 1),
+      fieldVarint(3, 0),
+      fieldVarint(5, 0),
+      fieldVarint(6, 24),
+    ]),
+    fieldString(19, "gemini-3-flash-agent"),
+  ]);
+
+  assert.equal(parseAntigravityGenerationMetadata(metadata), null);
+});
+
 test("loadAntigravityRows aggregates conversation databases", async (t) => {
   const workspace = createTempWorkspace("antigravity");
   const originalAntigravityHome = process.env.ANTIGRAVITY_HOME;

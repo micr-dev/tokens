@@ -508,7 +508,7 @@ test("buildAnalytics derives major vendor rows and period buckets for the models
   ]);
 });
 
-test("provider labels treat Antigravity CLI as the Gemini CLI successor", () => {
+test("provider labels expose Antigravity CLI without successor copy", () => {
   assert.equal(getProviderTitle("agy"), "Antigravity CLI");
   assert.equal(getProviderTitle("gemini"), "Gemini CLI (legacy)");
   assert.deepEqual(getProviderDetailTheme("agy"), {

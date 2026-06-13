@@ -512,9 +512,9 @@ function AntigravityNoDataCard() {
     <section className="provider-empty provider-card--agy">
       <h2 className="provider-empty__title">Antigravity CLI</h2>
       <p className="provider-empty__body">
-        No published Antigravity CLI usage yet. The report treats agy as the
-        current Gemini CLI successor, but token totals are only shown after agy
-        rows exist in the published data.
+        No published Antigravity CLI usage yet. Token totals are shown after
+        legacy Gemini CLI history or current agy rows exist in the published
+        data.
       </p>
     </section>
   );

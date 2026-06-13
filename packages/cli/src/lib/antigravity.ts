@@ -362,13 +362,14 @@ export function parseAntigravityGenerationMetadata(
   }
 
   const tokens = findUsageTokens(message);
+  const timestamp = findTimestamp(message);
 
-  if (!tokens) {
+  if (!tokens || !timestamp) {
     return null;
   }
 
   return {
-    timestamp: findTimestamp(message),
+    timestamp,
     modelName: getModelName(data),
     tokens,
   };

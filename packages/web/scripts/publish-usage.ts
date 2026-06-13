@@ -43,7 +43,6 @@ export const WEB_PROVIDER_ORDER = [
   "pi",
   "droid",
   "hermes",
-  "gemini",
   "claude",
   "cursor",
   "helios",
@@ -335,15 +334,46 @@ function sanitizePublishedProvider(
 
 function sanitizePublishedPayload(payload: PublishedUsagePayload) {
   const endDate = parseDateOnly(payload.end);
+  const sanitizedProviders = payload.providers.map((provider) =>
+    sanitizePublishedProvider(provider, endDate),
+  );
+  const continuityProviders = foldGeminiIntoAntigravityProvider(
+    sanitizedProviders,
+    endDate,
+  );
 
   return {
     ...payload,
-    providers: sortPublishedProviders(
-      payload.providers.map((provider) =>
-        sanitizePublishedProvider(provider, endDate),
-      ),
-    ),
+    providers: sortPublishedProviders(continuityProviders),
   };
+}
+
+function foldGeminiIntoAntigravityProvider(
+  providers: PublishedUsagePayload["providers"],
+  endDate: Date,
+) {
+  const continuitySources = providers.filter(
+    (provider) => provider.provider === "agy" || provider.provider === "gemini",
+  );
+
+  if (continuitySources.length === 0) {
+    return providers;
+  }
+
+  const antigravitySummary = toJsonUsageSummary(
+    mergeUsageSummaries(
+      "agy",
+      continuitySources.map(toUsageSummary),
+      endDate,
+    ),
+  );
+
+  return [
+    ...providers.filter(
+      (provider) => provider.provider !== "agy" && provider.provider !== "gemini",
+    ),
+    antigravitySummary,
+  ];
 }
 
 function renderPublishedSvg(payload: PublishedUsagePayload) {
