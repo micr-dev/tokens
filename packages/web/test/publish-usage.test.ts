@@ -7,6 +7,7 @@ import {
   buildBundledPublishedDataModule,
   buildPublishedBackupPaths,
   mergePublishedUsagePayloads,
+  normalizeCostAnalysisPayload,
   writePublishedBackupArtifacts,
 } from "../scripts/publish-usage";
 
@@ -231,7 +232,10 @@ test("mergePublishedUsagePayloads folds Gemini CLI history into Antigravity CLI"
       ["2026-06-12", 25],
     ],
   );
-  assert.equal(merged.providers[0]?.insights?.mostUsedModel?.name, "gemini-2.5-pro");
+  assert.equal(
+    merged.providers[0]?.insights?.mostUsedModel?.name,
+    "gemini-2.5-pro",
+  );
   assert.equal(merged.providers[0]?.insights?.streaks.longest, 1);
 });
 
@@ -648,7 +652,6 @@ test("writePublishedBackupArtifacts writes versioned json and svg snapshots", ()
   assert.equal(readFileSync(paths.svgPath, "utf8"), svg);
 });
 
-
 test("buildBundledPublishedDataModule emits a typed module with payload and svg", () => {
   const payload = mergePublishedUsagePayloads({
     currentPayload: {
@@ -678,10 +681,84 @@ test("buildBundledPublishedDataModule emits a typed module with payload and svg"
     updatedAt: new Date("2026-04-15T00:00:00.000Z"),
   });
 
-  const moduleSource = buildBundledPublishedDataModule(payload, "<svg>ok</svg>");
+  const moduleSource = buildBundledPublishedDataModule(
+    payload,
+    "<svg>ok</svg>",
+  );
 
   assert.match(moduleSource, /publishedUsagePayload/);
+  assert.match(moduleSource, /publishedCostPayload/);
   assert.match(moduleSource, /publishedSvgMarkup/);
   assert.match(moduleSource, /<svg>ok<\/svg>/);
   assert.match(moduleSource, /"provider": "codex"/);
+});
+
+test("normalizeCostAnalysisPayload maps ccusage-backed analysis into the published cost payload", () => {
+  const payload = normalizeCostAnalysisPayload({
+    generated_at: "2026-06-19T00:00:00Z",
+    source: "ccusage test",
+    date_range: {
+      start: "2026-06-01",
+      end: "2026-06-30",
+    },
+    grand_total_tokens: 125,
+    grand_total_cost_usd: 42.5,
+    cost_coverage_note: "coverage note",
+    providers: {
+      codex: {
+        label: "Codex",
+        active_days: 2,
+        date_range: {
+          first: "2026-06-01",
+          last: "2026-06-02",
+        },
+        totals: {
+          input_tokens: 100,
+          output_tokens: 25,
+          cache_read_tokens: 80,
+          total_tokens: 125,
+        },
+        total_cost_usd: 42.5,
+        monthly: [
+          {
+            month: "2026-06",
+            input_tokens: 100,
+            output_tokens: 25,
+            cache_read_tokens: 80,
+            total_tokens: 125,
+            active_days: 2,
+            cost_usd: 42.5,
+          },
+        ],
+      },
+    },
+    monthly_totals: [
+      {
+        month: "2026-06",
+        input_tokens: 100,
+        output_tokens: 25,
+        cache_read_tokens: 80,
+        total_tokens: 125,
+        active_days: 2,
+        cost_usd: 42.5,
+      },
+    ],
+    model_cost_summary: [
+      {
+        model: "gpt-5.4",
+        total_input: 100,
+        total_output: 25,
+        total_cache_read: 80,
+        total_tokens: 125,
+        months_active: 1,
+        cost_usd: 50,
+      },
+    ],
+  });
+
+  assert.equal(payload.harnessTotalCostUsd, 42.5);
+  assert.equal(payload.modelTotalCostUsd, 50);
+  assert.equal(payload.harnesses[0]?.id, "codex");
+  assert.equal(payload.harnesses[0]?.monthly[0]?.costUsd, 42.5);
+  assert.equal(payload.models[0]?.name, "gpt-5.4");
 });

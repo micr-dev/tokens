@@ -1,8 +1,11 @@
 import type {
   AnalyticsModelShare,
   AnalyticsSeriesPoint,
+  CostAnalytics,
+  CostEntityAnalytics,
   DetailsAnalytics,
   ModelsTimeScale,
+  PublishedCostPayload,
   ProviderAnalytics,
   ProviderId,
   PublishedUsagePayload,
@@ -146,6 +149,7 @@ const preferredVendorOrder: VendorCompanyId[] = [
   "xai",
   "nvidia",
 ];
+const modelCostFallbackColor = "#a3a3a3";
 
 interface FlattenedModelUsage {
   date: string;
@@ -244,6 +248,10 @@ function formatFullDate(date: Date) {
   return `${formatShortMonth(date)} ${date.getUTCDate()}, ${date.getUTCFullYear()}`;
 }
 
+function compareMonthKeys(left: string, right: string) {
+  return left.localeCompare(right);
+}
+
 function sortSeries<T extends AnalyticsSeriesPoint>(series: T[]) {
   return [...series].sort((left, right) =>
     left.label.localeCompare(right.label),
@@ -305,10 +313,7 @@ function canonicalizeVendorModelName(modelName: string) {
     /^deepseek-chat-v(\d(?:\.\d+)?)(?:-.+)?$/,
     "deepseek-v$1",
   );
-  canonical = canonical.replace(
-    /^deepseek-r1(?:-.+)?$/,
-    "deepseek-r1",
-  );
+  canonical = canonical.replace(/^deepseek-r1(?:-.+)?$/, "deepseek-r1");
   canonical = canonical.replace(
     /^deepseek-v-?(\d(?:\.\d+)?(?:-exp)?)(?:-(?:thinking|reasoning))?$/,
     "deepseek-v$1",
@@ -333,10 +338,7 @@ function canonicalizeVendorModelName(modelName: string) {
     "gpt-$1",
   );
 
-  canonical = canonical.replace(
-    /^minimax-(m[\d.]+)$/,
-    "minimax-$1",
-  );
+  canonical = canonical.replace(/^minimax-(m[\d.]+)$/, "minimax-$1");
 
   if (canonical === "nemotron-3-super") {
     return canonical;
@@ -545,6 +547,411 @@ function getVendorModelColor(
   const lightness = Math.round(24 + position * 50);
 
   return `hsl(${hue} ${saturation}% ${lightness}%)`;
+}
+
+function getCostPerMillionTokens(costUsd: number | null, totalTokens: number) {
+  if (costUsd === null || totalTokens <= 0) {
+    return null;
+  }
+
+  return (costUsd / totalTokens) * 1_000_000;
+}
+
+function getLatestCostMonth(
+  monthlyTotals: PublishedCostPayload["monthlyTotals"],
+) {
+  const latest =
+    [...monthlyTotals]
+      .filter((row) => row.costUsd !== null)
+      .sort((left, right) => right.month.localeCompare(left.month))[0] ?? null;
+
+  return latest
+    ? {
+        month: latest.month,
+        costUsd: latest.costUsd ?? 0,
+      }
+    : null;
+}
+
+function getMonthKeys(costPayload: PublishedCostPayload) {
+  return [
+    ...new Set([
+      ...costPayload.monthlyTotals.map((row) => row.month),
+      ...costPayload.harnesses.flatMap((harness) =>
+        harness.monthly.map((row) => row.month),
+      ),
+    ]),
+  ].sort(compareMonthKeys);
+}
+
+function buildHarnessCostAnalytics(
+  costPayload: PublishedCostPayload,
+): CostEntityAnalytics[] {
+  return costPayload.harnesses.map((harness) => {
+    const providerId = harness.id as ProviderId;
+    const theme =
+      providerId in providerDetailThemes
+        ? providerDetailThemes[providerId]
+        : { accent: modelCostFallbackColor };
+
+    return {
+      id: harness.id,
+      label: harness.label,
+      groupLabel: "Harness",
+      color: theme.accent,
+      totalCostUsd: harness.totalCostUsd,
+      totalTokens: harness.totalTokens,
+      costPerMillionTokens: getCostPerMillionTokens(
+        harness.totalCostUsd,
+        harness.totalTokens,
+      ),
+      hasCostData: harness.totalCostUsd !== null,
+      monthly: harness.monthly.map((row) => ({
+        month: row.month,
+        costUsd: row.costUsd ?? 0,
+        totalTokens: row.totalTokens,
+      })),
+    };
+  });
+}
+
+function collectModelMonthlyTokens(payload: PublishedUsagePayload) {
+  const modelMonthlyTokens = new Map<string, Map<string, number>>();
+
+  for (const provider of payload.providers) {
+    for (const day of provider.daily) {
+      const month = day.date.slice(0, 7);
+
+      for (const breakdown of day.breakdown) {
+        const model = canonicalizeVendorModelName(breakdown.name);
+        const monthly =
+          modelMonthlyTokens.get(model) ?? new Map<string, number>();
+
+        monthly.set(month, (monthly.get(month) ?? 0) + breakdown.tokens.total);
+        modelMonthlyTokens.set(model, monthly);
+      }
+    }
+  }
+
+  return modelMonthlyTokens;
+}
+
+function collectProviderModelMonthlyTokens(payload: PublishedUsagePayload) {
+  const providerModelMonthlyTokens = new Map<
+    string,
+    Map<string, Map<string, number>>
+  >();
+
+  for (const provider of payload.providers) {
+    const monthly =
+      providerModelMonthlyTokens.get(provider.provider) ??
+      new Map<string, Map<string, number>>();
+
+    for (const day of provider.daily) {
+      const month = day.date.slice(0, 7);
+      const modelTokens = monthly.get(month) ?? new Map<string, number>();
+
+      for (const breakdown of day.breakdown) {
+        const model = canonicalizeVendorModelName(breakdown.name);
+
+        modelTokens.set(
+          model,
+          (modelTokens.get(model) ?? 0) + breakdown.tokens.total,
+        );
+      }
+
+      monthly.set(month, modelTokens);
+    }
+
+    providerModelMonthlyTokens.set(provider.provider, monthly);
+  }
+
+  return providerModelMonthlyTokens;
+}
+
+function buildHarnessAllocatedModelCosts({
+  costPayload,
+  usagePayload,
+}: {
+  costPayload: PublishedCostPayload;
+  usagePayload: PublishedUsagePayload;
+}) {
+  const providerModelMonthlyTokens = collectProviderModelMonthlyTokens(
+    usagePayload,
+  );
+  const liveCcusageHarnesses = costPayload.sourceCoverage
+    ? new Set(
+        costPayload.sourceCoverage
+          .filter((coverage) => coverage.source === "live-ccusage")
+          .map((coverage) => coverage.harness),
+      )
+    : null;
+  const modelCosts = new Map<
+    string,
+    {
+      totalCostUsd: number;
+      totalTokens: number;
+      monthly: Map<string, { costUsd: number; totalTokens: number }>;
+    }
+  >();
+
+  for (const harness of costPayload.harnesses) {
+    if (liveCcusageHarnesses && !liveCcusageHarnesses.has(harness.id)) {
+      continue;
+    }
+
+    if (harness.totalCostUsd === null) {
+      continue;
+    }
+
+    const monthlyModelTokens = providerModelMonthlyTokens.get(harness.id);
+
+    if (!monthlyModelTokens) {
+      continue;
+    }
+
+    for (const month of harness.monthly) {
+      const costUsd = month.costUsd ?? 0;
+      const modelTokens = monthlyModelTokens.get(month.month);
+
+      if (!modelTokens || costUsd <= 0) {
+        continue;
+      }
+
+      const monthTokenTotal = [...modelTokens.values()].reduce(
+        (sum, value) => sum + value,
+        0,
+      );
+
+      if (monthTokenTotal <= 0) {
+        continue;
+      }
+
+      for (const [model, totalTokens] of modelTokens) {
+        const allocatedCostUsd = (totalTokens / monthTokenTotal) * costUsd;
+        const current =
+          modelCosts.get(model) ??
+          {
+            totalCostUsd: 0,
+            totalTokens: 0,
+            monthly: new Map<
+              string,
+              { costUsd: number; totalTokens: number }
+            >(),
+          };
+        const currentMonth =
+          current.monthly.get(month.month) ?? { costUsd: 0, totalTokens: 0 };
+
+        current.totalCostUsd += allocatedCostUsd;
+        current.totalTokens += totalTokens;
+        currentMonth.costUsd += allocatedCostUsd;
+        currentMonth.totalTokens += totalTokens;
+        current.monthly.set(month.month, currentMonth);
+        modelCosts.set(model, current);
+      }
+    }
+  }
+
+  return modelCosts;
+}
+
+function buildModelCostMonthlyRows({
+  model,
+  costPayload,
+  modelMonthlyTokens,
+}: {
+  model: PublishedCostPayload["models"][number];
+  costPayload: PublishedCostPayload;
+  modelMonthlyTokens: Map<string, Map<string, number>>;
+}) {
+  const canonicalName = canonicalizeVendorModelName(model.name);
+  const monthlyTokens = modelMonthlyTokens.get(canonicalName);
+
+  if (!monthlyTokens) {
+    return [
+      {
+        month: costPayload.dateRange.end.slice(0, 7),
+        costUsd: model.totalCostUsd,
+        totalTokens: model.totalTokens,
+      },
+    ];
+  }
+
+  const matchedTokenTotal = [...monthlyTokens.values()].reduce(
+    (sum, value) => sum + value,
+    0,
+  );
+
+  if (matchedTokenTotal <= 0) {
+    return [
+      {
+        month: costPayload.dateRange.end.slice(0, 7),
+        costUsd: model.totalCostUsd,
+        totalTokens: model.totalTokens,
+      },
+    ];
+  }
+
+  return [...monthlyTokens.entries()]
+    .sort(([left], [right]) => compareMonthKeys(left, right))
+    .map(([month, totalTokens]) => ({
+      month,
+      costUsd: (totalTokens / matchedTokenTotal) * model.totalCostUsd,
+      totalTokens,
+    }));
+}
+
+function buildModelCostAnalytics({
+  costPayload,
+  usagePayload,
+}: {
+  costPayload: PublishedCostPayload;
+  usagePayload: PublishedUsagePayload;
+}): CostEntityAnalytics[] {
+  const vendorIndexes = new Map<VendorCompanyId, number>();
+  const modelMonthlyTokens = collectModelMonthlyTokens(usagePayload);
+  const harnessAllocatedModelCosts = buildHarnessAllocatedModelCosts({
+    costPayload,
+    usagePayload,
+  });
+  const modelRows = new Map<string, CostEntityAnalytics>();
+
+  for (const model of costPayload.models) {
+    const canonicalName = canonicalizeVendorModelName(model.name);
+    const vendor = classifyVendorCompany(canonicalName);
+    const vendorIndex = vendor ? (vendorIndexes.get(vendor) ?? 0) : 0;
+    const color = vendor
+      ? getVendorModelColor(vendor, vendorIndex, costPayload.models.length)
+      : modelCostFallbackColor;
+    const allocated = harnessAllocatedModelCosts.get(canonicalName);
+    const shouldUseAllocatedCost = Boolean(
+      allocated && model.totalCostUsd <= 0 && allocated.totalCostUsd > 0,
+    );
+    const totalCostUsd = shouldUseAllocatedCost && allocated
+      ? allocated.totalCostUsd
+      : model.totalCostUsd;
+    const totalTokens = shouldUseAllocatedCost && allocated
+      ? allocated.totalTokens
+      : model.totalTokens;
+    const monthly = shouldUseAllocatedCost && allocated
+      ? [...allocated.monthly.entries()]
+          .sort(([left], [right]) => compareMonthKeys(left, right))
+          .map(([month, row]) => ({
+            month,
+            costUsd: row.costUsd,
+            totalTokens: row.totalTokens,
+          }))
+      : buildModelCostMonthlyRows({
+          model,
+          costPayload,
+          modelMonthlyTokens,
+        });
+
+    if (vendor) {
+      vendorIndexes.set(vendor, vendorIndex + 1);
+    }
+
+    const existing = modelRows.get(canonicalName);
+
+    if (existing) {
+      const monthlyByMonth = new Map(
+        existing.monthly.map((row) => [
+          row.month,
+          {
+            ...row,
+          },
+        ]),
+      );
+
+      for (const row of monthly) {
+        const current =
+          monthlyByMonth.get(row.month) ?? {
+            month: row.month,
+            costUsd: 0,
+            totalTokens: 0,
+          };
+
+        current.costUsd += row.costUsd;
+        current.totalTokens += row.totalTokens;
+        monthlyByMonth.set(row.month, current);
+      }
+
+      const nextTotalCostUsd = (existing.totalCostUsd ?? 0) + totalCostUsd;
+      const nextTotalTokens = existing.totalTokens + totalTokens;
+
+      modelRows.set(canonicalName, {
+        ...existing,
+        totalCostUsd: nextTotalCostUsd,
+        totalTokens: nextTotalTokens,
+        costPerMillionTokens: getCostPerMillionTokens(
+          nextTotalCostUsd,
+          nextTotalTokens,
+        ),
+        monthly: [...monthlyByMonth.values()].sort((left, right) =>
+          compareMonthKeys(left.month, right.month),
+        ),
+      });
+
+      continue;
+    }
+
+    modelRows.set(canonicalName, {
+      id: `model:${canonicalName}`,
+      label: canonicalName,
+      groupLabel: vendor ? vendorTitles[vendor] : "Unknown",
+      color,
+      totalCostUsd,
+      totalTokens,
+      costPerMillionTokens: getCostPerMillionTokens(
+        totalCostUsd,
+        totalTokens,
+      ),
+      hasCostData: true,
+      monthly,
+    });
+  }
+
+  return [...modelRows.values()];
+}
+
+export function buildCostAnalytics({
+  costPayload,
+  usagePayload,
+}: {
+  costPayload: PublishedCostPayload | null;
+  usagePayload: PublishedUsagePayload;
+}): CostAnalytics | null {
+  if (!costPayload) {
+    return null;
+  }
+
+  const harnesses = buildHarnessCostAnalytics(costPayload);
+  const models = buildModelCostAnalytics({ costPayload, usagePayload });
+  const topHarness =
+    [...harnesses]
+      .filter((harness) => harness.totalCostUsd !== null)
+      .sort(
+        (left, right) => (right.totalCostUsd ?? 0) - (left.totalCostUsd ?? 0),
+      )[0] ?? null;
+
+  const modelTotalCostUsd = models.reduce(
+    (sum, model) => sum + (model.totalCostUsd ?? 0),
+    0,
+  );
+
+  return {
+    generatedAt: costPayload.generatedAt,
+    source: costPayload.source,
+    coverageNote: costPayload.coverageNote,
+    dateRange: costPayload.dateRange,
+    harnessTotalCostUsd: costPayload.harnessTotalCostUsd,
+    modelTotalCostUsd,
+    latestMonth: getLatestCostMonth(costPayload.monthlyTotals),
+    topHarness,
+    harnesses,
+    models,
+    monthKeys: getMonthKeys(costPayload),
+  };
 }
 
 function getLatestUsageDate(payload: PublishedUsagePayload) {
@@ -996,9 +1403,11 @@ export function buildProviderAnalytics(
 
 export function buildAnalytics(
   payload: PublishedUsagePayload,
+  costPayload: PublishedCostPayload | null = null,
 ): DetailsAnalytics {
   const providers = payload.providers.map(buildProviderAnalytics);
   const vendors = buildVendorAnalytics(payload);
+  const cost = buildCostAnalytics({ costPayload, usagePayload: payload });
   const providerTotal = providers.reduce(
     (sum, provider) => sum + provider.total,
     0,
@@ -1013,5 +1422,5 @@ export function buildAnalytics(
     vendor.share = vendorTotal > 0 ? vendor.total / vendorTotal : 0;
   }
 
-  return { providers, vendors };
+  return { providers, vendors, cost };
 }

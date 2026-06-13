@@ -3,6 +3,7 @@
 import {
   memo,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type CSSProperties,
@@ -16,6 +17,8 @@ import {
   getProviderTitle,
 } from "../lib/analytics";
 import type {
+  CostAnalytics,
+  CostEntityAnalytics,
   DetailsAnalytics,
   ModelsTimeScale,
   ProviderAnalytics,
@@ -56,16 +59,41 @@ interface DetailsTooltipState {
 }
 
 type TooltipState = HeatmapTooltipState | DetailsTooltipState;
-type ActiveView = "heatmap" | "details" | "models";
+type ActiveView = "heatmap" | "details" | "models" | "cost";
+type CostGroupMode = "harness" | "model";
+type CostRankMode = "cost" | "tokens" | "rate";
+type CostVisibleLimit = 5 | 10 | 20 | "all";
 
 const exactNumberFormatter = new Intl.NumberFormat("en-US");
+const currencyFormatter = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  maximumFractionDigits: 0,
+});
+const preciseCurrencyFormatter = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  maximumFractionDigits: 2,
+});
 const modelScaleOrder: ModelsTimeScale[] = ["year", "month", "week", "day"];
+const costGroupModes: CostGroupMode[] = ["harness", "model"];
+const costRankModes: CostRankMode[] = ["cost", "tokens", "rate"];
+const costVisibleLimits: CostVisibleLimit[] = [5, 10, 20, "all"];
 const defaultCursorAccent = "#22c55e";
 const modelScaleLabels: Record<ModelsTimeScale, string> = {
   year: "Year",
   month: "Month",
   week: "Week",
   day: "Day",
+};
+const costGroupLabels: Record<CostGroupMode, string> = {
+  harness: "Harness",
+  model: "Provider / Model",
+};
+const costRankLabels: Record<CostRankMode, string> = {
+  cost: "Cost",
+  tokens: "Tokens",
+  rate: "Cost / 1M",
 };
 
 function readTooltipState(target: SVGRectElement, x: number, y: number) {
@@ -152,6 +180,34 @@ function formatPeakMonthLabel(value: string) {
 
 function formatExactNumber(value: number) {
   return exactNumberFormatter.format(value);
+}
+
+function formatCurrency(value: number | null) {
+  if (value === null) {
+    return "No cost data";
+  }
+
+  if (Math.abs(value) < 100) {
+    return preciseCurrencyFormatter.format(value);
+  }
+
+  return currencyFormatter.format(value);
+}
+
+function formatCostRate(value: number | null) {
+  if (value === null) {
+    return "No cost data";
+  }
+
+  return `${preciseCurrencyFormatter.format(value)} / 1M`;
+}
+
+function formatGeneratedAt(value: string) {
+  return new Date(value).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 }
 
 function createDetailsTooltip(label: string, value: string, note?: string) {
@@ -774,6 +830,393 @@ function ModelsView({
   );
 }
 
+function compareCostRows(
+  rankMode: CostRankMode,
+  left: CostEntityAnalytics,
+  right: CostEntityAnalytics,
+) {
+  if (rankMode === "tokens") {
+    return (
+      right.totalTokens - left.totalTokens ||
+      left.label.localeCompare(right.label)
+    );
+  }
+
+  if (rankMode === "rate") {
+    return (
+      (right.costPerMillionTokens ?? -1) - (left.costPerMillionTokens ?? -1) ||
+      left.label.localeCompare(right.label)
+    );
+  }
+
+  return (
+    (right.totalCostUsd ?? -1) - (left.totalCostUsd ?? -1) ||
+    left.label.localeCompare(right.label)
+  );
+}
+
+function filterCostRows({
+  rows,
+  rankMode,
+  showZeroCost,
+}: {
+  rows: CostEntityAnalytics[];
+  rankMode: CostRankMode;
+  showZeroCost: boolean;
+}) {
+  return rows
+    .filter((row) => {
+      if (row.totalCostUsd === null) {
+        return showZeroCost && rankMode !== "cost";
+      }
+
+      if (row.totalCostUsd <= 0) {
+        return showZeroCost;
+      }
+
+      return true;
+    })
+    .sort((left, right) => compareCostRows(rankMode, left, right));
+}
+
+function getVisibleCostRows({
+  rows,
+  visibleLimit,
+  hiddenIds,
+}: {
+  rows: CostEntityAnalytics[];
+  visibleLimit: CostVisibleLimit;
+  hiddenIds: Set<string>;
+}) {
+  const limitedRows =
+    visibleLimit === "all" ? rows : rows.slice(0, visibleLimit);
+
+  return limitedRows.filter((row) => !hiddenIds.has(row.id));
+}
+
+function buildCostChartBuckets({
+  monthKeys,
+  rows,
+}: {
+  monthKeys: string[];
+  rows: CostEntityAnalytics[];
+}) {
+  return monthKeys.map((month) => {
+    const segments = rows
+      .map((row) => {
+        const monthly = row.monthly.find((entry) => entry.month === month);
+        const value = monthly?.costUsd ?? 0;
+
+        if (value <= 0) {
+          return null;
+        }
+
+        return {
+          id: row.id,
+          label: row.label,
+          value,
+          color: row.color,
+        };
+      })
+      .filter((segment) => segment !== null);
+
+    return {
+      month,
+      label: formatMonthLabel(month),
+      totalCostUsd: segments.reduce((sum, segment) => sum + segment.value, 0),
+      segments,
+    };
+  });
+}
+
+function CostSummary({ cost }: { cost: CostAnalytics }) {
+  return (
+    <div className="cost-summary">
+      <div>
+        <div className="cost-summary__label">Harness spend</div>
+        <div className="cost-summary__value">
+          {formatCurrency(cost.harnessTotalCostUsd)}
+        </div>
+      </div>
+      <div>
+        <div className="cost-summary__label">Latest month</div>
+        <div className="cost-summary__value">
+          {cost.latestMonth
+            ? formatCurrency(cost.latestMonth.costUsd)
+            : "No cost data"}
+        </div>
+        <div className="cost-summary__subtle">
+          {cost.latestMonth ? formatMonthLabel(cost.latestMonth.month) : ""}
+        </div>
+      </div>
+      <div>
+        <div className="cost-summary__label">Top harness</div>
+        <div className="cost-summary__value">
+          {cost.topHarness?.label ?? "No cost data"}
+        </div>
+        <div className="cost-summary__subtle">
+          {cost.topHarness ? formatCurrency(cost.topHarness.totalCostUsd) : ""}
+        </div>
+      </div>
+      <div>
+        <div className="cost-summary__label">Model subtotal</div>
+        <div className="cost-summary__value">
+          {formatCurrency(cost.modelTotalCostUsd)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CostStackedChart({
+  monthKeys,
+  rows,
+}: {
+  monthKeys: string[];
+  rows: CostEntityAnalytics[];
+}) {
+  const buckets = buildCostChartBuckets({ monthKeys, rows });
+  const maxTotal = Math.max(...buckets.map((bucket) => bucket.totalCostUsd), 0);
+
+  return (
+    <div className="cost-chart">
+      <div
+        className="cost-chart__bars"
+        style={
+          {
+            "--bucket-count": Math.max(buckets.length, 1),
+          } as CSSProperties
+        }
+      >
+        {buckets.map((bucket) => {
+          const stackHeight =
+            maxTotal > 0 ? (bucket.totalCostUsd / maxTotal) * 100 : 0;
+          const tooltipNote = bucket.segments
+            .map(
+              (segment) => `${segment.label}: ${formatCurrency(segment.value)}`,
+            )
+            .join("\n");
+
+          return (
+            <div
+              key={bucket.month}
+              className="cost-chart__bar"
+              data-details-tooltip={createDetailsTooltip(
+                bucket.label,
+                formatCurrency(bucket.totalCostUsd),
+                tooltipNote,
+              )}
+            >
+              <div className="cost-chart__track">
+                <div
+                  className="cost-chart__stack"
+                  style={{ height: `${stackHeight}%` }}
+                >
+                  {bucket.segments.map((segment) => (
+                    <span
+                      key={`${bucket.month}-${segment.id}`}
+                      className="cost-chart__segment"
+                      style={{
+                        height: `${
+                          bucket.totalCostUsd > 0
+                            ? (segment.value / bucket.totalCostUsd) * 100
+                            : 0
+                        }%`,
+                        background: segment.color,
+                      }}
+                      data-details-tooltip={createDetailsTooltip(
+                        segment.label,
+                        formatCurrency(segment.value),
+                        bucket.label,
+                      )}
+                    />
+                  ))}
+                </div>
+              </div>
+              <div className="cost-chart__label">{bucket.label}</div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function CostRankedRows({
+  rows,
+  hiddenIds,
+  onToggleHidden,
+}: {
+  rows: CostEntityAnalytics[];
+  hiddenIds: Set<string>;
+  onToggleHidden: (rowId: string) => void;
+}) {
+  return (
+    <div className="cost-drivers">
+      {rows.map((row) => {
+        const isHidden = hiddenIds.has(row.id);
+
+        return (
+          <button
+            key={row.id}
+            type="button"
+            className={
+              isHidden ? "cost-visible-toggle is-hidden" : "cost-visible-toggle"
+            }
+            onClick={() => onToggleHidden(row.id)}
+            data-details-tooltip={createDetailsTooltip(
+              row.label,
+              formatCurrency(row.totalCostUsd),
+              `${row.groupLabel}\n${formatExactNumber(
+                row.totalTokens,
+              )} tokens\n${formatCostRate(row.costPerMillionTokens)}`,
+            )}
+          >
+            <span
+              className="cost-visible-toggle__swatch"
+              style={{ background: row.color }}
+            />
+            <span className="cost-visible-toggle__main">
+              <span className="cost-visible-toggle__label">{row.label}</span>
+              <span className="cost-visible-toggle__meta">
+                {row.groupLabel}
+              </span>
+            </span>
+            <span className="cost-visible-toggle__value">
+              {formatCurrency(row.totalCostUsd)}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function CostView({ cost }: { cost: CostAnalytics }) {
+  const [groupMode, setGroupMode] = useState<CostGroupMode>("harness");
+  const [rankMode, setRankMode] = useState<CostRankMode>("cost");
+  const [visibleLimit, setVisibleLimit] = useState<CostVisibleLimit>("all");
+  const [showZeroCost, setShowZeroCost] = useState(false);
+  const [hiddenIds, setHiddenIds] = useState<Set<string>>(() => new Set());
+  const sourceRows = groupMode === "harness" ? cost.harnesses : cost.models;
+  const rankedRows = useMemo(
+    () => filterCostRows({ rows: sourceRows, rankMode, showZeroCost }),
+    [rankMode, showZeroCost, sourceRows],
+  );
+  const visibleRows = useMemo(
+    () => getVisibleCostRows({ rows: rankedRows, visibleLimit, hiddenIds }),
+    [hiddenIds, rankedRows, visibleLimit],
+  );
+
+  return (
+    <section className="cost-view">
+      <CostSummary cost={cost} />
+
+      <div className="cost-controls">
+        <div className="cost-controls__group">
+          <div className="view-toggle" role="tablist" aria-label="Cost group">
+            {costGroupModes.map((option) => (
+              <button
+                key={option}
+                type="button"
+                className={
+                  groupMode === option
+                    ? "view-toggle__button is-active"
+                    : "view-toggle__button"
+                }
+                onClick={() => setGroupMode(option)}
+              >
+                {costGroupLabels[option]}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="cost-controls__group">
+          <div className="view-toggle" role="tablist" aria-label="Cost ranking">
+            {costRankModes.map((option) => (
+              <button
+                key={option}
+                type="button"
+                className={
+                  rankMode === option
+                    ? "view-toggle__button is-active"
+                    : "view-toggle__button"
+                }
+                onClick={() => setRankMode(option)}
+              >
+                {costRankLabels[option]}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="cost-controls__group">
+          <div
+            className="view-toggle"
+            role="tablist"
+            aria-label="Visible costs"
+          >
+            {costVisibleLimits.map((option) => (
+              <button
+                key={option}
+                type="button"
+                className={
+                  visibleLimit === option
+                    ? "view-toggle__button is-active"
+                    : "view-toggle__button"
+                }
+                onClick={() => setVisibleLimit(option)}
+              >
+                {option === "all" ? "All" : `Top ${option}`}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="cost-controls__group">
+          <label className="cost-checkbox">
+            <input
+              type="checkbox"
+              checked={showZeroCost}
+              onChange={(event) => setShowZeroCost(event.currentTarget.checked)}
+            />
+            <span>Show zero-cost</span>
+          </label>
+        </div>
+      </div>
+
+      <div className="cost-layout">
+        <CostStackedChart monthKeys={cost.monthKeys} rows={visibleRows} />
+        <aside className="cost-panel">
+          <div className="cost-panel__header">
+            <div className="cost-panel__title">Cost drivers</div>
+            <div className="cost-panel__subtle">
+              Updated {formatGeneratedAt(cost.generatedAt)}
+            </div>
+          </div>
+          <CostRankedRows
+            rows={rankedRows}
+            hiddenIds={hiddenIds}
+            onToggleHidden={(rowId) =>
+              setHiddenIds((current) => {
+                const next = new Set(current);
+
+                if (next.has(rowId)) {
+                  next.delete(rowId);
+                } else {
+                  next.add(rowId);
+                }
+
+                return next;
+              })
+            }
+          />
+        </aside>
+      </div>
+
+      <p className="cost-note">{cost.coverageNote}</p>
+    </section>
+  );
+}
+
 function CursorTooltipContent({ tooltip }: { tooltip: TooltipState }) {
   if (tooltip.kind === "heatmap") {
     return (
@@ -1027,6 +1470,19 @@ export function SvgUsage({ svgMarkup, analytics }: SvgUsageProps) {
               Models
             </button>
           ) : null}
+          {analytics?.cost ? (
+            <button
+              type="button"
+              className={
+                activeView === "cost"
+                  ? "view-toggle__button is-active"
+                  : "view-toggle__button"
+              }
+              onClick={() => setActiveView("cost")}
+            >
+              Cost
+            </button>
+          ) : null}
           {analytics ? (
             <button
               type="button"
@@ -1052,17 +1508,15 @@ export function SvgUsage({ svgMarkup, analytics }: SvgUsageProps) {
           svgMarkup={svgMarkup}
         />
       ) : activeView === "details" ? (
-        <main
-          ref={containerRef}
-          className="page-shell page-shell--details"
-        >
+        <main ref={containerRef} className="page-shell page-shell--details">
           <LegacyProviderCards providers={analytics.providers} />
         </main>
+      ) : activeView === "cost" && analytics.cost ? (
+        <main ref={containerRef} className="page-shell page-shell--cost">
+          <CostView cost={analytics.cost} />
+        </main>
       ) : (
-        <main
-          ref={containerRef}
-          className="page-shell page-shell--models"
-        >
+        <main ref={containerRef} className="page-shell page-shell--models">
           <ModelsView
             vendors={analytics.vendors}
             scale={modelsScale}

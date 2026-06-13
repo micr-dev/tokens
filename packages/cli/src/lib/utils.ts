@@ -649,8 +649,8 @@ export function getRecentWindowStart(endDate: Date, days = 30) {
 export function normalizeModelName(modelName: string) {
   return modelName
     .trim()
-    .replace(/^custom:/i, "")
-    .replace(/-\[cliproxy\]-\d+$/i, "")
+    .replace(/^custom:/, "")
+    .replace(/-\[CLIProxy\](?:-\d+)?$/, "")
     .replace(/-\d{8}$/, "");
 }
 

@@ -52,7 +52,29 @@ interface OpenCodeLegacySource {
   files: string[];
 }
 
-type OpenCodeSource = OpenCodeDatabaseSource | OpenCodeLegacySource;
+interface OpenCodeSlateSource {
+  kind: "slate";
+  files: string[];
+}
+
+type OpenCodeSource =
+  | OpenCodeDatabaseSource
+  | OpenCodeLegacySource
+  | OpenCodeSlateSource;
+
+interface OpenCodeSlateUsage {
+  promptTokens?: number;
+  completionTokens?: number;
+  totalTokens?: number;
+}
+
+interface OpenCodeSlateMessage {
+  id: string;
+  role?: string;
+  model?: string;
+  timestamp?: number;
+  usage?: OpenCodeSlateUsage;
+}
 
 function sumOpenCodeTokens(tokens?: OpenCodeTokens): DailyTokenTotals {
   const cacheInput = tokens?.cache?.read ?? 0;
@@ -91,6 +113,36 @@ async function getOpenCodeSource(): Promise<OpenCodeSource> {
   const messagesDir = join(baseDir, "storage", "message");
 
   return { kind: "legacy", files: await listFilesRecursive(messagesDir, ".json") };
+}
+
+async function getOpenCodeSources(): Promise<OpenCodeSource[]> {
+  const baseDir = getOpenCodeBaseDir();
+  const sources: OpenCodeSource[] = [];
+  const databasePath = join(baseDir, "opencode.db");
+
+  if (existsSync(databasePath)) {
+    sources.push({ kind: "database", path: databasePath });
+  }
+
+  const messagesDir = join(baseDir, "storage", "message");
+  const legacyFiles = await listFilesRecursive(messagesDir, ".json");
+
+  if (legacyFiles.length > 0) {
+    sources.push({ kind: "legacy", files: legacyFiles });
+  }
+
+  const slateMessagesDir = join(resolve(baseDir, ".."), "slate", "storage", "message");
+  const slateFiles = await listFilesRecursive(slateMessagesDir, ".json");
+
+  if (slateFiles.length > 0) {
+    sources.push({ kind: "slate", files: slateFiles });
+  }
+
+  if (sources.length === 0) {
+    return [{ kind: "legacy", files: [] }];
+  }
+
+  return sources;
 }
 
 async function loadSqliteModule() {
@@ -260,35 +312,115 @@ function addOpenCodeMessage(
   }
 }
 
+function sumSlateTokens(usage?: OpenCodeSlateUsage): DailyTokenTotals {
+  const input = Math.max(0, Math.round(usage?.promptTokens ?? 0));
+  const candidateOutput = Math.max(0, Math.round(usage?.completionTokens ?? 0));
+  const recordedTotal = Math.max(0, Math.round(usage?.totalTokens ?? 0));
+  const total = Math.max(recordedTotal, input + candidateOutput);
+
+  return {
+    input,
+    output: Math.max(total - input, 0),
+    cache: { input: 0, output: 0 },
+    total,
+  };
+}
+
+function addSlateMessage(
+  message: OpenCodeSlateMessage,
+  start: Date,
+  end: Date,
+  recentStart: Date,
+  totals: DailyTotalsByDate,
+  modelTotals: Map<string, ModelTokenTotals>,
+  recentModelTotals: Map<string, ModelTokenTotals>,
+  dedupe: Set<string>,
+) {
+  if (message.role !== "assistant" || !message.id) {
+    return;
+  }
+
+  if (dedupe.has(message.id)) {
+    return;
+  }
+
+  dedupe.add(message.id);
+
+  const tokenTotals = sumSlateTokens(message.usage);
+
+  if (tokenTotals.total <= 0) {
+    return;
+  }
+
+  if (typeof message.timestamp !== "number" || !Number.isFinite(message.timestamp)) {
+    return;
+  }
+
+  const date = new Date(message.timestamp);
+
+  if (date < start || date > end) {
+    return;
+  }
+
+  const modelName = normalizeModelName(message.model ?? "unknown");
+
+  addDailyTokenTotals(totals, date, tokenTotals, modelName);
+  addModelTokenTotals(modelTotals, modelName, tokenTotals);
+
+  if (date >= recentStart) {
+    addModelTokenTotals(recentModelTotals, modelName, tokenTotals);
+  }
+}
+
 export async function loadOpenCodeRows(
   start: Date,
   end: Date,
 ): Promise<UsageSummary> {
-  const source = await getOpenCodeSource();
+  const sources = await getOpenCodeSources();
   const totals: DailyTotalsByDate = new Map();
   const dedupe = new Set<string>();
   const recentStart = getRecentWindowStart(end, 30);
   const modelTotals = new Map<string, ModelTokenTotals>();
   const recentModelTotals = new Map<string, ModelTokenTotals>();
 
-  if (source.kind === "database") {
-    await loadOpenCodeDatabaseMessages(source.path, (message) => {
-      addOpenCodeMessage(
-        message,
-        start,
-        end,
-        recentStart,
-        totals,
-        modelTotals,
-        recentModelTotals,
-        dedupe,
-      );
-    });
-  } else {
-    for (const file of source.files) {
-      const message = await parseOpenCodeFile(file);
+  for (const source of sources) {
+    if (source.kind === "database") {
+      await loadOpenCodeDatabaseMessages(source.path, (message) => {
+        addOpenCodeMessage(
+          message,
+          start,
+          end,
+          recentStart,
+          totals,
+          modelTotals,
+          recentModelTotals,
+          dedupe,
+        );
+      });
 
-      addOpenCodeMessage(
+      continue;
+    }
+
+    for (const file of source.files) {
+      if (source.kind === "legacy") {
+        const message = await parseOpenCodeFile(file);
+
+        addOpenCodeMessage(
+          message,
+          start,
+          end,
+          recentStart,
+          totals,
+          modelTotals,
+          recentModelTotals,
+          dedupe,
+        );
+        continue;
+      }
+
+      const message = await readJsonDocument<OpenCodeSlateMessage>(file);
+
+      addSlateMessage(
         message,
         start,
         end,
