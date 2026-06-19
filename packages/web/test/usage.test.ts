@@ -4,6 +4,13 @@ import { buildCostAnalytics, getProviderDetailTheme } from "../lib/analytics";
 import type { PublishedCostPayload, PublishedUsagePayload } from "../lib/types";
 import { normalizePublishedSvgMarkup } from "../lib/usage";
 
+function assertAlmostEqual(actual: number | undefined, expected: number) {
+  assert.ok(
+    actual !== undefined && Math.abs(actual - expected) < 0.000001,
+    `expected ${actual} to be almost ${expected}`,
+  );
+}
+
 test("normalizePublishedSvgMarkup replaces merged provider lists with All Providers", () => {
   const input =
     '<svg><text x="0" y="0">TOTAL USAGE FROM</text><text x="0" y="14">Claude Code, Codex, Hermes Agent, Helios</text><text x="120" y="0">TOTAL INPUT</text></svg>';
@@ -45,7 +52,7 @@ test("getProviderDetailTheme exposes legacy Gemini CLI colors for details cards"
   });
 });
 
-test("buildCostAnalytics keeps harness spend and model subtotal separate", () => {
+test("buildCostAnalytics partitions canonical harness spend by provider/model", () => {
   const usagePayload: PublishedUsagePayload = {
     version: "2026-03-03",
     start: "2026-05-01",
@@ -133,7 +140,7 @@ test("buildCostAnalytics keeps harness spend and model subtotal separate", () =>
             cacheReadTokens: 8,
             totalTokens: 25,
             activeDays: 1,
-            costUsd: 6,
+            costUsd: 7,
           },
         ],
       },
@@ -166,7 +173,7 @@ test("buildCostAnalytics keeps harness spend and model subtotal separate", () =>
         cacheReadTokens: 8,
         totalTokens: 25,
         activeDays: 1,
-        costUsd: 6,
+        costUsd: 7,
       },
     ],
   };
@@ -174,12 +181,12 @@ test("buildCostAnalytics keeps harness spend and model subtotal separate", () =>
   const analytics = buildCostAnalytics({ costPayload, usagePayload });
 
   assert.equal(analytics?.harnessTotalCostUsd, 10);
-  assert.equal(analytics?.modelTotalCostUsd, 12);
+  assertAlmostEqual(analytics?.modelTotalCostUsd, 10);
   assert.deepEqual(analytics?.monthKeys, ["2026-05", "2026-06"]);
   assert.equal(analytics?.topHarness?.label, "Codex");
   assert.equal(analytics?.models[0]?.monthly.length, 2);
-  assert.equal(Math.round(analytics?.models[0]?.monthly[0]?.costUsd ?? 0), 4);
-  assert.equal(Math.round(analytics?.models[0]?.monthly[1]?.costUsd ?? 0), 8);
+  assertAlmostEqual(analytics?.models[0]?.monthly[0]?.costUsd, 40 / 11);
+  assertAlmostEqual(analytics?.models[0]?.monthly[1]?.costUsd, 70 / 11);
 });
 
 test("buildCostAnalytics allocates harness spend to missing-cost recent models", () => {

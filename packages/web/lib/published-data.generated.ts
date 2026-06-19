@@ -18872,7 +18872,7 @@ export const publishedCostPayload: PublishedCostPayload | null = {
   },
   "grandTotalTokens": 75038656644,
   "harnessTotalCostUsd": 94704.2,
-  "modelTotalCostUsd": 103375.66,
+  "modelTotalCostUsd": 94704.2,
   "coverageNote": "API-price equivalent for this token usage. Most or all of these tokens were used through subscription plans rather than metered API billing.",
   "harnesses": [
     {

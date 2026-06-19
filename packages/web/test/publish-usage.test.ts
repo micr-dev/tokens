@@ -757,7 +757,7 @@ test("normalizeCostAnalysisPayload maps ccusage-backed analysis into the publish
   });
 
   assert.equal(payload.harnessTotalCostUsd, 42.5);
-  assert.equal(payload.modelTotalCostUsd, 50);
+  assert.equal(payload.modelTotalCostUsd, 42.5);
   assert.equal(payload.harnesses[0]?.id, "codex");
   assert.equal(payload.harnesses[0]?.monthly[0]?.costUsd, 42.5);
   assert.equal(payload.models[0]?.name, "gpt-5.4");
