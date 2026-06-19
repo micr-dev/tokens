@@ -753,6 +753,7 @@ function refreshCostPayloadFromCcusage(
       0,
     ),
     harnessTotalCostUsd: Math.round(harnessTotalCostUsd * 100) / 100,
+    modelTotalCostUsd: Math.round(harnessTotalCostUsd * 100) / 100,
     harnesses,
     monthlyTotals: buildCostMonthlyTotals(providerSourceRows).map(
       normalizeCostMonthlyRow,
@@ -785,10 +786,9 @@ export function normalizeCostAnalysisPayload(
     normalizeCostHarness(key, provider),
   );
   const models = modelCostSummary.map(normalizeCostModel);
-  const modelTotalCostUsd = models.reduce(
-    (sum, model) => sum + model.totalCostUsd,
-    0,
-  );
+  // The imported model summary is a rate source and diagnostic input. The
+  // published model subtotal must stay tied to canonical harness spend.
+  const harnessTotalCostUsd = numberOrZero(payload.grand_total_cost_usd);
 
   return {
     version: "2026-06-19",
@@ -799,8 +799,8 @@ export function normalizeCostAnalysisPayload(
       end: requireString(dateRange.end, "date_range.end"),
     },
     grandTotalTokens: numberOrZero(payload.grand_total_tokens),
-    harnessTotalCostUsd: numberOrZero(payload.grand_total_cost_usd),
-    modelTotalCostUsd: Math.round(modelTotalCostUsd * 100) / 100,
+    harnessTotalCostUsd,
+    modelTotalCostUsd: Math.round(harnessTotalCostUsd * 100) / 100,
     coverageNote: COST_COVERAGE_NOTE,
     harnesses,
     models,

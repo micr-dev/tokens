@@ -676,16 +676,11 @@ function buildHarnessAllocatedModelCosts({
   costPayload: PublishedCostPayload;
   usagePayload: PublishedUsagePayload;
 }) {
+  // The Cost tab's provider/model view is an accounting partition of the
+  // canonical harness spend, not an independent sum of imported model prices.
   const providerModelMonthlyTokens = collectProviderModelMonthlyTokens(
     usagePayload,
   );
-  const liveCcusageHarnesses = costPayload.sourceCoverage
-    ? new Set(
-        costPayload.sourceCoverage
-          .filter((coverage) => coverage.source === "live-ccusage")
-          .map((coverage) => coverage.harness),
-      )
-    : null;
   const modelCosts = new Map<
     string,
     {
@@ -696,10 +691,6 @@ function buildHarnessAllocatedModelCosts({
   >();
 
   for (const harness of costPayload.harnesses) {
-    if (liveCcusageHarnesses && !liveCcusageHarnesses.has(harness.id)) {
-      continue;
-    }
-
     if (harness.totalCostUsd === null) {
       continue;
     }
@@ -710,8 +701,15 @@ function buildHarnessAllocatedModelCosts({
       continue;
     }
 
+    const monthlyCostTotal = harness.monthly.reduce(
+      (sum, month) => sum + (month.costUsd ?? 0),
+      0,
+    );
+    const monthlyCostScale =
+      monthlyCostTotal > 0 ? harness.totalCostUsd / monthlyCostTotal : 1;
+
     for (const month of harness.monthly) {
-      const costUsd = month.costUsd ?? 0;
+      const costUsd = (month.costUsd ?? 0) * monthlyCostScale;
       const modelTokens = monthlyModelTokens.get(month.month);
 
       if (!modelTokens || costUsd <= 0) {
@@ -753,6 +751,35 @@ function buildHarnessAllocatedModelCosts({
   }
 
   return modelCosts;
+}
+
+function collectSourceCostModels(costPayload: PublishedCostPayload) {
+  const models = new Map<string, PublishedCostPayload["models"][number]>();
+
+  for (const model of costPayload.models) {
+    const canonicalName = canonicalizeVendorModelName(model.name);
+    const existing = models.get(canonicalName);
+
+    if (!existing) {
+      models.set(canonicalName, {
+        ...model,
+        name: canonicalName,
+      });
+      continue;
+    }
+
+    models.set(canonicalName, {
+      ...existing,
+      totalCostUsd: existing.totalCostUsd + model.totalCostUsd,
+      totalTokens: existing.totalTokens + model.totalTokens,
+      inputTokens: existing.inputTokens + model.inputTokens,
+      outputTokens: existing.outputTokens + model.outputTokens,
+      cacheReadTokens: existing.cacheReadTokens + model.cacheReadTokens,
+      monthsActive: Math.max(existing.monthsActive, model.monthsActive),
+    });
+  }
+
+  return models;
 }
 
 function buildModelCostMonthlyRows({
@@ -814,22 +841,37 @@ function buildModelCostAnalytics({
     costPayload,
     usagePayload,
   });
+  const sourceModels = collectSourceCostModels(costPayload);
   const modelRows = new Map<string, CostEntityAnalytics>();
+  const totalColorSlots = Math.max(
+    sourceModels.size,
+    harnessAllocatedModelCosts.size,
+    1,
+  );
 
-  for (const model of costPayload.models) {
-    const canonicalName = canonicalizeVendorModelName(model.name);
+  for (const canonicalName of new Set([
+    ...sourceModels.keys(),
+    ...harnessAllocatedModelCosts.keys(),
+  ])) {
+    const model = sourceModels.get(canonicalName) ?? {
+      name: canonicalName,
+      totalCostUsd: 0,
+      totalTokens: 0,
+      inputTokens: 0,
+      outputTokens: 0,
+      cacheReadTokens: 0,
+      monthsActive: 0,
+    };
     const vendor = classifyVendorCompany(canonicalName);
     const vendorIndex = vendor ? (vendorIndexes.get(vendor) ?? 0) : 0;
     const color = vendor
-      ? getVendorModelColor(vendor, vendorIndex, costPayload.models.length)
+      ? getVendorModelColor(vendor, vendorIndex, totalColorSlots)
       : modelCostFallbackColor;
     const allocated = harnessAllocatedModelCosts.get(canonicalName);
-    const shouldUseAllocatedCost = Boolean(
-      allocated && model.totalCostUsd <= 0 && allocated.totalCostUsd > 0,
-    );
+    const shouldUseAllocatedCost = Boolean(allocated);
     const totalCostUsd = shouldUseAllocatedCost && allocated
       ? allocated.totalCostUsd
-      : model.totalCostUsd;
+      : 0;
     const totalTokens = shouldUseAllocatedCost && allocated
       ? allocated.totalTokens
       : model.totalTokens;
@@ -842,7 +884,10 @@ function buildModelCostAnalytics({
             totalTokens: row.totalTokens,
           }))
       : buildModelCostMonthlyRows({
-          model,
+          model: {
+            ...model,
+            totalCostUsd: 0,
+          },
           costPayload,
           modelMonthlyTokens,
         });

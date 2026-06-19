@@ -25,7 +25,7 @@
   tags: [implemented]
 
 ## cost
-- label: the web report exposes a Cost tab with harness totals as the canonical top-line spend and provider/model costs as a separate drill-down subtotal
+- label: the web report exposes a Cost tab with harness totals as the canonical top-line spend and provider/model costs as a partition drill-down subtotal
   command: grep -Fq 'Cost' packages/web/app/svg-usage.tsx && grep -Fq 'harnessTotalCostUsd' packages/web/lib/analytics.ts && grep -Fq 'modelTotalCostUsd' packages/web/lib/analytics.ts
   tags: [implemented]
 - label: the published web data bundle includes a generated cost payload seeded from the local cost analysis and refreshed by the publish path before deploy
@@ -45,4 +45,7 @@
   tags: [implemented]
 - label: the published cost refresh recomputes local ccusage-backed harnesses and marks preserved recovered harnesses with source coverage diagnostics
   command: grep -Fq 'CCUSAGE_BACKED_COST_HARNESSES' packages/web/scripts/publish-usage.ts && grep -Fq 'sourceCoverage' packages/web/lib/types.ts && grep -Fq 'preserved from imported or recovered history' packages/web/scripts/publish-usage.ts && jq -e '.sourceCoverage[] | select(.harness == "opencode" and .source == "preserved-import")' .slopmeter-data/published/cost-analysis.json >/dev/null && jq -e '.sourceCoverage[] | select(.harness == "codex" and .source == "live-ccusage")' .slopmeter-data/published/cost-analysis.json >/dev/null
+  tags: [implemented]
+- label: the Cost tab provider/model subtotal partitions canonical harness spend instead of adding an independent model cost estimate
+  command: bun test packages/web/test/usage.test.ts --test-name-pattern 'partitions canonical harness spend'
   tags: [implemented]
