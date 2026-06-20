@@ -1093,16 +1093,17 @@ function foldGeminiIntoAntigravityProvider(
   providers: PublishedUsagePayload["providers"],
   endDate: Date,
 ) {
-  const continuitySources = providers.filter(
+  const agySources = providers.filter(
     (provider) => provider.provider === "agy" || provider.provider === "gemini",
   );
 
-  if (continuitySources.length === 0) {
+  if (agySources.length <= 1) {
+    // Already folded (single "agy", no raw "gemini") or nothing to fold.
     return providers;
   }
 
   const antigravitySummary = toJsonUsageSummary(
-    mergeUsageSummaries("agy", continuitySources.map(toUsageSummary), endDate),
+    mergeUsageSummaries("agy", agySources.map(toUsageSummary), endDate),
   );
 
   return [
