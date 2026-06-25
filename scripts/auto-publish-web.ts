@@ -15,6 +15,7 @@ const DEFAULT_STATE_PATH = resolve(
 );
 const GENERATED_ARTIFACTS = [
   ".slopmeter-data/published/daily-usage.json",
+  ".slopmeter-data/published/cost-analysis.json",
   ".slopmeter-data/published/heatmap-last-year.svg",
   "packages/web/lib/published-data.generated.ts",
 ] as const;
