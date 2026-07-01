@@ -20338,9 +20338,9 @@ export const publishedCostPayload: PublishedCostPayload | null = {
     "start": "2025-11-30",
     "end": "2026-07-01"
   },
-  "grandTotalTokens": 36007188708,
-  "harnessTotalCostUsd": 71108.27,
-  "modelTotalCostUsd": 71108.27,
+  "grandTotalTokens": 79397459761,
+  "harnessTotalCostUsd": 98028.61,
+  "modelTotalCostUsd": 98028.61,
   "coverageNote": "API-price equivalent for this token usage. Most or all of these tokens were used through subscription plans rather than metered API billing.",
   "harnesses": [
     {
