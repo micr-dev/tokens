@@ -653,6 +653,8 @@ function refreshCostPayloadFromCcusage(
   const refreshedHarnessIds = new Set<string>();
   const modelEstimatedHarnessIds = new Set<string>();
 
+  const currentMonth = todayDateKey().slice(0, 7);
+
   for (const harness of CCUSAGE_BACKED_COST_HARNESSES) {
     const current = providerEntries.get(harness.id);
     const since = current?.firstDate ?? payload.dateRange.start;
@@ -663,7 +665,62 @@ function refreshCostPayloadFromCcusage(
       until,
     });
 
-    providerEntries.set(harness.id, normalizeCostHarness(harness.id, refreshed));
+    const normalized = normalizeCostHarness(harness.id, refreshed);
+
+    // Preserve completed months that ccusage can no longer see (e.g. session
+    // files deleted from disk). For completed months (before the current
+    // month), keep the pre-existing entry when its cost is higher — ccusage
+    // seeing fewer sessions means the live refresh under-counts.
+    if (current?.monthly?.length) {
+      const refreshedMonths = new Map(
+        normalized.monthly.map((m) => [m.month, m]),
+      );
+      const mergedMonthly = [...normalized.monthly];
+      for (const prevMonth of current.monthly) {
+        if (prevMonth.month >= currentMonth) continue; // never preserve current month
+        const refreshedMonth = refreshedMonths.get(prevMonth.month);
+        if (!refreshedMonth) {
+          // Month entirely missing from ccusage — preserve from history
+          mergedMonthly.push(prevMonth);
+        } else if (
+          (prevMonth.costUsd ?? 0) > (refreshedMonth.costUsd ?? 0)
+        ) {
+          // ccusage under-counted this month — use the higher preserved value
+          const idx = mergedMonthly.findIndex(
+            (m) => m.month === prevMonth.month,
+          );
+          mergedMonthly[idx] = prevMonth;
+        }
+      }
+      mergedMonthly.sort((a, b) => a.month.localeCompare(b.month));
+      normalized.monthly = mergedMonthly;
+      normalized.activeDays = mergedMonthly.reduce(
+        (sum, m) => sum + (m.activeDays ?? 0),
+        0,
+      );
+      normalized.totalCostUsd = mergedMonthly.reduce(
+        (sum, m) => sum + (m.costUsd ?? 0),
+        0,
+      );
+      normalized.totalTokens = mergedMonthly.reduce(
+        (sum, m) => sum + m.totalTokens,
+        0,
+      );
+      normalized.inputTokens = mergedMonthly.reduce(
+        (sum, m) => sum + m.inputTokens,
+        0,
+      );
+      normalized.outputTokens = mergedMonthly.reduce(
+        (sum, m) => sum + m.outputTokens,
+        0,
+      );
+      normalized.cacheReadTokens = mergedMonthly.reduce(
+        (sum, m) => sum + m.cacheReadTokens,
+        0,
+      );
+    }
+
+    providerEntries.set(harness.id, normalized);
     refreshedHarnessIds.add(harness.id);
   }
 
