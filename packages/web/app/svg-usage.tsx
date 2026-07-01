@@ -1093,7 +1093,7 @@ function CostRankedRows({
 }
 
 function CostView({ cost }: { cost: CostAnalytics }) {
-  const [groupMode, setGroupMode] = useState<CostGroupMode>("harness");
+  const [groupMode, setGroupMode] = useState<CostGroupMode>("model");
   const [rankMode, setRankMode] = useState<CostRankMode>("cost");
   const [visibleLimit, setVisibleLimit] = useState<CostVisibleLimit>("all");
   const [showZeroCost, setShowZeroCost] = useState(false);
