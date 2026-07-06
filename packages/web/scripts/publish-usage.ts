@@ -833,6 +833,20 @@ export function normalizeCostAnalysisPayload(
   value: unknown,
 ): PublishedCostPayload {
   const payload = asRecord(value, "payload");
+
+  // If the payload is already in published format (camelCase fields like
+  // dateRange, harnessTotalCostUsd, harnesses[]), return it as-is.  This
+  // happens when we use the existing published cost-analysis.json as the
+  // merge base instead of the raw ccusage source file.
+  if (
+    typeof payload.dateRange === "object" &&
+    payload.dateRange !== null &&
+    !Array.isArray(payload.dateRange) &&
+    Array.isArray(payload.harnesses)
+  ) {
+    return payload as unknown as PublishedCostPayload;
+  }
+
   const dateRange = asRecord(payload.date_range, "date_range");
   const providers = asRecord(payload.providers, "providers");
   const modelCostSummary = asArray(
@@ -876,11 +890,30 @@ export function writePublishedCostArtifact({
   outputPath: string;
   usagePayload?: PublishedUsagePayload;
 }) {
-  const payload = readCostAnalysisPayload(sourcePath);
+  // Prefer the existing published artifact as the merge base so that
+  // preserved/recovered harness history (which lives in cost-analysis.json,
+  // NOT in the raw ccusage source) survives the ccusage refresh.  The raw
+  // source file (token-usage-analysis.json) only provides model rates and
+  // diagnostic inputs; it should never be the authoritative base for the
+  // preserve-merge because it is regenerated from live session files alone
+  // and therefore reflects post-deletion totals when sessions are removed.
+  const publishedPayload = readCostAnalysisPayload(outputPath);
+  const payload = publishedPayload ?? readCostAnalysisPayload(sourcePath);
 
   if (!payload) {
     throw new Error(`Cost analysis source not found: ${sourcePath}`);
   }
+
+  // If we fell back to the raw source, we still need the model/rate rows from
+  // it (the published artifact may carry them too, but the raw source is the
+  // canonical rate input when no published artifact exists yet).
+  if (!publishedPayload) {
+    const sourceRaw = readCostAnalysisPayload(sourcePath);
+    if (sourceRaw) {
+      payload.models = sourceRaw.models;
+    }
+  }
+
   const refreshedPayload = refreshCostPayloadFromCcusage(payload, usagePayload);
 
   mkdirSync(dirname(outputPath), { recursive: true });
