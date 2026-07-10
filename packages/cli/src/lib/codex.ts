@@ -24,7 +24,7 @@ import {
   runWithConcurrency,
 } from "./utils";
 const CLASSIFICATION_PREFIX_BYTES = 32 * 1024;
-const DUPLICATE_SESSION_WINDOW_MS = 60 * 1000;
+
 
 interface CodexRawUsage {
   input_tokens?: number;
@@ -679,6 +679,26 @@ function chooseFingerprintWinner(group: CodexFileFingerprint[]) {
   });
 }
 
+/**
+ * Deduplicate Codex session files that are forks of the same logical session.
+ *
+ * Codex (and tools built on top of it) can spawn parallel processes for the
+ * same session. Each process writes its own JSONL file with a cumulative
+ * `total_token_usage` counter that starts from the same initial value. When
+ * these files are processed independently, the same tokens are counted N
+ * times.
+ *
+ * The fingerprint is the first cumulative `total_token_usage` value observed
+ * in the file. Files sharing the same fingerprint are forks of the same
+ * session — they share identical initial context, identical early token
+ * progression, and overlapping runtime. We keep only the largest file per
+ * fingerprint group (the one with the most data).
+ *
+ * This is intentionally NOT scoped by time window. Forks can be created
+ * minutes or hours apart (observed: up to 8 hours between the first and last
+ * fork of the same session), so any fixed time window will miss some.
+ * The fingerprint alone is a reliable signal.
+ */
 async function dedupeCodexFiles(
   files: string[],
   maxRecordBytes: number,
@@ -708,56 +728,19 @@ async function dedupeCodexFiles(
   let duplicateGroups = 0;
 
   for (const matches of groupedByUsage.values()) {
-    matches.sort(
-      (left, right) =>
-        left.startTimestampMs - right.startTimestampMs ||
-        right.fileSizeBytes - left.fileSizeBytes ||
-        left.filePath.localeCompare(right.filePath),
-    );
-
-    let currentGroup: CodexFileFingerprint[] = [];
-    let currentGroupStart = 0;
-
-    const flushGroup = () => {
-      if (currentGroup.length <= 1) {
-        currentGroup = [];
-        return;
-      }
-
-      duplicateGroups += 1;
-
-      const winner = chooseFingerprintWinner(currentGroup);
-
-      for (const fingerprint of currentGroup) {
-        if (fingerprint.filePath !== winner.filePath) {
-          skippedFiles.add(fingerprint.filePath);
-        }
-      }
-
-      currentGroup = [];
-    };
-
-    for (const fingerprint of matches) {
-      if (currentGroup.length === 0) {
-        currentGroup = [fingerprint];
-        currentGroupStart = fingerprint.startTimestampMs;
-        continue;
-      }
-
-      if (
-        fingerprint.startTimestampMs - currentGroupStart <=
-        DUPLICATE_SESSION_WINDOW_MS
-      ) {
-        currentGroup.push(fingerprint);
-        continue;
-      }
-
-      flushGroup();
-      currentGroup = [fingerprint];
-      currentGroupStart = fingerprint.startTimestampMs;
+    if (matches.length <= 1) {
+      continue;
     }
 
-    flushGroup();
+    duplicateGroups += 1;
+
+    const winner = chooseFingerprintWinner(matches);
+
+    for (const fingerprint of matches) {
+      if (fingerprint.filePath !== winner.filePath) {
+        skippedFiles.add(fingerprint.filePath);
+      }
+    }
   }
 
   return {
@@ -819,7 +802,7 @@ export async function loadCodexRows(
 
   if (dedupedFiles.skippedFiles > 0) {
     warnings.push(
-      `Deduplicated ${dedupedFiles.skippedFiles} duplicate Codex session file(s) across ${dedupedFiles.duplicateGroups} group(s) by matching the first cumulative total within a 60 second start window.`,
+      `Deduplicated ${dedupedFiles.skippedFiles} duplicate Codex session file(s) across ${dedupedFiles.duplicateGroups} group(s) by matching the first cumulative total token usage.`,
     );
   }
 
