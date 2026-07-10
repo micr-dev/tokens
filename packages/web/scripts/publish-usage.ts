@@ -1179,6 +1179,58 @@ function sanitizePublishedPayload(payload: PublishedUsagePayload) {
   };
 }
 
+/**
+ * Fold raw "gemini" provider data into "agy" in a JsonExportPayload BEFORE
+ * the hosted-data merge. This is the critical anti-inflation step: by folding
+ * in the raw payload, the resulting "agy:" date keys are visible to
+ * filterPayloadByProviderDateKeys, which then removes stale hosted "agy"
+ * entries for those dates. Without this, the post-merge fold in
+ * sanitizePublishedPayload would stack gemini data on every publish cycle.
+ */
+function foldGeminiInJsonExportPayload(
+  payload: JsonExportPayload,
+): JsonExportPayload {
+  const agy = payload.providers.find((p) => p.provider === "agy");
+  const gemini = payload.providers.find((p) => p.provider === "gemini");
+
+  if (!gemini) {
+    return payload;
+  }
+
+  const sources: JsonUsageSummary[] = [];
+  if (agy) sources.push(agy);
+  sources.push(gemini);
+
+  const merged = toJsonUsageSummary(
+    mergeUsageSummaries(
+      "agy",
+      sources.map((s) => ({
+        provider: s.provider as UsageSummary["provider"],
+        insights: s.insights,
+        daily: s.daily.map((d) => ({
+          date: parseDateOnly(d.date),
+          input: d.input,
+          output: d.output,
+          cache: d.cache,
+          total: d.total,
+          breakdown: d.breakdown,
+        })),
+      })),
+      new Date(),
+    ),
+  );
+
+  return {
+    ...payload,
+    providers: [
+      ...payload.providers.filter(
+        (p) => p.provider !== "agy" && p.provider !== "gemini",
+      ),
+      merged,
+    ],
+  };
+}
+
 function foldGeminiIntoAntigravityProvider(
   providers: PublishedUsagePayload["providers"],
   endDate: Date,
@@ -1278,8 +1330,17 @@ export function mergePublishedUsagePayloads({
   t3Summary: JsonUsageSummary | null;
   updatedAt?: Date;
 }): PublishedUsagePayload {
+  // Fold gemini into agy in the RAW current payload BEFORE merging with
+  // hosted data. This ensures the folded dates appear as "agy:" keys in
+  // freshProviderDates, so the date-key filter properly removes stale hosted
+  // "agy" entries. Without this pre-merge fold, raw "gemini" dates (which
+  // have no matching "agy:" key) leave hosted "agy" entries unfiltered, and
+  // the post-merge fold stacks gemini data on top every publish cycle.
+  const foldedCurrentPayload =
+    foldGeminiInJsonExportPayload(currentPayload);
+
   const payloadInputs = buildCanonicalPayloadInputs({
-    currentPayload,
+    currentPayload: foldedCurrentPayload,
     importedPayload,
     opencodeDailyRecoveryPayload,
     hostedPayload,
