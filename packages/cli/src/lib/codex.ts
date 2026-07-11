@@ -49,6 +49,7 @@ interface CodexEventPayload {
   model?: string;
   model_name?: string;
   metadata?: { model?: string };
+  session_id?: string;
 }
 
 interface CodexEventEntry {
@@ -77,6 +78,7 @@ interface CodexFileFingerprint {
   fileSizeBytes: number;
   startTimestampMs: number;
   firstCumulativeUsageKey: string;
+  sessionId: string | null;
 }
 
 type JsonContext =
@@ -296,7 +298,7 @@ function skipPrimitive(source: string, start: number) {
 
 function classifyCodexRecord(
   source: string,
-): JsonlRecordDecision<"turn_context" | "token_count"> {
+): JsonlRecordDecision<"turn_context" | "token_count" | "session_meta"> {
   const stack: JsonContext[] = [];
   let topLevelType: string | undefined;
 
@@ -388,6 +390,10 @@ function classifyCodexRecord(
 
             if (value.value === "turn_context") {
               return { kind: "keep", classification: "turn_context" };
+            }
+
+            if (value.value === "session_meta") {
+              return { kind: "keep", classification: "session_meta" };
             }
 
             if (value.value !== "event_msg") {
@@ -517,7 +523,9 @@ async function processCodexFile(
 
   let skippedOversizedIrrelevantRecords = 0;
 
-  for await (const record of readJsonlRecords<"turn_context" | "token_count">(
+  for await (const record of readJsonlRecords<
+    "turn_context" | "token_count" | "session_meta"
+  >(
     filePath,
     {
       classificationPrefixBytes: CLASSIFICATION_PREFIX_BYTES,
@@ -542,6 +550,10 @@ async function processCodexFile(
 
     if (record.classification === "turn_context") {
       currentModel = extractedModel ?? currentModel;
+      continue;
+    }
+
+    if (record.classification === "session_meta") {
       continue;
     }
 
@@ -616,8 +628,11 @@ async function readCodexFileFingerprint(
 ): Promise<CodexFileFingerprint | null> {
   let startTimestampMs: number | null = null;
   let firstCumulativeUsageKey: string | null = null;
+  let sessionId: string | null = null;
 
-  for await (const record of readJsonlRecords<"turn_context" | "token_count">(
+  for await (const record of readJsonlRecords<
+    "turn_context" | "token_count" | "session_meta"
+  >(
     filePath,
     {
       classificationPrefixBytes: CLASSIFICATION_PREFIX_BYTES,
@@ -640,6 +655,16 @@ async function readCodexFileFingerprint(
     }
 
     if (
+      record.classification === "session_meta" &&
+      sessionId === null
+    ) {
+      const sid = entry.payload?.session_id;
+      if (typeof sid === "string" && sid.length > 0) {
+        sessionId = sid;
+      }
+    }
+
+    if (
       record.classification === "token_count" &&
       firstCumulativeUsageKey === null
     ) {
@@ -652,7 +677,23 @@ async function readCodexFileFingerprint(
       }
     }
 
-    if (startTimestampMs !== null && firstCumulativeUsageKey !== null) {
+    if (
+      startTimestampMs !== null &&
+      firstCumulativeUsageKey !== null &&
+      sessionId !== null
+    ) {
+      break;
+    }
+    // Also break if we've seen both timestamp and usage but no session_meta
+    // (some older files may not have session_meta)
+    if (
+      startTimestampMs !== null &&
+      firstCumulativeUsageKey !== null &&
+      // Read enough of the file to have found session_meta if it exists.
+      // session_meta is always the first record, so if we haven't found it
+      // by the time we hit token_count, it's not there.
+      record.classification === "token_count"
+    ) {
       break;
     }
   }
@@ -666,6 +707,7 @@ async function readCodexFileFingerprint(
     fileSizeBytes: statSync(filePath).size,
     startTimestampMs,
     firstCumulativeUsageKey,
+    sessionId,
   };
 }
 
@@ -688,16 +730,18 @@ function chooseFingerprintWinner(group: CodexFileFingerprint[]) {
  * these files are processed independently, the same tokens are counted N
  * times.
  *
- * The fingerprint is the first cumulative `total_token_usage` value observed
- * in the file. Files sharing the same fingerprint are forks of the same
- * session — they share identical initial context, identical early token
- * progression, and overlapping runtime. We keep only the largest file per
- * fingerprint group (the one with the most data).
+ * Files are grouped by their `session_id` (from the `session_meta` record at
+ * the top of each file). Within a session, the largest file is kept — it has
+ * the highest cumulative total and captures the full token range.
  *
- * This is intentionally NOT scoped by time window. Forks can be created
- * minutes or hours apart (observed: up to 8 hours between the first and last
- * fork of the same session), so any fixed time window will miss some.
- * The fingerprint alone is a reliable signal.
+ * The old fingerprint-based approach (grouping by first cumulative usage
+ * value) was fundamentally broken: independent sessions in the same repo
+ * share the same initial system prompt token count (e.g. 32802), so they
+ * were incorrectly grouped as duplicates. Session resumes also share the
+ * same fingerprint but represent different work.
+ *
+ * Files without a session_id fall back to the fingerprint approach for
+ * backwards compatibility with older session formats.
  */
 async function dedupeCodexFiles(
   files: string[],
@@ -710,24 +754,28 @@ async function dedupeCodexFiles(
     fingerprints[index] = await readCodexFileFingerprint(file, maxRecordBytes);
   });
 
-  const groupedByUsage = new Map<string, CodexFileFingerprint[]>();
+  // Group by session_id when available, fall back to fingerprint for files
+  // that don't have session_meta (older formats).
+  const groupedByKey = new Map<string, CodexFileFingerprint[]>();
 
   for (const fingerprint of fingerprints) {
     if (!fingerprint) {
       continue;
     }
 
-    const matches =
-      groupedByUsage.get(fingerprint.firstCumulativeUsageKey) ?? [];
+    const key =
+      fingerprint.sessionId ?? `fp:${fingerprint.firstCumulativeUsageKey}`;
+
+    const matches = groupedByKey.get(key) ?? [];
 
     matches.push(fingerprint);
-    groupedByUsage.set(fingerprint.firstCumulativeUsageKey, matches);
+    groupedByKey.set(key, matches);
   }
 
   const skippedFiles = new Set<string>();
   let duplicateGroups = 0;
 
-  for (const matches of groupedByUsage.values()) {
+  for (const matches of groupedByKey.values()) {
     if (matches.length <= 1) {
       continue;
     }
