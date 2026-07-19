@@ -205,42 +205,6 @@ body {
   background: var(--color-bg);
 }
 
-/* Cascade-in entrance animation for heatmap cells. The effect is applied
-   client-side (see HeatmapView in app/svg-usage.tsx) with a per-cell
-   animation-delay derived from each rect's x position, producing a
-   left-to-right reveal reminiscent of unlumen UI's GitHub graph. */
-@keyframes heatmap-cell-enter {
-  0% {
-    opacity: 0;
-    transform: scale(0.2);
-  }
-  60% {
-    opacity: 1;
-    transform: scale(1.08);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.page-shell svg rect.heatmap-cell-enter {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation-name: heatmap-cell-enter;
-  animation-duration: 0.55s;
-  animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
-  animation-fill-mode: both;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .page-shell svg rect.heatmap-cell-enter {
-    animation: none;
-    opacity: 1;
-    transform: none;
-  }
-}
-
 .page-shell--details {
   padding-top: 10px;
 }
