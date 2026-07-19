@@ -914,7 +914,17 @@ export function writePublishedCostArtifact({
     }
   }
 
-  const refreshedPayload = refreshCostPayloadFromCcusage(payload, usagePayload);
+  let refreshedPayload: typeof payload;
+  try {
+    refreshedPayload = refreshCostPayloadFromCcusage(payload, usagePayload);
+  } catch (error) {
+    process.stderr.write(
+      `ccusage cost refresh failed, using existing cost artifact: ${
+        error instanceof Error ? error.message : String(error)
+      }\n`,
+    );
+    refreshedPayload = payload;
+  }
 
   mkdirSync(dirname(outputPath), { recursive: true });
   writeFileSync(
@@ -1356,7 +1366,21 @@ export function mergePublishedUsagePayloads({
       t3Summary,
     ]);
   } else {
-    mergedPayload.providers = sortPublishedProviders(mergedPayload.providers);
+    // Fallback: preserve T3 from the hosted/existing published payload
+    // when the source export file is unavailable. This prevents T3 history
+    // from silently disappearing when the export file is removed.
+    const hostedT3 = hostedPayload?.providers.find(
+      (provider) => provider.provider === "t3",
+    );
+
+    if (hostedT3) {
+      mergedPayload.providers = sortPublishedProviders([
+        ...mergedPayload.providers,
+        hostedT3,
+      ]);
+    } else {
+      mergedPayload.providers = sortPublishedProviders(mergedPayload.providers);
+    }
   }
 
   return sanitizePublishedPayload(mergedPayload);

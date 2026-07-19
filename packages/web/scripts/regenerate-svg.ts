@@ -64,6 +64,7 @@ const WEB_PROVIDER_ORDER = [
   "droid",
   "hermes",
   "claude",
+  "t3",
 ] as const;
 
 function renderPublishedSvg(payload: PublishedUsagePayload) {
