@@ -318,12 +318,13 @@ const metricCaptionFontSize = 9;
 const metricValueFontSize = 14;
 const captionValueGap = 4;
 const heatmapGamma = 0.7;
-// Percentile used for the color-scale ceiling. Instead of using the raw max
-// (which lets a single outlier day flatten all other cells to near-zero
-// intensity), we cap the scale at this percentile of non-zero daily values.
-// Days above the percentile still render at full saturation; days below get
-// meaningful color differentiation. 0 disables (falls back to raw max).
-const heatmapScalePercentile = 0.9;
+// Sublinear value transform applied before the gamma curve. Raw token values
+// are heavily right-skewed (one 2.66B day vs mostly 50-300M days), so a linear
+// scale lets a single outlier crush the rest. The square-root transform
+// compresses the high end while preserving ordering — big days stay visibly
+// bigger than medium days, but an outlier no longer flattens everything else.
+// "none" | "sqrt" | "log10"
+const heatmapValueTransform = "sqrt";
 
 const surfacePalettes: Record<ColorMode, SurfacePalette> = {
   light: {
@@ -433,12 +434,19 @@ function getMonthLabel(week: (string | null)[]) {
   });
 }
 
+function transformHeatmapValue(value: number): number {
+  if (value <= 0) return 0;
+  if (heatmapValueTransform === "sqrt") return Math.sqrt(value);
+  if (heatmapValueTransform === "log10") return Math.log10(value);
+  return value;
+}
+
 function defaultColourMap(value: number, max: number, colorCount: number) {
   if (max <= 0 || value <= 0) {
     return 0;
   }
 
-  const scaled = Math.pow(value / max, heatmapGamma);
+  const scaled = Math.pow(transformHeatmapValue(value) / transformHeatmapValue(max), heatmapGamma);
   const index = Math.ceil(scaled * (colorCount - 1));
 
   return Math.min(Math.max(index, 0), colorCount - 1);
@@ -579,23 +587,6 @@ function drawHeatmapSection(
     totalInputTokens += row.input;
     totalOutputTokens += row.output;
     totalTokens += row.total;
-  }
-
-  // Cap the color scale at the configured percentile so a single outlier day
-  // doesn't flatten the rest. Days above the cap render at full saturation.
-  if (heatmapScalePercentile > 0 && heatmapScalePercentile < 1) {
-    const nonZero = [...valueByDate.values()].filter((v) => v > 0).sort((a, b) => a - b);
-    if (nonZero.length >= 10) {
-      const percentileValue = nonZero[Math.min(
-        Math.floor(nonZero.length * heatmapScalePercentile),
-        nonZero.length - 1,
-      )];
-      // Only apply if the percentile is meaningfully lower than the raw max
-      // (i.e., there IS an outlier). Avoids changing scales without outliers.
-      if (percentileValue > 0 && percentileValue < maxValue * 0.7) {
-        maxValue = percentileValue;
-      }
-    }
   }
 
   const topMetricGap = 120;
