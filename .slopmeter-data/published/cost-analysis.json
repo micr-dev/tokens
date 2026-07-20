@@ -1,27 +1,27 @@
 {
   "version": "2026-06-19",
-  "generatedAt": "2026-07-19T13:16:29.215Z",
+  "generatedAt": "2026-07-20T03:24:19.172Z",
   "source": "tokens.micr.dev recovered history + live ccusage-backed harness refresh (offline pricing)",
   "dateRange": {
     "start": "2025-11-30",
-    "end": "2026-07-19"
+    "end": "2026-07-20"
   },
-  "grandTotalTokens": 414027513711,
-  "harnessTotalCostUsd": 100793.5,
-  "modelTotalCostUsd": 100793.5,
+  "grandTotalTokens": 378146782288,
+  "harnessTotalCostUsd": 98057.89,
+  "modelTotalCostUsd": 98057.89,
   "coverageNote": "API-price equivalent for this token usage. Most or all of these tokens were used through subscription plans rather than metered API billing.",
   "harnesses": [
     {
       "id": "codex",
       "label": "Codex",
-      "activeDays": 119,
-      "firstDate": "2026-06-22",
-      "lastDate": "2026-07-19",
-      "totalCostUsd": 31860.635378600004,
-      "totalTokens": 380588655498,
-      "inputTokens": 30578556527,
-      "outputTokens": 596076059,
-      "cacheReadTokens": 373548155904,
+      "activeDays": 112,
+      "firstDate": "2026-07-09",
+      "lastDate": "2026-07-20",
+      "totalCostUsd": 29124.97719,
+      "totalTokens": 344649455957,
+      "inputTokens": 29913446218,
+      "outputTokens": 534135563,
+      "cacheReadTokens": 338336007168,
       "monthly": [
         {
           "month": "2026-03",
@@ -61,12 +61,12 @@
         },
         {
           "month": "2026-07",
-          "inputTokens": 5076417644,
-          "outputTokens": 525084943,
-          "cacheReadTokens": 349414022912,
-          "totalTokens": 355015525499,
-          "activeDays": 19,
-          "costUsd": 6750.1453786
+          "inputTokens": 4411307335,
+          "outputTokens": 463144447,
+          "cacheReadTokens": 314201874176,
+          "totalTokens": 319076325958,
+          "activeDays": 12,
+          "costUsd": 4014.4871900000003
         }
       ]
     },
@@ -309,14 +309,14 @@
     {
       "id": "hermes",
       "label": "Hermes Agent",
-      "activeDays": 124,
+      "activeDays": 125,
       "firstDate": "2026-03-18",
-      "lastDate": "2026-07-19",
-      "totalCostUsd": 1170.7812785350002,
-      "totalTokens": 3484819520,
-      "inputTokens": 587683541,
-      "outputTokens": 25646508,
-      "cacheReadTokens": 2871489471,
+      "lastDate": "2026-07-20",
+      "totalCostUsd": 1170.8257134950002,
+      "totalTokens": 3543287638,
+      "inputTokens": 590775553,
+      "outputTokens": 25856150,
+      "cacheReadTokens": 2926655935,
       "monthly": [
         {
           "month": "2026-03",
@@ -356,12 +356,12 @@
         },
         {
           "month": "2026-07",
-          "inputTokens": 61305915,
-          "outputTokens": 3630381,
-          "cacheReadTokens": 764250883,
-          "totalTokens": 829187179,
-          "activeDays": 19,
-          "costUsd": 19.9963052
+          "inputTokens": 64397927,
+          "outputTokens": 3840023,
+          "cacheReadTokens": 819417347,
+          "totalTokens": 887655297,
+          "activeDays": 20,
+          "costUsd": 20.04074016
         }
       ]
     },
@@ -1195,12 +1195,12 @@
     },
     {
       "month": "2026-07",
-      "inputTokens": 5143774623,
-      "outputTokens": 529154931,
-      "cacheReadTokens": 350319438979,
-      "totalTokens": 355992368533,
-      "activeDays": 46,
-      "costUsd": 6770.1416838000005
+      "inputTokens": 4481756326,
+      "outputTokens": 467424077,
+      "cacheReadTokens": 315162456707,
+      "totalTokens": 320111637110,
+      "activeDays": 40,
+      "costUsd": 4034.5279301600003
     }
   ],
   "sourceCoverage": [
@@ -1222,8 +1222,8 @@
         "2026-07"
       ],
       "missingMonths": [],
-      "firstDate": "2026-06-22",
-      "lastDate": "2026-07-19"
+      "firstDate": "2026-07-09",
+      "lastDate": "2026-07-20"
     },
     {
       "harness": "opencode",
@@ -1328,7 +1328,7 @@
       ],
       "missingMonths": [],
       "firstDate": "2026-03-18",
-      "lastDate": "2026-07-19"
+      "lastDate": "2026-07-20"
     },
     {
       "harness": "claude",
@@ -1350,8 +1350,8 @@
     {
       "harness": "codex",
       "status": "ok",
-      "computedUsd": 31860.635378600004,
-      "sourceUsd": 31860.635378600004,
+      "computedUsd": 29124.97719,
+      "sourceUsd": 29124.97719,
       "deltaUsd": 0,
       "note": "refreshed from local ccusage during publish"
     },
@@ -1390,8 +1390,8 @@
     {
       "harness": "hermes",
       "status": "ok",
-      "computedUsd": 1170.7812785350002,
-      "sourceUsd": 1170.7812785350002,
+      "computedUsd": 1170.8257134950002,
+      "sourceUsd": 1170.8257134950002,
       "deltaUsd": 0,
       "note": "refreshed from local ccusage during publish"
     },
