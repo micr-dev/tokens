@@ -1,8 +1,8 @@
 {
   "version": "2026-03-03",
   "start": "2025-07-11",
-  "end": "2026-07-23",
-  "updatedAt": "2026-07-23T03:30:06.168Z",
+  "end": "2026-07-24",
+  "updatedAt": "2026-07-24T03:27:40.543Z",
   "providers": [
     {
       "provider": "codex",
@@ -22,18 +22,18 @@
         "recentMostUsedModel": {
           "name": "gpt-5.6-sol",
           "tokens": {
-            "input": 10590206325,
-            "output": 20025541,
+            "input": 10958043397,
+            "output": 20802438,
             "cache": {
-              "input": 10374170112,
+              "input": 10734533888,
               "output": 0
             },
-            "total": 10610231866
+            "total": 10978845835
           }
         },
         "streaks": {
-          "longest": 135,
-          "current": 135
+          "longest": 136,
+          "current": 136
         }
       },
       "daily": [
@@ -4109,25 +4109,62 @@
         },
         {
           "date": "2026-07-23",
-          "input": 27066988,
-          "output": 74529,
+          "input": 334588669,
+          "output": 753165,
           "cache": {
-            "input": 26417152,
+            "input": 327797248,
             "output": 0
           },
-          "total": 27141517,
-          "displayValue": 27141517,
+          "total": 335341834,
+          "displayValue": 335341834,
           "breakdown": [
             {
               "name": "gpt-5.6-sol",
               "tokens": {
-                "input": 27066988,
-                "output": 74529,
+                "input": 334588669,
+                "output": 753165,
                 "cache": {
-                  "input": 26417152,
+                  "input": 327797248,
                   "output": 0
                 },
-                "total": 27141517
+                "total": 335341834
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-07-24",
+          "input": 104414638,
+          "output": 263978,
+          "cache": {
+            "input": 101726720,
+            "output": 0
+          },
+          "total": 104678616,
+          "displayValue": 104678616,
+          "breakdown": [
+            {
+              "name": "gpt-5.6-sol",
+              "tokens": {
+                "input": 60315391,
+                "output": 98261,
+                "cache": {
+                  "input": 58983680,
+                  "output": 0
+                },
+                "total": 60413652
+              }
+            },
+            {
+              "name": "gpt-5.3-codex-spark",
+              "tokens": {
+                "input": 44099247,
+                "output": 165717,
+                "cache": {
+                  "input": 42743040,
+                  "output": 0
+                },
+                "total": 44264964
               }
             }
           ]
@@ -12478,7 +12515,7 @@
         },
         "streaks": {
           "longest": 6,
-          "current": 2
+          "current": 0
         }
       },
       "daily": [
@@ -16322,20 +16359,20 @@
           }
         },
         "recentMostUsedModel": {
-          "name": "glm-5.2",
+          "name": "deepseek-v4-flash",
           "tokens": {
-            "input": 62341734,
-            "output": 4309286,
+            "input": 95056345,
+            "output": 149018,
             "cache": {
               "input": 0,
               "output": 0
             },
-            "total": 66651020
+            "total": 95205363
           }
         },
         "streaks": {
-          "longest": 127,
-          "current": 127
+          "longest": 128,
+          "current": 128
         }
       },
       "daily": [
@@ -22311,14 +22348,14 @@
         },
         {
           "date": "2026-07-22",
-          "input": 53993666,
-          "output": 193067,
+          "input": 49503641,
+          "output": 174611,
           "cache": {
             "input": 0,
             "output": 0
           },
-          "total": 54186733,
-          "displayValue": 54186733,
+          "total": 49678252,
+          "displayValue": 49678252,
           "breakdown": [
             {
               "name": "deepseek-v4-flash",
@@ -22357,18 +22394,6 @@
               }
             },
             {
-              "name": "kimi-k2.6",
-              "tokens": {
-                "input": 4727424,
-                "output": 20864,
-                "cache": {
-                  "input": 0,
-                  "output": 0
-                },
-                "total": 4748288
-              }
-            },
-            {
               "name": "glm-5.2",
               "tokens": {
                 "input": 477840,
@@ -22378,6 +22403,55 @@
                   "output": 0
                 },
                 "total": 503408
+              }
+            },
+            {
+              "name": "kimi-k2.6",
+              "tokens": {
+                "input": 237399,
+                "output": 2408,
+                "cache": {
+                  "input": 0,
+                  "output": 0
+                },
+                "total": 239807
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-07-23",
+          "input": 73021458,
+          "output": 123840,
+          "cache": {
+            "input": 0,
+            "output": 0
+          },
+          "total": 73145298,
+          "displayValue": 73145298,
+          "breakdown": [
+            {
+              "name": "deepseek-v4-flash",
+              "tokens": {
+                "input": 68531433,
+                "output": 105384,
+                "cache": {
+                  "input": 0,
+                  "output": 0
+                },
+                "total": 68636817
+              }
+            },
+            {
+              "name": "kimi-k2.6",
+              "tokens": {
+                "input": 4490025,
+                "output": 18456,
+                "cache": {
+                  "input": 0,
+                  "output": 0
+                },
+                "total": 4508481
               }
             }
           ]
