@@ -1,27 +1,27 @@
 {
   "version": "2026-06-19",
-  "generatedAt": "2026-07-25T03:22:16.292Z",
+  "generatedAt": "2026-07-26T03:30:10.838Z",
   "source": "tokens.micr.dev recovered history + live ccusage-backed harness refresh (offline pricing)",
   "dateRange": {
     "start": "2025-11-30",
-    "end": "2026-07-25"
+    "end": "2026-07-26"
   },
-  "grandTotalTokens": 460012441697,
-  "harnessTotalCostUsd": 99968.38,
-  "modelTotalCostUsd": 99968.38,
+  "grandTotalTokens": 468504175323,
+  "harnessTotalCostUsd": 100288.5,
+  "modelTotalCostUsd": 100288.5,
   "coverageNote": "API-price equivalent for this token usage. Most or all of these tokens were used through subscription plans rather than metered API billing.",
   "harnesses": [
     {
       "id": "codex",
       "label": "Codex",
-      "activeDays": 116,
+      "activeDays": 118,
       "firstDate": "2026-07-09",
-      "lastDate": "2026-07-24",
-      "totalCostUsd": 31030.1512556,
-      "totalTokens": 425631344899,
-      "inputTokens": 31264076231,
-      "outputTokens": 669249980,
-      "cacheReadTokens": 417832151680,
+      "lastDate": "2026-07-26",
+      "totalCostUsd": 31350.27166925,
+      "totalTokens": 434034924131,
+      "inputTokens": 31404531025,
+      "outputTokens": 682514706,
+      "cacheReadTokens": 426082011392,
       "monthly": [
         {
           "month": "2026-03",
@@ -61,12 +61,12 @@
         },
         {
           "month": "2026-07",
-          "inputTokens": 5761937348,
-          "outputTokens": 598258864,
-          "cacheReadTokens": 393698018688,
-          "totalTokens": 400058214900,
-          "activeDays": 16,
-          "costUsd": 5919.6612556
+          "inputTokens": 5902392142,
+          "outputTokens": 611523590,
+          "cacheReadTokens": 401947878400,
+          "totalTokens": 408461794132,
+          "activeDays": 18,
+          "costUsd": 6239.781669249999
         }
       ]
     },
@@ -309,13 +309,13 @@
     {
       "id": "hermes",
       "label": "Hermes Agent",
-      "activeDays": 130,
+      "activeDays": 131,
       "firstDate": "2026-03-18",
-      "lastDate": "2026-07-25",
+      "lastDate": "2026-07-26",
       "totalCostUsd": 1176.1453912050001,
-      "totalTokens": 3765605250,
-      "inputTokens": 729684862,
-      "outputTokens": 26422419,
+      "totalTokens": 3853759644,
+      "inputTokens": 817467278,
+      "outputTokens": 26794397,
       "cacheReadTokens": 3009497919,
       "monthly": [
         {
@@ -356,11 +356,11 @@
         },
         {
           "month": "2026-07",
-          "inputTokens": 203307236,
-          "outputTokens": 4406292,
+          "inputTokens": 291089652,
+          "outputTokens": 4778270,
           "cacheReadTokens": 902259331,
-          "totalTokens": 1109972909,
-          "activeDays": 25,
+          "totalTokens": 1198127303,
+          "activeDays": 26,
           "costUsd": 25.36041787
         }
       ]
@@ -1195,12 +1195,12 @@
     },
     {
       "month": "2026-07",
-      "inputTokens": 5998286486,
-      "outputTokens": 605198932,
-      "cacheReadTokens": 395372742019,
-      "totalTokens": 401977296519,
-      "activeDays": 51,
-      "costUsd": 5945.02167347
+      "inputTokens": 6226523696,
+      "outputTokens": 618835636,
+      "cacheReadTokens": 403622601731,
+      "totalTokens": 410469030145,
+      "activeDays": 54,
+      "costUsd": 6265.142087119999
     }
   ],
   "sourceCoverage": [
@@ -1223,7 +1223,7 @@
       ],
       "missingMonths": [],
       "firstDate": "2026-07-09",
-      "lastDate": "2026-07-24"
+      "lastDate": "2026-07-26"
     },
     {
       "harness": "opencode",
@@ -1328,7 +1328,7 @@
       ],
       "missingMonths": [],
       "firstDate": "2026-03-18",
-      "lastDate": "2026-07-25"
+      "lastDate": "2026-07-26"
     },
     {
       "harness": "claude",
@@ -1350,8 +1350,8 @@
     {
       "harness": "codex",
       "status": "ok",
-      "computedUsd": 31030.1512556,
-      "sourceUsd": 31030.1512556,
+      "computedUsd": 31350.27166925,
+      "sourceUsd": 31350.27166925,
       "deltaUsd": 0,
       "note": "refreshed from local ccusage during publish"
     },

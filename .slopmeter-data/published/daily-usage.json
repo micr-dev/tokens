@@ -1,8 +1,8 @@
 {
   "version": "2026-03-03",
   "start": "2025-07-11",
-  "end": "2026-07-25",
-  "updatedAt": "2026-07-25T03:19:21.252Z",
+  "end": "2026-07-26",
+  "updatedAt": "2026-07-26T03:27:09.054Z",
   "providers": [
     {
       "provider": "codex",
@@ -22,18 +22,18 @@
         "recentMostUsedModel": {
           "name": "gpt-5.6-sol",
           "tokens": {
-            "input": 10958043397,
-            "output": 20802438,
+            "input": 11287966636,
+            "output": 21519509,
             "cache": {
-              "input": 10734533888,
+              "input": 11054958592,
               "output": 0
             },
-            "total": 10978845835
+            "total": 11309486145
           }
         },
         "streaks": {
-          "longest": 136,
-          "current": 136
+          "longest": 138,
+          "current": 138
         }
       },
       "daily": [
@@ -4165,6 +4165,68 @@
                   "output": 0
                 },
                 "total": 60413652
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-07-25",
+          "input": 236817990,
+          "output": 552964,
+          "cache": {
+            "input": 229031296,
+            "output": 0
+          },
+          "total": 237370954,
+          "displayValue": 237370954,
+          "breakdown": [
+            {
+              "name": "gpt-5.6-sol",
+              "tokens": {
+                "input": 231573841,
+                "output": 527593,
+                "cache": {
+                  "input": 224085248,
+                  "output": 0
+                },
+                "total": 232101434
+              }
+            },
+            {
+              "name": "gpt-5.3-codex-spark",
+              "tokens": {
+                "input": 5244149,
+                "output": 25371,
+                "cache": {
+                  "input": 4946048,
+                  "output": 0
+                },
+                "total": 5269520
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-07-26",
+          "input": 98349398,
+          "output": 189478,
+          "cache": {
+            "input": 96339456,
+            "output": 0
+          },
+          "total": 98538876,
+          "displayValue": 98538876,
+          "breakdown": [
+            {
+              "name": "gpt-5.6-sol",
+              "tokens": {
+                "input": 98349398,
+                "output": 189478,
+                "cache": {
+                  "input": 96339456,
+                  "output": 0
+                },
+                "total": 98538876
               }
             }
           ]
@@ -12504,13 +12566,13 @@
         "recentMostUsedModel": {
           "name": "gemini-3-flash-a",
           "tokens": {
-            "input": 240442363,
-            "output": 5215296,
+            "input": 182273763,
+            "output": 3631618,
             "cache": {
-              "input": 212234192,
+              "input": 159643193,
               "output": 0
             },
-            "total": 245657659
+            "total": 185905381
           }
         },
         "streaks": {
@@ -14883,25 +14945,25 @@
         },
         {
           "date": "2026-07-25",
-          "input": 17169959,
-          "output": 44845,
+          "input": 30545243,
+          "output": 97245,
           "cache": {
-            "input": 16582050,
+            "input": 29263018,
             "output": 0
           },
-          "total": 17214804,
-          "displayValue": 17214804,
+          "total": 30642488,
+          "displayValue": 30642488,
           "breakdown": [
             {
               "name": "gemini-3.6-flash",
               "tokens": {
-                "input": 17100907,
-                "output": 35372,
+                "input": 30476191,
+                "output": 87772,
                 "cache": {
-                  "input": 16549472,
+                  "input": 29230440,
                   "output": 0
                 },
-                "total": 17136279
+                "total": 30563963
               }
             },
             {
@@ -16447,18 +16509,18 @@
         "recentMostUsedModel": {
           "name": "deepseek-v4-flash",
           "tokens": {
-            "input": 103146918,
-            "output": 162760,
+            "input": 112715309,
+            "output": 290660,
             "cache": {
               "input": 0,
               "output": 0
             },
-            "total": 103309678
+            "total": 113005969
           }
         },
         "streaks": {
-          "longest": 130,
-          "current": 130
+          "longest": 131,
+          "current": 131
         }
       },
       "daily": [
@@ -22569,25 +22631,62 @@
         },
         {
           "date": "2026-07-25",
-          "input": 272395,
-          "output": 267,
+          "input": 84636207,
+          "output": 356311,
           "cache": {
             "input": 0,
             "output": 0
           },
-          "total": 272662,
-          "displayValue": 272662,
+          "total": 84992518,
+          "displayValue": 84992518,
           "breakdown": [
             {
-              "name": "deepseek-v4-flash",
+              "name": "kimi-k2.7-code",
               "tokens": {
-                "input": 272395,
-                "output": 267,
+                "input": 74795421,
+                "output": 228144,
                 "cache": {
                   "input": 0,
                   "output": 0
                 },
-                "total": 272662
+                "total": 75023565
+              }
+            },
+            {
+              "name": "deepseek-v4-flash",
+              "tokens": {
+                "input": 9840786,
+                "output": 128167,
+                "cache": {
+                  "input": 0,
+                  "output": 0
+                },
+                "total": 9968953
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-07-26",
+          "input": 3418604,
+          "output": 15934,
+          "cache": {
+            "input": 0,
+            "output": 0
+          },
+          "total": 3434538,
+          "displayValue": 3434538,
+          "breakdown": [
+            {
+              "name": "kimi-k2.7-code",
+              "tokens": {
+                "input": 3418604,
+                "output": 15934,
+                "cache": {
+                  "input": 0,
+                  "output": 0
+                },
+                "total": 3434538
               }
             }
           ]
@@ -22609,9 +22708,21 @@
             "total": 151020004
           }
         },
+        "recentMostUsedModel": {
+          "name": "claude-opus-4-6",
+          "tokens": {
+            "input": 4837507,
+            "output": 1236257,
+            "cache": {
+              "input": 4837373,
+              "output": 1174156
+            },
+            "total": 6073764
+          }
+        },
         "streaks": {
           "longest": 2,
-          "current": 0
+          "current": 1
         }
       },
       "daily": [
@@ -22832,6 +22943,31 @@
                   "output": 0
                 },
                 "total": 6842
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-07-25",
+          "input": 4837507,
+          "output": 1236257,
+          "cache": {
+            "input": 4837373,
+            "output": 1174156
+          },
+          "total": 6073764,
+          "displayValue": 6073764,
+          "breakdown": [
+            {
+              "name": "claude-opus-4-6",
+              "tokens": {
+                "input": 4837507,
+                "output": 1236257,
+                "cache": {
+                  "input": 4837373,
+                  "output": 1174156
+                },
+                "total": 6073764
               }
             }
           ]
