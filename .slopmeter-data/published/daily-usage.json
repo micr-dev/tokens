@@ -3900,25 +3900,25 @@
         },
         {
           "date": "2026-07-18",
-          "input": 35034284,
-          "output": 52200,
+          "input": 3052703065,
+          "output": 6495980,
           "cache": {
-            "input": 34515200,
+            "input": 2983523840,
             "output": 0
           },
-          "total": 35086484,
-          "displayValue": 35086484,
+          "total": 3059199045,
+          "displayValue": 3059199045,
           "breakdown": [
             {
               "name": "gpt-5.6-sol",
               "tokens": {
-                "input": 35034284,
-                "output": 52200,
+                "input": 3052703065,
+                "output": 6495980,
                 "cache": {
-                  "input": 34515200,
+                  "input": 2983523840,
                   "output": 0
                 },
-                "total": 35086484
+                "total": 3059199045
               }
             }
           ]
@@ -4233,25 +4233,25 @@
         },
         {
           "date": "2026-07-27",
-          "input": 5348540,
-          "output": 10987,
+          "input": 241760860,
+          "output": 487799,
           "cache": {
-            "input": 5100800,
+            "input": 232647680,
             "output": 0
           },
-          "total": 5359527,
-          "displayValue": 5359527,
+          "total": 242248659,
+          "displayValue": 242248659,
           "breakdown": [
             {
               "name": "gpt-5.6-sol",
               "tokens": {
-                "input": 5348540,
-                "output": 10987,
+                "input": 241760860,
+                "output": 487799,
                 "cache": {
-                  "input": 5100800,
+                  "input": 232647680,
                   "output": 0
                 },
-                "total": 5359527
+                "total": 242248659
               }
             }
           ]
