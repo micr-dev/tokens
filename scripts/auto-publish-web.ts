@@ -125,12 +125,17 @@ function assertCleanTrackedWorktree() {
   }
 }
 
-function assertMainBranch() {
+function ensureMainBranch() {
   const branch = assertCommand("git", ["branch", "--show-current"]);
 
-  if (branch !== "main") {
-    throw new Error(`Automation clone must stay on main. Current branch: ${branch}`);
+  if (branch === "main") {
+    return;
   }
+
+  // A prior jj export can leave this clean automation clone detached at the
+  // same commit as main. Repair only that safe case before publishing.
+  assertCleanTrackedWorktree();
+  assertCommand("git", ["switch", "main"]);
 }
 
 function pullLatestMain() {
@@ -177,9 +182,10 @@ function main() {
     existsSync(DEFAULT_RECOVERY_DB_PATH) && recoveryRefreshAvailable;
   const publishEnv = {
     SLOPMETER_WEB_SKIP_BLOB_UPLOAD: "1",
+    SLOPMETER_WEB_SKIP_COST_REFRESH: "1",
   } satisfies NodeJS.ProcessEnv;
 
-  assertMainBranch();
+  ensureMainBranch();
   assertCleanTrackedWorktree();
   pullLatestMain();
   installDependencies();

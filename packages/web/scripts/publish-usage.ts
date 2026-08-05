@@ -904,6 +904,15 @@ export function writePublishedCostArtifact({
     throw new Error(`Cost analysis source not found: ${sourcePath}`);
   }
 
+  // Usage publication must remain available when local ccusage providers are
+  // unavailable or take too long. The scheduled publisher sets this flag for
+  // the recovery path and keeps the last verified cost snapshot unchanged.
+  if (process.env.SLOPMETER_WEB_SKIP_COST_REFRESH === "1") {
+    mkdirSync(dirname(outputPath), { recursive: true });
+    writeFileSync(outputPath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
+    return payload;
+  }
+
   // If we fell back to the raw source, we still need the model/rate rows from
   // it (the published artifact may carry them too, but the raw source is the
   // canonical rate input when no published artifact exists yet).

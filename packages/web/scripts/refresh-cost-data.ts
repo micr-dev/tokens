@@ -30,6 +30,20 @@ function assertCcusageAvailable() {
 }
 
 function main() {
+  if (process.env.SLOPMETER_WEB_SKIP_COST_REFRESH === "1") {
+    process.stdout.write(
+      `${JSON.stringify(
+        {
+          skipped: true,
+          reason: "SLOPMETER_WEB_SKIP_COST_REFRESH=1",
+        },
+        null,
+        2,
+      )}\n`,
+    );
+    return;
+  }
+
   assertCcusageAvailable();
 
   const sourcePath = resolve(
