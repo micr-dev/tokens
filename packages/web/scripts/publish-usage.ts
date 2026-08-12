@@ -262,19 +262,37 @@ function runCcusageJson({
   since: string;
   until: string;
 }) {
+  const timeoutMs = Number.parseInt(
+    process.env.SLOPMETER_CCUSAGE_TIMEOUT_MS ?? "120000",
+    10,
+  );
   const result = spawnSync(
     "ccusage",
-    [harnessId, command, "--json", "--offline", "--since", since, "--until", until],
+    [
+      harnessId,
+      command,
+      "--json",
+      "--offline",
+      "--since",
+      since,
+      "--until",
+      until,
+    ],
     {
       encoding: "utf8",
       maxBuffer: 128 * 1024 * 1024,
+      timeout: Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : 120000,
+      killSignal: "SIGTERM",
     },
   );
 
   if (result.status !== 0) {
     throw new Error(
       `ccusage ${harnessId} ${command} failed: ${
-        result.stderr.trim() || result.stdout.trim() || "unknown error"
+        result.error?.message ||
+        result.stderr.trim() ||
+        result.stdout.trim() ||
+        "unknown error"
       }`,
     );
   }
@@ -402,14 +420,15 @@ function buildCcusageCostHarness({
       total_tokens: getCcusageNumber(totals, "totalTokens"),
     },
     total_cost_usd: getCcusageCost(totals),
-    monthly: monthlyRows.map((row) =>
-      toCostMonthlyRow(row, monthlyActiveDays),
-    ),
+    monthly: monthlyRows.map((row) => toCostMonthlyRow(row, monthlyActiveDays)),
   };
 }
 
 function buildCostMonthlyTotals(
-  providers: Record<string, ReturnType<typeof buildCcusageCostHarness> | unknown>,
+  providers: Record<
+    string,
+    ReturnType<typeof buildCcusageCostHarness> | unknown
+  >,
 ) {
   const monthly = new Map<
     string,
@@ -431,19 +450,17 @@ function buildCostMonthlyTotals(
     for (const row of asArray(record.monthly, "cost provider monthly")) {
       const monthlyRow = asRecord(row, "cost provider monthly row");
       const month = requireString(monthlyRow.month, "monthly row month");
-      const current =
-        monthly.get(month) ??
-        {
-          month,
-          input_tokens: 0,
-          output_tokens: 0,
-          cache_read_tokens: 0,
-          total_tokens: 0,
-          active_days: 0,
-          cost_usd: 0,
-          cost_note:
-            "cost_usd includes live ccusage-backed harnesses plus preserved recovered history where available",
-        };
+      const current = monthly.get(month) ?? {
+        month,
+        input_tokens: 0,
+        output_tokens: 0,
+        cache_read_tokens: 0,
+        total_tokens: 0,
+        active_days: 0,
+        cost_usd: 0,
+        cost_note:
+          "cost_usd includes live ccusage-backed harnesses plus preserved recovered history where available",
+      };
 
       current.input_tokens += numberOrZero(monthlyRow.input_tokens);
       current.output_tokens += numberOrZero(monthlyRow.output_tokens);
@@ -581,17 +598,15 @@ function buildModelEstimatedHarness({
 
   for (const day of usageProvider.daily) {
     const month = day.date.slice(0, 7);
-    const current =
-      monthly.get(month) ??
-      {
-        month,
-        inputTokens: 0,
-        outputTokens: 0,
-        cacheReadTokens: 0,
-        totalTokens: 0,
-        activeDays: 0,
-        costUsd: 0,
-      };
+    const current = monthly.get(month) ?? {
+      month,
+      inputTokens: 0,
+      outputTokens: 0,
+      cacheReadTokens: 0,
+      totalTokens: 0,
+      activeDays: 0,
+      costUsd: 0,
+    };
     let dayCostUsd = 0;
 
     for (const model of day.breakdown) {
@@ -682,9 +697,7 @@ function refreshCostPayloadFromCcusage(
         if (!refreshedMonth) {
           // Month entirely missing from ccusage — preserve from history
           mergedMonthly.push(prevMonth);
-        } else if (
-          (prevMonth.costUsd ?? 0) > (refreshedMonth.costUsd ?? 0)
-        ) {
+        } else if ((prevMonth.costUsd ?? 0) > (refreshedMonth.costUsd ?? 0)) {
           // ccusage under-counted this month — use the higher preserved value
           const idx = mergedMonthly.findIndex(
             (m) => m.month === prevMonth.month,
@@ -757,8 +770,8 @@ function refreshCostPayloadFromCcusage(
     }
   }
 
-  const harnesses = payload.harnesses.map((harness) =>
-    providerEntries.get(harness.id) ?? harness,
+  const harnesses = payload.harnesses.map(
+    (harness) => providerEntries.get(harness.id) ?? harness,
   );
   const firstDate =
     harnesses
@@ -1355,8 +1368,7 @@ export function mergePublishedUsagePayloads({
   // "agy" entries. Without this pre-merge fold, raw "gemini" dates (which
   // have no matching "agy:" key) leave hosted "agy" entries unfiltered, and
   // the post-merge fold stacks gemini data on top every publish cycle.
-  const foldedCurrentPayload =
-    foldGeminiInJsonExportPayload(currentPayload);
+  const foldedCurrentPayload = foldGeminiInJsonExportPayload(currentPayload);
 
   const payloadInputs = buildCanonicalPayloadInputs({
     currentPayload: foldedCurrentPayload,

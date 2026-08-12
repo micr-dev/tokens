@@ -18,6 +18,8 @@
     "lint": "turbo run lint",
     "lint:fix": "turbo run lint:fix",
     "publish:web": "bun run --cwd packages/web refresh-cost-data && bun run --cwd packages/web publish:usage",
+    "machine-exports:merge": "bun run scripts/merge-machine-exports.ts",
+    "machine-exports:pull": "bun run scripts/pull-machine-exports.ts",
     "typecheck": "turbo run typecheck",
     "check": "turbo run typecheck build",
     "start": "turbo run start --filter=slopmeter",
