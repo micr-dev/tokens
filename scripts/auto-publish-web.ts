@@ -233,7 +233,7 @@ function main() {
     });
   }
 
-  assertCommand("bunx", ["next", "build"]);
+  assertCommand("bun", ["x", "next", "build"]);
 
   const afterJson = normalizePublishedJson(
     readTextIfExists(resolve(REPO_ROOT, GENERATED_ARTIFACTS[0])),
