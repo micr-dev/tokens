@@ -1,5 +1,11 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  writeFileSync,
+} from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -61,7 +67,11 @@ function runCommand(command: string, args: string[], env?: NodeJS.ProcessEnv) {
   return result;
 }
 
-function assertCommand(command: string, args: string[], env?: NodeJS.ProcessEnv) {
+function assertCommand(
+  command: string,
+  args: string[],
+  env?: NodeJS.ProcessEnv,
+) {
   const result = runCommand(command, args, env);
 
   if (result.status !== 0) {
@@ -169,15 +179,26 @@ function restoreGeneratedArtifacts() {
 
 function writeState(summary: RunSummary) {
   mkdirSync(dirname(DEFAULT_STATE_PATH), { recursive: true });
-  writeFileSync(DEFAULT_STATE_PATH, `${JSON.stringify(summary, null, 2)}\n`, "utf8");
+  writeFileSync(
+    DEFAULT_STATE_PATH,
+    `${JSON.stringify(summary, null, 2)}\n`,
+    "utf8",
+  );
 }
 
 function main() {
   const beforeJson = normalizePublishedJson(
     readTextIfExists(resolve(REPO_ROOT, GENERATED_ARTIFACTS[0])),
   );
-  const beforeSvg = readTextIfExists(resolve(REPO_ROOT, GENERATED_ARTIFACTS[1]));
-  const recoveryRefreshAvailable = hasPackageScript("publish:web:refresh-opencode-recovery");
+  const beforeCost = readTextIfExists(
+    resolve(REPO_ROOT, GENERATED_ARTIFACTS[1]),
+  );
+  const beforeSvg = readTextIfExists(
+    resolve(REPO_ROOT, GENERATED_ARTIFACTS[2]),
+  );
+  const recoveryRefreshAvailable = hasPackageScript(
+    "publish:web:refresh-opencode-recovery",
+  );
   const useRecoveryRefresh =
     existsSync(DEFAULT_RECOVERY_DB_PATH) && recoveryRefreshAvailable;
   const publishEnv = {
@@ -191,9 +212,25 @@ function main() {
   installDependencies();
 
   if (useRecoveryRefresh) {
-    assertCommand("bun", ["run", "publish:web:refresh-opencode-recovery"], publishEnv);
+    assertCommand("bun", ["run", "machine-exports:pull"], publishEnv);
+    assertCommand("bun", ["run", "machine-exports:merge"], publishEnv);
+    assertCommand("bun", ["run", "publish:web:refresh-opencode-recovery"], {
+      ...publishEnv,
+      SLOPMETER_WEB_IMPORT_PATH: resolve(
+        homedir(),
+        ".local/share/slopmeter/machine-import.json",
+      ),
+    });
   } else {
-    assertCommand("bun", ["run", "publish:web"], publishEnv);
+    assertCommand("bun", ["run", "machine-exports:pull"], publishEnv);
+    assertCommand("bun", ["run", "machine-exports:merge"], publishEnv);
+    assertCommand("bun", ["run", "publish:web"], {
+      ...publishEnv,
+      SLOPMETER_WEB_IMPORT_PATH: resolve(
+        homedir(),
+        ".local/share/slopmeter/machine-import.json",
+      ),
+    });
   }
 
   assertCommand("bunx", ["next", "build"]);
@@ -201,8 +238,14 @@ function main() {
   const afterJson = normalizePublishedJson(
     readTextIfExists(resolve(REPO_ROOT, GENERATED_ARTIFACTS[0])),
   );
-  const afterSvg = readTextIfExists(resolve(REPO_ROOT, GENERATED_ARTIFACTS[1]));
-  const materialChangeDetected = beforeJson !== afterJson || beforeSvg !== afterSvg;
+  const afterCost = readTextIfExists(
+    resolve(REPO_ROOT, GENERATED_ARTIFACTS[1]),
+  );
+  const afterSvg = readTextIfExists(resolve(REPO_ROOT, GENERATED_ARTIFACTS[2]));
+  const materialChangeDetected =
+    beforeJson !== afterJson ||
+    beforeCost !== afterCost ||
+    beforeSvg !== afterSvg;
   const latestBackupDir = getLatestBackupDir();
 
   if (!materialChangeDetected) {
@@ -225,7 +268,12 @@ function main() {
   }
 
   assertCommand("git", ["add", "--", ...GENERATED_ARTIFACTS]);
-  const stagedDiff = runCommand("git", ["diff", "--cached", "--quiet", "--exit-code"]);
+  const stagedDiff = runCommand("git", [
+    "diff",
+    "--cached",
+    "--quiet",
+    "--exit-code",
+  ]);
 
   if (stagedDiff.status === 0) {
     const summary: RunSummary = {
@@ -249,7 +297,11 @@ function main() {
   }
 
   const dateKey = new Date().toISOString().slice(0, 10);
-  assertCommand("git", ["commit", "-m", `chore(data): daily publish ${dateKey}`]);
+  assertCommand("git", [
+    "commit",
+    "-m",
+    `chore(data): daily publish ${dateKey}`,
+  ]);
   const commitSha = assertCommand("git", ["rev-parse", "HEAD"]);
   assertCommand("git", ["push", "origin", "main"]);
 
