@@ -34568,28 +34568,28 @@ export const publishedUsagePayload: PublishedUsagePayload = {
 
 export const publishedCostPayload: PublishedCostPayload | null = {
   "version": "2026-06-19",
-  "generatedAt": "2026-08-15T12:20:22.221Z",
+  "generatedAt": "2026-08-17T19:50:33.350Z",
   "source": "tokens.micr.dev recovered history + live ccusage-backed harness refresh (offline pricing)",
   "dateRange": {
     "start": "2025-11-30",
-    "end": "2026-08-15"
+    "end": "2026-08-17"
   },
-  "grandTotalTokens": 655269289286,
-  "harnessTotalCostUsd": 98741.54,
-  "modelTotalCostUsd": 98741.54,
+  "grandTotalTokens": 657979072567,
+  "harnessTotalCostUsd": 98746.45,
+  "modelTotalCostUsd": 98746.45,
   "coverageNote": "API-price equivalent for this token usage. Most or all of these tokens were used through subscription plans rather than metered API billing.",
   "harnesses": [
     {
       "id": "codex",
       "label": "Codex",
-      "activeDays": 130,
+      "activeDays": 132,
       "firstDate": "2026-07-09",
-      "lastDate": "2026-08-15",
+      "lastDate": "2026-08-17",
       "totalCostUsd": 29574.857060750004,
-      "totalTokens": 617017221670,
-      "inputTokens": 34618340107,
-      "outputTokens": 1023562651,
-      "cacheReadTokens": 605509451904,
+      "totalTokens": 618621967329,
+      "inputTokens": 34648448683,
+      "outputTokens": 1026941366,
+      "cacheReadTokens": 607080710272,
       "monthly": [
         {
           "month": "2026-03",
@@ -34638,11 +34638,11 @@ export const publishedCostPayload: PublishedCostPayload | null = {
         },
         {
           "month": "2026-08",
-          "inputTokens": 502699252,
-          "outputTokens": 51493616,
-          "cacheReadTokens": 28107734144,
-          "totalTokens": 28661927012,
-          "activeDays": 15,
+          "inputTokens": 532807828,
+          "outputTokens": 54872331,
+          "cacheReadTokens": 29678992512,
+          "totalTokens": 30266672671,
+          "activeDays": 17,
           "costUsd": 71.32967550000001
         }
       ]
@@ -34827,14 +34827,14 @@ export const publishedCostPayload: PublishedCostPayload | null = {
     {
       "id": "droid",
       "label": "Droid",
-      "activeDays": 53,
+      "activeDays": 56,
       "firstDate": "2026-03-25",
-      "lastDate": "2026-08-14",
-      "totalCostUsd": 526.61694518,
-      "totalTokens": 4710677294,
-      "inputTokens": 1168443276,
-      "outputTokens": 15027061,
-      "cacheReadTokens": 4407021018,
+      "lastDate": "2026-08-17",
+      "totalCostUsd": 529.71398178,
+      "totalTokens": 5659483636,
+      "inputTokens": 1208481249,
+      "outputTokens": 18861653,
+      "cacheReadTokens": 5310004186,
       "monthly": [
         {
           "month": "2026-03",
@@ -34883,26 +34883,26 @@ export const publishedCostPayload: PublishedCostPayload | null = {
         },
         {
           "month": "2026-08",
-          "inputTokens": 51704928,
-          "outputTokens": 4467299,
-          "cacheReadTokens": 1502955968,
-          "totalTokens": 1560221189,
-          "activeDays": 8,
-          "costUsd": 0
+          "inputTokens": 91742901,
+          "outputTokens": 8301891,
+          "cacheReadTokens": 2405939136,
+          "totalTokens": 2509027531,
+          "activeDays": 11,
+          "costUsd": 3.0970366
         }
       ]
     },
     {
       "id": "hermes",
       "label": "Hermes Agent",
-      "activeDays": 150,
+      "activeDays": 152,
       "firstDate": "2026-03-18",
-      "lastDate": "2026-08-15",
-      "totalCostUsd": 1404.5929580650002,
-      "totalTokens": 5512891567,
-      "inputTokens": 1215450363,
-      "outputTokens": 31448612,
-      "cacheReadTokens": 4264620287,
+      "lastDate": "2026-08-17",
+      "totalCostUsd": 1406.4073665650003,
+      "totalTokens": 5669122847,
+      "inputTokens": 1229388421,
+      "outputTokens": 31906577,
+      "cacheReadTokens": 4406315263,
       "monthly": [
         {
           "month": "2026-03",
@@ -34951,12 +34951,12 @@ export const publishedCostPayload: PublishedCostPayload | null = {
         },
         {
           "month": "2026-08",
-          "inputTokens": 74234258,
-          "outputTokens": 2010210,
-          "cacheReadTokens": 815351808,
-          "totalTokens": 892147401,
-          "activeDays": 14,
-          "costUsd": 9.856769499999999
+          "inputTokens": 88172316,
+          "outputTokens": 2468175,
+          "cacheReadTokens": 957046784,
+          "totalTokens": 1048378681,
+          "activeDays": 16,
+          "costUsd": 11.671178
         }
       ]
     },
@@ -35799,12 +35799,12 @@ export const publishedCostPayload: PublishedCostPayload | null = {
     },
     {
       "month": "2026-08",
-      "inputTokens": 628638438,
-      "outputTokens": 57971125,
-      "cacheReadTokens": 30426041920,
-      "totalTokens": 31114295602,
-      "activeDays": 37,
-      "costUsd": 81.186445
+      "inputTokens": 712723045,
+      "outputTokens": 65642397,
+      "cacheReadTokens": 33041978432,
+      "totalTokens": 33824078883,
+      "activeDays": 44,
+      "costUsd": 86.0978901
     }
   ],
   "sourceCoverage": [
@@ -35829,7 +35829,7 @@ export const publishedCostPayload: PublishedCostPayload | null = {
       ],
       "missingMonths": [],
       "firstDate": "2026-07-09",
-      "lastDate": "2026-08-15"
+      "lastDate": "2026-08-17"
     },
     {
       "harness": "opencode",
@@ -35915,7 +35915,7 @@ export const publishedCostPayload: PublishedCostPayload | null = {
       ],
       "missingMonths": [],
       "firstDate": "2026-03-25",
-      "lastDate": "2026-08-14"
+      "lastDate": "2026-08-17"
     },
     {
       "harness": "hermes",
@@ -35938,7 +35938,7 @@ export const publishedCostPayload: PublishedCostPayload | null = {
       ],
       "missingMonths": [],
       "firstDate": "2026-03-18",
-      "lastDate": "2026-08-15"
+      "lastDate": "2026-08-17"
     },
     {
       "harness": "claude",
@@ -35992,16 +35992,16 @@ export const publishedCostPayload: PublishedCostPayload | null = {
     {
       "harness": "droid",
       "status": "ok",
-      "computedUsd": 526.61694518,
-      "sourceUsd": 526.61694518,
+      "computedUsd": 529.71398178,
+      "sourceUsd": 529.71398178,
       "deltaUsd": 0,
       "note": "refreshed from local ccusage during publish"
     },
     {
       "harness": "hermes",
       "status": "ok",
-      "computedUsd": 1404.5929580650002,
-      "sourceUsd": 1404.5929580650002,
+      "computedUsd": 1406.4073665650003,
+      "sourceUsd": 1406.4073665650003,
       "deltaUsd": 0,
       "note": "refreshed from local ccusage during publish"
     },
