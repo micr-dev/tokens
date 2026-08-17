@@ -774,7 +774,6 @@ body {
 
 .cost-chart__stack {
   width: 100%;
-  min-height: 2px;
   display: flex;
   flex-direction: column-reverse;
   overflow: hidden;

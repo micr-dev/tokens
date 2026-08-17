@@ -80,6 +80,7 @@ const costGroupModes: CostGroupMode[] = ["harness", "model"];
 const costRankModes: CostRankMode[] = ["cost", "tokens", "rate"];
 const costVisibleLimits: CostVisibleLimit[] = [5, 10, 20, "all"];
 const defaultCursorAccent = "#22c55e";
+const minimumVisibleCostBarPixels = 6;
 const modelScaleLabels: Record<ModelsTimeScale, string> = {
   year: "Year",
   month: "Month",
@@ -991,6 +992,10 @@ function CostStackedChart({
         {buckets.map((bucket) => {
           const stackHeight =
             maxTotal > 0 ? (bucket.totalCostUsd / maxTotal) * 100 : 0;
+          const stackStyle =
+            bucket.totalCostUsd > 0
+              ? `max(${stackHeight}%, ${minimumVisibleCostBarPixels}px)`
+              : "0%";
           const tooltipNote = bucket.segments
             .map(
               (segment) => `${segment.label}: ${formatCurrency(segment.value)}`,
@@ -1010,7 +1015,7 @@ function CostStackedChart({
               <div className="cost-chart__track">
                 <div
                   className="cost-chart__stack"
-                  style={{ height: `${stackHeight}%` }}
+                  style={{ height: stackStyle }}
                 >
                   {bucket.segments.map((segment) => (
                     <span
