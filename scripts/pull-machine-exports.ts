@@ -34,21 +34,27 @@ function main() {
   for (const machine of machines) {
     const destination = resolve(outputDir, `${machine.id}.json`);
     const temporaryPath = `${destination}.tmp`;
-    execFileSync(
-      "scp",
-      [
-        "-q",
-        "-o",
-        "ConnectTimeout=10",
-        "-o",
-        "BatchMode=yes",
-        `${machine.user}@${machine.host}:${machine.path}`,
-        temporaryPath,
-      ],
-      { stdio: "inherit" },
-    );
-    renameSync(temporaryPath, destination);
-    process.stdout.write(`Pulled ${machine.id}\n`);
+    try {
+      execFileSync(
+        "scp",
+        [
+          "-q",
+          "-o",
+          "ConnectTimeout=10",
+          "-o",
+          "BatchMode=yes",
+          `${machine.user}@${machine.host}:${machine.path}`,
+          temporaryPath,
+        ],
+        { stdio: "inherit" },
+      );
+      renameSync(temporaryPath, destination);
+      process.stdout.write(`Pulled ${machine.id}\n`);
+    } catch (error) {
+      process.stderr.write(
+        `Could not pull ${machine.id}; preserving the previous export if present. ${String(error)}\n`,
+      );
+    }
   }
 }
 
