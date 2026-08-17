@@ -34575,8 +34575,8 @@ export const publishedCostPayload: PublishedCostPayload | null = {
     "end": "2026-08-17"
   },
   "grandTotalTokens": 657979072567,
-  "harnessTotalCostUsd": 194682.96,
-  "modelTotalCostUsd": 194682.96,
+  "harnessTotalCostUsd": 109467.65,
+  "modelTotalCostUsd": 109467.65,
   "coverageNote": "API-price equivalent for this token usage. Most or all of these tokens were used through subscription plans rather than metered API billing.",
   "harnesses": [
     {
@@ -34585,7 +34585,7 @@ export const publishedCostPayload: PublishedCostPayload | null = {
       "activeDays": 132,
       "firstDate": "2026-07-09",
       "lastDate": "2026-08-17",
-      "totalCostUsd": 125511.37194692003,
+      "totalCostUsd": 40296.061463720005,
       "totalTokens": 608506037820,
       "inputTokens": 54228266333,
       "outputTokens": 1010179350,
@@ -34643,7 +34643,7 @@ export const publishedCostPayload: PublishedCostPayload | null = {
           "cacheReadTokens": 19744931840,
           "totalTokens": 20150743162,
           "activeDays": 17,
-          "costUsd": 96007.84456167002
+          "costUsd": 10792.53407847
         }
       ]
     },
@@ -35804,7 +35804,7 @@ export const publishedCostPayload: PublishedCostPayload | null = {
       "cacheReadTokens": 23107917760,
       "totalTokens": 23708149374,
       "activeDays": 44,
-      "costUsd": 96022.61277627002
+      "costUsd": 10807.30229307
     }
   ],
   "sourceCoverage": [
@@ -35960,10 +35960,10 @@ export const publishedCostPayload: PublishedCostPayload | null = {
     {
       "harness": "codex",
       "status": "estimated",
-      "computedUsd": 125511.37194692003,
-      "sourceUsd": 125511.37194692003,
+      "computedUsd": 40296.061463720005,
+      "sourceUsd": 40296.061463720005,
       "deltaUsd": 0,
-      "note": "current month priced from published multi-machine model breakdown; historical months preserved"
+      "note": "current month priced from published multi-machine model breakdown; cached input counted once; historical months preserved"
     },
     {
       "harness": "opencode",

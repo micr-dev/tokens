@@ -697,7 +697,7 @@ function buildCurrentMonthPricedUsageRow(
       if (!prices) continue;
 
       row.costUsd +=
-        (model.tokens.input * prices.input +
+        ((model.tokens.input - model.tokens.cache.input) * prices.input +
           model.tokens.cache.input * prices.cachedInput +
           model.tokens.output * prices.output) /
         1_000_000;
