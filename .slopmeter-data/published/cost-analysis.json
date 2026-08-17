@@ -7,8 +7,8 @@
     "end": "2026-08-17"
   },
   "grandTotalTokens": 657979072567,
-  "harnessTotalCostUsd": 109467.65,
-  "modelTotalCostUsd": 109467.65,
+  "harnessTotalCostUsd": 114126.93,
+  "modelTotalCostUsd": 114126.93,
   "coverageNote": "API-price equivalent for this token usage. Most or all of these tokens were used through subscription plans rather than metered API billing.",
   "harnesses": [
     {
@@ -162,11 +162,11 @@
       "activeDays": 54,
       "firstDate": "2025-12-08",
       "lastDate": "2026-06-15",
-      "totalCostUsd": null,
-      "totalTokens": 4716246988,
-      "inputTokens": 4693704435,
-      "outputTokens": 22542553,
-      "cacheReadTokens": 3128869857,
+      "totalCostUsd": 11.1383055,
+      "totalTokens": 4825726028,
+      "inputTokens": 4802613320,
+      "outputTokens": 23112708,
+      "cacheReadTokens": 3230599734,
       "monthly": [
         {
           "month": "2025-12",
@@ -221,6 +221,15 @@
           "totalTokens": 151296329,
           "activeDays": 4,
           "costUsd": null
+        },
+        {
+          "month": "2026-08",
+          "inputTokens": 108908885,
+          "outputTokens": 570155,
+          "cacheReadTokens": 101729877,
+          "totalTokens": 109479040,
+          "activeDays": 8,
+          "costUsd": 11.1383055
         }
       ]
     },
@@ -262,11 +271,11 @@
       "activeDays": 56,
       "firstDate": "2026-03-25",
       "lastDate": "2026-08-17",
-      "totalCostUsd": 529.71398178,
-      "totalTokens": 5659483636,
-      "inputTokens": 1208481249,
-      "outputTokens": 18861653,
-      "cacheReadTokens": 5310004186,
+      "totalCostUsd": 1685.1436895800002,
+      "totalTokens": 5657485428,
+      "inputTokens": 3612487223,
+      "outputTokens": 21840210,
+      "cacheReadTokens": 5308226522,
       "monthly": [
         {
           "month": "2026-03",
@@ -315,12 +324,12 @@
         },
         {
           "month": "2026-08",
-          "inputTokens": 91742901,
-          "outputTokens": 8301891,
-          "cacheReadTokens": 2405939136,
-          "totalTokens": 2509027531,
+          "inputTokens": 2495748875,
+          "outputTokens": 11280448,
+          "cacheReadTokens": 2404161472,
+          "totalTokens": 2507029323,
           "activeDays": 11,
-          "costUsd": 3.0970366
+          "costUsd": 1158.5267444
         }
       ]
     },
@@ -330,11 +339,11 @@
       "activeDays": 152,
       "firstDate": "2026-03-18",
       "lastDate": "2026-08-17",
-      "totalCostUsd": 1406.4073665650003,
-      "totalTokens": 5669122847,
-      "inputTokens": 1229388421,
-      "outputTokens": 31906577,
-      "cacheReadTokens": 4406315263,
+      "totalCostUsd": 1419.5829040650003,
+      "totalTokens": 4718687023,
+      "inputTokens": 1236424966,
+      "outputTokens": 32172398,
+      "cacheReadTokens": 3449268479,
       "monthly": [
         {
           "month": "2026-03",
@@ -383,12 +392,12 @@
         },
         {
           "month": "2026-08",
-          "inputTokens": 88172316,
-          "outputTokens": 2468175,
-          "cacheReadTokens": 957046784,
-          "totalTokens": 1048378681,
+          "inputTokens": 95208861,
+          "outputTokens": 2733996,
+          "cacheReadTokens": 0,
+          "totalTokens": 97942857,
           "activeDays": 16,
-          "costUsd": 11.671178
+          "costUsd": 24.8467155
         }
       ]
     },
@@ -398,11 +407,11 @@
       "activeDays": 5,
       "firstDate": "2025-11-30",
       "lastDate": "2025-12-08",
-      "totalCostUsd": null,
-      "totalTokens": 167102377,
-      "inputTokens": 166573414,
-      "outputTokens": 528963,
-      "cacheReadTokens": 160069589,
+      "totalCostUsd": 3479.5365196,
+      "totalTokens": 2900028021,
+      "inputTokens": 2813198493,
+      "outputTokens": 86829528,
+      "cacheReadTokens": 2806570565,
       "monthly": [
         {
           "month": "2025-11",
@@ -421,6 +430,15 @@
           "totalTokens": 142979869,
           "activeDays": 4,
           "costUsd": null
+        },
+        {
+          "month": "2026-08",
+          "inputTokens": 2646625079,
+          "outputTokens": 86300565,
+          "cacheReadTokens": 2646500976,
+          "totalTokens": 2732925644,
+          "activeDays": 7,
+          "costUsd": 3479.5365196
         }
       ]
     }
@@ -1145,6 +1163,141 @@
       "outputTokens": 1557,
       "cacheReadTokens": 0,
       "monthsActive": 1
+    },
+    {
+      "name": "gpt-5.6-sol",
+      "totalCostUsd": 11320.839350999999,
+      "totalTokens": 18026206170,
+      "inputTokens": 17993877021,
+      "outputTokens": 32329149,
+      "cacheReadTokens": 17692982272,
+      "monthsActive": 1
+    },
+    {
+      "name": "gpt-5.6-terra",
+      "totalCostUsd": 7.9871316,
+      "totalTokens": 25602547,
+      "inputTokens": 25550637,
+      "outputTokens": 51910,
+      "cacheReadTokens": 24298368,
+      "monthsActive": 1
+    },
+    {
+      "name": "gpt-5.6-luna",
+      "totalCostUsd": 116.70191316,
+      "totalTokens": 3298665500,
+      "inputTokens": 3285397995,
+      "outputTokens": 13267505,
+      "cacheReadTokens": 3090548288,
+      "monthsActive": 1
+    },
+    {
+      "name": "gpt-5.3-codex-spark",
+      "totalCostUsd": 175.87835124999998,
+      "totalTokens": 532347670,
+      "inputTokens": 528854795,
+      "outputTokens": 3485506,
+      "cacheReadTokens": 506929920,
+      "monthsActive": 1
+    },
+    {
+      "name": "claude-sonnet-5",
+      "totalCostUsd": 0.7292616000000001,
+      "totalTokens": 152184,
+      "inputTokens": 105682,
+      "outputTokens": 46502,
+      "cacheReadTokens": 105672,
+      "monthsActive": 1
+    },
+    {
+      "name": "claude-opus-5",
+      "totalCostUsd": 3197.9956015,
+      "totalTokens": 2568301558,
+      "inputTokens": 2490202590,
+      "outputTokens": 78098968,
+      "cacheReadTokens": 2490109233,
+      "monthsActive": 1
+    },
+    {
+      "name": "claude-opus-4-6",
+      "totalCostUsd": 280.8116565,
+      "totalTokens": 164108399,
+      "inputTokens": 156001483,
+      "outputTokens": 8106916,
+      "cacheReadTokens": 155970813,
+      "monthsActive": 1
+    },
+    {
+      "name": "gemini-3.6-flash",
+      "totalCostUsd": 1.8953250000000001,
+      "totalTokens": 10785262,
+      "inputTokens": 10660260,
+      "outputTokens": 125002,
+      "cacheReadTokens": 9731300,
+      "monthsActive": 1
+    },
+    {
+      "name": "gemini-flash-3.6-high-control",
+      "totalCostUsd": 9.242980499999998,
+      "totalTokens": 71038007,
+      "inputTokens": 70732575,
+      "outputTokens": 305432,
+      "cacheReadTokens": 66595290,
+      "monthsActive": 1
+    },
+    {
+      "name": "kimi-k3-modal",
+      "totalCostUsd": 344.22629699999993,
+      "totalTokens": 814853747,
+      "inputTokens": 812780019,
+      "outputTokens": 2073728,
+      "cacheReadTokens": 787118400,
+      "monthsActive": 1
+    },
+    {
+      "name": "glm-5.3",
+      "totalCostUsd": 10.274494360000002,
+      "totalTokens": 48877010,
+      "inputTokens": 48430703,
+      "outputTokens": 446307,
+      "cacheReadTokens": 47216064,
+      "monthsActive": 1
+    },
+    {
+      "name": "gemini-3.1-pro-low",
+      "totalCostUsd": 0,
+      "totalTokens": 717330,
+      "inputTokens": 697328,
+      "outputTokens": 20002,
+      "cacheReadTokens": 523065,
+      "monthsActive": 1
+    },
+    {
+      "name": "gemini-3.6-flash-high",
+      "totalCostUsd": 0,
+      "totalTokens": 3,
+      "inputTokens": 3,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "monthsActive": 1
+    },
+    {
+      "name": "grok-4.5",
+      "totalCostUsd": 0,
+      "totalTokens": 1781379,
+      "inputTokens": 1683576,
+      "outputTokens": 97803,
+      "cacheReadTokens": 0,
+      "monthsActive": 1
+    },
+    {
+      "name": "kimi-k2.6",
+      "totalCostUsd": 0,
+      "totalTokens": 2920355,
+      "inputTokens": 2902026,
+      "outputTokens": 18329,
+      "cacheReadTokens": 0,
+      "monthsActive": 1
     }
   ],
   "monthlyTotals": [
@@ -1231,12 +1384,12 @@
     },
     {
       "month": "2026-08",
-      "inputTokens": 20292540695,
-      "outputTokens": 48880381,
-      "cacheReadTokens": 23107917760,
-      "totalTokens": 23708149374,
-      "activeDays": 44,
-      "costUsd": 10807.30229307
+      "inputTokens": 25459117178,
+      "outputTokens": 138995479,
+      "cacheReadTokens": 24897324165,
+      "totalTokens": 25598120026,
+      "activeDays": 59,
+      "costUsd": 15466.582363470001
     }
   ],
   "sourceCoverage": [
@@ -1392,8 +1545,8 @@
     {
       "harness": "codex",
       "status": "estimated",
-      "computedUsd": 40296.061463720005,
-      "sourceUsd": 40296.061463720005,
+      "computedUsd": 54439.31185146001,
+      "sourceUsd": 54439.31185146001,
       "deltaUsd": 0,
       "note": "current month priced from published multi-machine model breakdown; cached input counted once; historical months preserved"
     },
@@ -1407,11 +1560,11 @@
     },
     {
       "harness": "agy",
-      "status": "preserved",
-      "computedUsd": null,
-      "sourceUsd": null,
+      "status": "estimated",
+      "computedUsd": 11.1383055,
+      "sourceUsd": 11.1383055,
       "deltaUsd": 0,
-      "note": "preserved from imported or recovered history; local ccusage is not a completeness oracle for this harness"
+      "note": "current month priced from published multi-machine model breakdown; cached input counted once; historical months preserved"
     },
     {
       "harness": "pi",
@@ -1423,27 +1576,27 @@
     },
     {
       "harness": "droid",
-      "status": "ok",
-      "computedUsd": 529.71398178,
-      "sourceUsd": 529.71398178,
+      "status": "estimated",
+      "computedUsd": 3027.7031975800005,
+      "sourceUsd": 3027.7031975800005,
       "deltaUsd": 0,
-      "note": "refreshed from local ccusage during publish"
+      "note": "current month priced from published multi-machine model breakdown; cached input counted once; historical months preserved"
     },
     {
       "harness": "hermes",
-      "status": "ok",
-      "computedUsd": 1406.4073665650003,
-      "sourceUsd": 1406.4073665650003,
+      "status": "estimated",
+      "computedUsd": 1426.5582633650001,
+      "sourceUsd": 1426.5582633650001,
       "deltaUsd": 0,
-      "note": "refreshed from local ccusage during publish"
+      "note": "current month priced from published multi-machine model breakdown; cached input counted once; historical months preserved"
     },
     {
       "harness": "claude",
-      "status": "preserved",
-      "computedUsd": null,
-      "sourceUsd": null,
+      "status": "estimated",
+      "computedUsd": 5665.220765099999,
+      "sourceUsd": 5665.220765099999,
       "deltaUsd": 0,
-      "note": "preserved from imported or recovered history; local ccusage is not a completeness oracle for this harness"
+      "note": "current month priced from published multi-machine model breakdown; cached input counted once; historical months preserved"
     }
   ],
   "modelWarnings": [
@@ -1655,6 +1808,26 @@
     {
       "model": "google/gemini-2.5-pro",
       "totalTokens": 6842,
+      "status": "missing-cost"
+    },
+    {
+      "model": "gemini-3.1-pro-low",
+      "totalTokens": 717330,
+      "status": "missing-cost"
+    },
+    {
+      "model": "gemini-3.6-flash-high",
+      "totalTokens": 3,
+      "status": "missing-cost"
+    },
+    {
+      "model": "grok-4.5",
+      "totalTokens": 1781379,
+      "status": "missing-cost"
+    },
+    {
+      "model": "kimi-k2.6",
+      "totalTokens": 2920355,
       "status": "missing-cost"
     }
   ]

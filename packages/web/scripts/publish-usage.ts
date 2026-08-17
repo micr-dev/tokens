@@ -65,6 +65,13 @@ const CURRENT_MONTH_MODEL_PRICES_PER_MILLION: Record<
   "gpt-5.6-luna": { input: 0.2, cachedInput: 0.02, output: 1.2 },
   "gpt-5.6-terra": { input: 2, cachedInput: 0.2, output: 12 },
   "gpt-5.3-codex-spark": { input: 1.75, cachedInput: 0.175, output: 14 },
+  "claude-opus-5": { input: 5, cachedInput: 0.5, output: 25 },
+  "claude-opus-4-6": { input: 5, cachedInput: 0.5, output: 25 },
+  "claude-sonnet-5": { input: 3, cachedInput: 0.3, output: 15 },
+  "kimi-k3-modal": { input: 3, cachedInput: 0.3, output: 15 },
+  "glm-5.3": { input: 1.4, cachedInput: 0.14, output: 4.4 },
+  "gemini-flash-3.6-high-control": { input: 0.75, cachedInput: 0.075, output: 3.75 },
+  "gemini-3.6-flash": { input: 0.75, cachedInput: 0.075, output: 3.75 },
 };
 export const WEB_PROVIDER_ORDER = [
   "codex",
