@@ -55,6 +55,17 @@ const CCUSAGE_BACKED_COST_HARNESSES = [
   { id: "pi", label: "Pi Coding Agent" },
 ] as const;
 const MODEL_ESTIMATED_COST_HARNESSES = new Set(["pi"]);
+const CURRENT_MONTH_MODEL_PRICES_PER_MILLION: Record<
+  string,
+  { input: number; cachedInput: number; output: number }
+> = {
+  // OpenAI model pricing, verified against the official model pages on 2026-08-17.
+  "gpt-5.5": { input: 5, cachedInput: 0.5, output: 30 },
+  "gpt-5.6-sol": { input: 5, cachedInput: 0.5, output: 30 },
+  "gpt-5.6-luna": { input: 0.2, cachedInput: 0.02, output: 1.2 },
+  "gpt-5.6-terra": { input: 2, cachedInput: 0.2, output: 12 },
+  "gpt-5.3-codex-spark": { input: 1.75, cachedInput: 0.175, output: 14 },
+};
 export const WEB_PROVIDER_ORDER = [
   "codex",
   "opencode",
@@ -657,6 +668,75 @@ function buildModelEstimatedHarness({
   };
 }
 
+function buildCurrentMonthPricedUsageRow(
+  usageProvider: PublishedUsagePayload["providers"][number],
+  month: string,
+) {
+  const row = {
+    month,
+    inputTokens: 0,
+    outputTokens: 0,
+    cacheReadTokens: 0,
+    totalTokens: 0,
+    activeDays: 0,
+    costUsd: 0,
+  };
+
+  for (const day of usageProvider.daily) {
+    if (!day.date.startsWith(month)) continue;
+
+    row.inputTokens += day.input;
+    row.outputTokens += day.output;
+    row.cacheReadTokens += day.cache.input;
+    row.totalTokens += day.total;
+    row.activeDays += 1;
+
+    for (const model of day.breakdown) {
+      const prices =
+        CURRENT_MONTH_MODEL_PRICES_PER_MILLION[canonicalCostModelName(model.name)];
+      if (!prices) continue;
+
+      row.costUsd +=
+        (model.tokens.input * prices.input +
+          model.tokens.cache.input * prices.cachedInput +
+          model.tokens.output * prices.output) /
+        1_000_000;
+    }
+  }
+
+  return row.activeDays > 0 && row.costUsd > 0 ? row : null;
+}
+
+function mergeCurrentMonthPricedUsage(
+  harness: PublishedCostHarness,
+  usageProvider: PublishedUsagePayload["providers"][number] | undefined,
+  month: string,
+) {
+  if (!usageProvider) return harness;
+
+  const pricedUsage = buildCurrentMonthPricedUsageRow(usageProvider, month);
+  if (!pricedUsage) return harness;
+
+  const current = harness.monthly.find((row) => row.month === month);
+  if (current && (current.costUsd ?? 0) >= pricedUsage.costUsd) return harness;
+
+  const monthly = [
+    ...harness.monthly.filter((row) => row.month !== month),
+    pricedUsage,
+  ].sort((left, right) => left.month.localeCompare(right.month));
+
+  return {
+    ...harness,
+    monthly,
+    activeDays: monthly.reduce((sum, row) => sum + (row.activeDays ?? 0), 0),
+    totalCostUsd: monthly.reduce((sum, row) => sum + (row.costUsd ?? 0), 0),
+    totalTokens: monthly.reduce((sum, row) => sum + row.totalTokens, 0),
+    inputTokens: monthly.reduce((sum, row) => sum + row.inputTokens, 0),
+    outputTokens: monthly.reduce((sum, row) => sum + row.outputTokens, 0),
+    cacheReadTokens: monthly.reduce((sum, row) => sum + row.cacheReadTokens, 0),
+  };
+}
+
 function refreshCostPayloadFromCcusage(
   payload: PublishedCostPayload,
   usagePayload?: PublishedUsagePayload,
@@ -770,9 +850,14 @@ function refreshCostPayloadFromCcusage(
     }
   }
 
-  const harnesses = payload.harnesses.map(
-    (harness) => providerEntries.get(harness.id) ?? harness,
-  );
+  const harnesses = payload.harnesses.map((harness) => {
+    const refreshed = providerEntries.get(harness.id) ?? harness;
+    const usageProvider = usagePayload?.providers.find(
+      (provider) => provider.provider === harness.id,
+    );
+
+    return mergeCurrentMonthPricedUsage(refreshed, usageProvider, currentMonth);
+  });
   const firstDate =
     harnesses
       .flatMap((harness) => (harness.firstDate ? [harness.firstDate] : []))

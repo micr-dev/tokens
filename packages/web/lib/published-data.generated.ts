@@ -34568,15 +34568,15 @@ export const publishedUsagePayload: PublishedUsagePayload = {
 
 export const publishedCostPayload: PublishedCostPayload | null = {
   "version": "2026-06-19",
-  "generatedAt": "2026-08-17T19:50:33.350Z",
-  "source": "tokens.micr.dev recovered history + live ccusage-backed harness refresh (offline pricing)",
+  "generatedAt": "2026-08-17T20:26:40.628Z",
+  "source": "tokens.micr.dev recovered history + local ccusage + official current-month model pricing for published multi-machine usage",
   "dateRange": {
     "start": "2025-11-30",
     "end": "2026-08-17"
   },
   "grandTotalTokens": 657979072567,
-  "harnessTotalCostUsd": 98746.45,
-  "modelTotalCostUsd": 98746.45,
+  "harnessTotalCostUsd": 194682.96,
+  "modelTotalCostUsd": 194682.96,
   "coverageNote": "API-price equivalent for this token usage. Most or all of these tokens were used through subscription plans rather than metered API billing.",
   "harnesses": [
     {
@@ -34585,11 +34585,11 @@ export const publishedCostPayload: PublishedCostPayload | null = {
       "activeDays": 132,
       "firstDate": "2026-07-09",
       "lastDate": "2026-08-17",
-      "totalCostUsd": 29574.857060750004,
-      "totalTokens": 618621967329,
-      "inputTokens": 34648448683,
-      "outputTokens": 1026941366,
-      "cacheReadTokens": 607080710272,
+      "totalCostUsd": 125511.37194692003,
+      "totalTokens": 608506037820,
+      "inputTokens": 54228266333,
+      "outputTokens": 1010179350,
+      "cacheReadTokens": 597146649600,
       "monthly": [
         {
           "month": "2026-03",
@@ -34638,12 +34638,12 @@ export const publishedCostPayload: PublishedCostPayload | null = {
         },
         {
           "month": "2026-08",
-          "inputTokens": 532807828,
-          "outputTokens": 54872331,
-          "cacheReadTokens": 29678992512,
-          "totalTokens": 30266672671,
+          "inputTokens": 20112625478,
+          "outputTokens": 38110315,
+          "cacheReadTokens": 19744931840,
+          "totalTokens": 20150743162,
           "activeDays": 17,
-          "costUsd": 71.32967550000001
+          "costUsd": 96007.84456167002
         }
       ]
     },
@@ -35799,12 +35799,12 @@ export const publishedCostPayload: PublishedCostPayload | null = {
     },
     {
       "month": "2026-08",
-      "inputTokens": 712723045,
-      "outputTokens": 65642397,
-      "cacheReadTokens": 33041978432,
-      "totalTokens": 33824078883,
+      "inputTokens": 20292540695,
+      "outputTokens": 48880381,
+      "cacheReadTokens": 23107917760,
+      "totalTokens": 23708149374,
       "activeDays": 44,
-      "costUsd": 86.0978901
+      "costUsd": 96022.61277627002
     }
   ],
   "sourceCoverage": [
@@ -35959,11 +35959,11 @@ export const publishedCostPayload: PublishedCostPayload | null = {
   "validation": [
     {
       "harness": "codex",
-      "status": "ok",
-      "computedUsd": 29574.857060750004,
-      "sourceUsd": 29574.857060750004,
+      "status": "estimated",
+      "computedUsd": 125511.37194692003,
+      "sourceUsd": 125511.37194692003,
       "deltaUsd": 0,
-      "note": "refreshed from local ccusage during publish"
+      "note": "current month priced from published multi-machine model breakdown; historical months preserved"
     },
     {
       "harness": "opencode",
