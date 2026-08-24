@@ -1,8 +1,8 @@
 {
   "version": "2026-03-03",
   "start": "2025-07-11",
-  "end": "2026-08-23",
-  "updatedAt": "2026-08-23T03:24:46.843Z",
+  "end": "2026-08-24",
+  "updatedAt": "2026-08-24T03:20:44.948Z",
   "providers": [
     {
       "provider": "codex",
@@ -33,7 +33,7 @@
         },
         "streaks": {
           "longest": 161,
-          "current": 3
+          "current": 0
         }
       },
       "daily": [
@@ -5309,18 +5309,18 @@
         "recentMostUsedModel": {
           "name": "x-preview-f-free",
           "tokens": {
-            "input": 230932047,
-            "output": 202942,
+            "input": 234069913,
+            "output": 210322,
             "cache": {
-              "input": 222972416,
+              "input": 225903744,
               "output": 0
             },
-            "total": 231134989
+            "total": 234280235
           }
         },
         "streaks": {
           "longest": 103,
-          "current": 2
+          "current": 3
         }
       },
       "daily": [
@@ -13665,6 +13665,31 @@
               }
             }
           ]
+        },
+        {
+          "date": "2026-08-23",
+          "input": 3137866,
+          "output": 7380,
+          "cache": {
+            "input": 2931328,
+            "output": 0
+          },
+          "total": 3145246,
+          "displayValue": 3145246,
+          "breakdown": [
+            {
+              "name": "x-preview-f-free",
+              "tokens": {
+                "input": 3137866,
+                "output": 7380,
+                "cache": {
+                  "input": 2931328,
+                  "output": 0
+                },
+                "total": 3145246
+              }
+            }
+          ]
         }
       ]
     },
@@ -13686,13 +13711,13 @@
         "recentMostUsedModel": {
           "name": "gemini-3.6-flash",
           "tokens": {
-            "input": 114679824,
-            "output": 643532,
+            "input": 84203633,
+            "output": 555760,
             "cache": {
-              "input": 102818899,
+              "input": 73588459,
               "output": 0
             },
-            "total": 115323356
+            "total": 84759393
           }
         },
         "streaks": {
@@ -18675,20 +18700,20 @@
           }
         },
         "recentMostUsedModel": {
-          "name": "kimi-k2.7-code",
+          "name": "kimi-k2.6",
           "tokens": {
-            "input": 169647691,
-            "output": 452366,
+            "input": 142567073,
+            "output": 684736,
             "cache": {
               "input": 0,
               "output": 0
             },
-            "total": 170100057
+            "total": 143251809
           }
         },
         "streaks": {
           "longest": 145,
-          "current": 12
+          "current": 13
         }
       },
       "daily": [
@@ -25882,14 +25907,14 @@
         },
         {
           "date": "2026-08-22",
-          "input": 19776781,
-          "output": 391853,
+          "input": 20129001,
+          "output": 438698,
           "cache": {
             "input": 0,
             "output": 0
           },
-          "total": 20168634,
-          "displayValue": 20168634,
+          "total": 20567699,
+          "displayValue": 20567699,
           "breakdown": [
             {
               "name": "gpt-5.6-luna",
@@ -25906,13 +25931,50 @@
             {
               "name": "x-preview-f-free",
               "tokens": {
-                "input": 276567,
-                "output": 52841,
+                "input": 628787,
+                "output": 99686,
                 "cache": {
                   "input": 0,
                   "output": 0
                 },
-                "total": 329408
+                "total": 728473
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-08-23",
+          "input": 1268466,
+          "output": 220578,
+          "cache": {
+            "input": 0,
+            "output": 0
+          },
+          "total": 1489044,
+          "displayValue": 1489044,
+          "breakdown": [
+            {
+              "name": "x-preview-f-free",
+              "tokens": {
+                "input": 1244692,
+                "output": 216664,
+                "cache": {
+                  "input": 0,
+                  "output": 0
+                },
+                "total": 1461356
+              }
+            },
+            {
+              "name": "kimi-k3-modal",
+              "tokens": {
+                "input": 23774,
+                "output": 3914,
+                "cache": {
+                  "input": 0,
+                  "output": 0
+                },
+                "total": 27688
               }
             }
           ]
@@ -25948,7 +26010,7 @@
         },
         "streaks": {
           "longest": 7,
-          "current": 0
+          "current": 1
         }
       },
       "daily": [
@@ -26653,6 +26715,31 @@
                   "output": 2769604
                 },
                 "total": 16309710
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-08-23",
+          "input": 845876,
+          "output": 359658,
+          "cache": {
+            "input": 845837,
+            "output": 294987
+          },
+          "total": 1205534,
+          "displayValue": 1205534,
+          "breakdown": [
+            {
+              "name": "claude-opus-4-8",
+              "tokens": {
+                "input": 845876,
+                "output": 359658,
+                "cache": {
+                  "input": 845837,
+                  "output": 294987
+                },
+                "total": 1205534
               }
             }
           ]
