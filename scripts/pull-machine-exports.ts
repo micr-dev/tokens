@@ -2,11 +2,16 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, renameSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
-interface MachineConfig {
-  id: string;
+interface MachineRoute {
   host: string;
   user: string;
   path: string;
+  proxyJump?: string;
+}
+
+interface MachineConfig extends MachineRoute {
+  id: string;
+  fallback?: MachineRoute;
 }
 
 const configPath = resolve(
@@ -33,26 +38,34 @@ function main() {
 
   for (const machine of machines) {
     const destination = resolve(outputDir, `${machine.id}.json`);
-    const temporaryPath = `${destination}.tmp`;
-    try {
-      execFileSync(
-        "scp",
-        [
-          "-q",
-          "-o",
-          "ConnectTimeout=10",
-          "-o",
-          "BatchMode=yes",
-          `${machine.user}@${machine.host}:${machine.path}`,
-          temporaryPath,
-        ],
-        { stdio: "inherit" },
-      );
-      renameSync(temporaryPath, destination);
-      process.stdout.write(`Pulled ${machine.id}\n`);
-    } catch (error) {
+    const routes = [machine, ...(machine.fallback ? [machine.fallback] : [])];
+    let pulled = false;
+
+    for (const [index, route] of routes.entries()) {
+      const temporaryPath = `${destination}.tmp`;
+      const routeLabel = index === 0 ? "direct" : "fallback";
+      const scpArgs = ["-q", "-o", "ConnectTimeout=10", "-o", "BatchMode=yes"];
+      if (route.proxyJump) {
+        scpArgs.push("-o", `ProxyJump=${route.proxyJump}`);
+      }
+      scpArgs.push(`${route.user}@${route.host}:${route.path}`, temporaryPath);
+
+      try {
+        execFileSync("scp", scpArgs, { stdio: "inherit" });
+        renameSync(temporaryPath, destination);
+        process.stdout.write(`Pulled ${machine.id} via ${routeLabel} route\n`);
+        pulled = true;
+        break;
+      } catch (error) {
+        process.stderr.write(
+          `Could not pull ${machine.id} via ${routeLabel} route; trying the next route. ${String(error)}\n`,
+        );
+      }
+    }
+
+    if (!pulled) {
       process.stderr.write(
-        `Could not pull ${machine.id}; preserving the previous export if present. ${String(error)}\n`,
+        `Could not pull ${machine.id} through any route; preserving the previous export if present.\n`,
       );
     }
   }
