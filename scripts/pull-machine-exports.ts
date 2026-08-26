@@ -44,7 +44,15 @@ function main() {
     for (const [index, route] of routes.entries()) {
       const temporaryPath = `${destination}.tmp`;
       const routeLabel = index === 0 ? "direct" : "fallback";
-      const scpArgs = ["-q", "-o", "ConnectTimeout=10", "-o", "BatchMode=yes"];
+      const scpArgs = [
+        "-q",
+        "-o",
+        "ConnectTimeout=10",
+        "-o",
+        "BatchMode=yes",
+        "-o",
+        "StrictHostKeyChecking=accept-new",
+      ];
       if (route.proxyJump) {
         scpArgs.push("-o", `ProxyJump=${route.proxyJump}`);
       }
