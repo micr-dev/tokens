@@ -177,6 +177,11 @@ function restoreGeneratedArtifacts() {
   assertCommand("git", ["restore", "--", ...GENERATED_ARTIFACTS]);
 }
 
+function restoreBuildArtifacts() {
+  assertCommand("git", ["restore", "--", ".next"]);
+  assertCommand("git", ["clean", "-fd", "--", ".next"]);
+}
+
 function writeState(summary: RunSummary) {
   mkdirSync(dirname(DEFAULT_STATE_PATH), { recursive: true });
   writeFileSync(
@@ -234,6 +239,7 @@ function main() {
   }
 
   assertCommand("bun", ["x", "next", "build"]);
+  restoreBuildArtifacts();
 
   const afterJson = normalizePublishedJson(
     readTextIfExists(resolve(REPO_ROOT, GENERATED_ARTIFACTS[0])),
