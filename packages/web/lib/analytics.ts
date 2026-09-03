@@ -275,6 +275,13 @@ function normalizeModelName(modelName: string) {
     }
   }
 
+  if (
+    normalized.includes("ox-alpha") ||
+    normalized.includes("x-preview-f-free")
+  ) {
+    return "glm-5.3-flash";
+  }
+
   normalized = normalized.replace(/-\[cliproxy\]-\d+$/, "");
   normalized = normalized.replace(/-free$/, "");
 
@@ -683,9 +690,8 @@ function buildHarnessAllocatedModelCosts({
 }) {
   // The Cost tab's provider/model view is an accounting partition of the
   // canonical harness spend, not an independent sum of imported model prices.
-  const providerModelMonthlyTokens = collectProviderModelMonthlyTokens(
-    usagePayload,
-  );
+  const providerModelMonthlyTokens =
+    collectProviderModelMonthlyTokens(usagePayload);
   const modelCosts = new Map<
     string,
     {
@@ -732,18 +738,15 @@ function buildHarnessAllocatedModelCosts({
 
       for (const [model, totalTokens] of modelTokens) {
         const allocatedCostUsd = (totalTokens / monthTokenTotal) * costUsd;
-        const current =
-          modelCosts.get(model) ??
-          {
-            totalCostUsd: 0,
-            totalTokens: 0,
-            monthly: new Map<
-              string,
-              { costUsd: number; totalTokens: number }
-            >(),
-          };
-        const currentMonth =
-          current.monthly.get(month.month) ?? { costUsd: 0, totalTokens: 0 };
+        const current = modelCosts.get(model) ?? {
+          totalCostUsd: 0,
+          totalTokens: 0,
+          monthly: new Map<string, { costUsd: number; totalTokens: number }>(),
+        };
+        const currentMonth = current.monthly.get(month.month) ?? {
+          costUsd: 0,
+          totalTokens: 0,
+        };
 
         current.totalCostUsd += allocatedCostUsd;
         current.totalTokens += totalTokens;
@@ -874,28 +877,29 @@ function buildModelCostAnalytics({
       : modelCostFallbackColor;
     const allocated = harnessAllocatedModelCosts.get(canonicalName);
     const shouldUseAllocatedCost = Boolean(allocated);
-    const totalCostUsd = shouldUseAllocatedCost && allocated
-      ? allocated.totalCostUsd
-      : 0;
-    const totalTokens = shouldUseAllocatedCost && allocated
-      ? allocated.totalTokens
-      : model.totalTokens;
-    const monthly = shouldUseAllocatedCost && allocated
-      ? [...allocated.monthly.entries()]
-          .sort(([left], [right]) => compareMonthKeys(left, right))
-          .map(([month, row]) => ({
-            month,
-            costUsd: row.costUsd,
-            totalTokens: row.totalTokens,
-          }))
-      : buildModelCostMonthlyRows({
-          model: {
-            ...model,
-            totalCostUsd: 0,
-          },
-          costPayload,
-          modelMonthlyTokens,
-        });
+    const totalCostUsd =
+      shouldUseAllocatedCost && allocated ? allocated.totalCostUsd : 0;
+    const totalTokens =
+      shouldUseAllocatedCost && allocated
+        ? allocated.totalTokens
+        : model.totalTokens;
+    const monthly =
+      shouldUseAllocatedCost && allocated
+        ? [...allocated.monthly.entries()]
+            .sort(([left], [right]) => compareMonthKeys(left, right))
+            .map(([month, row]) => ({
+              month,
+              costUsd: row.costUsd,
+              totalTokens: row.totalTokens,
+            }))
+        : buildModelCostMonthlyRows({
+            model: {
+              ...model,
+              totalCostUsd: 0,
+            },
+            costPayload,
+            modelMonthlyTokens,
+          });
 
     if (vendor) {
       vendorIndexes.set(vendor, vendorIndex + 1);
@@ -914,12 +918,11 @@ function buildModelCostAnalytics({
       );
 
       for (const row of monthly) {
-        const current =
-          monthlyByMonth.get(row.month) ?? {
-            month: row.month,
-            costUsd: 0,
-            totalTokens: 0,
-          };
+        const current = monthlyByMonth.get(row.month) ?? {
+          month: row.month,
+          costUsd: 0,
+          totalTokens: 0,
+        };
 
         current.costUsd += row.costUsd;
         current.totalTokens += row.totalTokens;
@@ -952,10 +955,7 @@ function buildModelCostAnalytics({
       color,
       totalCostUsd,
       totalTokens,
-      costPerMillionTokens: getCostPerMillionTokens(
-        totalCostUsd,
-        totalTokens,
-      ),
+      costPerMillionTokens: getCostPerMillionTokens(totalCostUsd, totalTokens),
       hasCostData: true,
       monthly,
     });
