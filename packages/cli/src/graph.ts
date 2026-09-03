@@ -193,6 +193,13 @@ export const heatmapThemes: Record<HeatmapThemeId, HeatmapTheme> = {
       ],
     },
   },
+  omp: {
+    title: "OMP",
+    colors: {
+      light: ["#fff0fc", "#ffd5f7", "#ff9cea", "#F84FCC", "#a51d91"],
+      dark: ["#2b1028", "#6e255f", "#b52b91", "#F84FCC", "#ff8be4"],
+    },
+  },
   pi: {
     title: "Pi Coding Agent",
     colors: {

@@ -32,6 +32,7 @@ interface CliArgValues {
   all: boolean;
   claude: boolean;
   codex: boolean;
+  omp: boolean;
   agy: boolean;
   gemini: boolean;
   cursor: boolean;
@@ -50,12 +51,13 @@ const HELP_TEXT = `slopmeter
 Generate rolling 1-year usage heatmap image(s) (today is the latest day).
 
 Usage:
-  slopmeter [--all] [--claude] [--codex] [--agy] [--gemini] [--cursor] [--opencode] [--pi] [--droid] [--hermes] [--helios] [--dark] [--format png|svg|json] [--output ./heatmap-last-year.png]
+  slopmeter [--all] [--codex] [--omp] [--opencode] [--claude] [--hermes] [--droid] [--pi] [--dark] [--format png|svg|json] [--output ./heatmap-last-year.png]
 
 Options:
   --all                       Render one merged graph for all providers
   --claude                    Render Claude Code graph
   --codex                     Render Codex graph
+  --omp                       Render OMP graph
   --agy                       Render Antigravity CLI graph
   --gemini                    Render legacy Gemini CLI graph
   --cursor                    Render Cursor graph
@@ -85,6 +87,7 @@ function validateArgs(values: unknown): asserts values is CliArgValues {
       all: ow.boolean,
       claude: ow.boolean,
       codex: ow.boolean,
+      omp: ow.boolean,
       agy: ow.boolean,
       gemini: ow.boolean,
       cursor: ow.boolean,
@@ -99,16 +102,14 @@ function validateArgs(values: unknown): asserts values is CliArgValues {
 
 function getProviderListLabel() {
   return [
-    "Claude Code",
     "Codex",
-    "Antigravity CLI",
-    "Gemini CLI (legacy)",
-    "Cursor",
+    "OMP",
     "Open Code",
-    "Pi Coding Agent",
-    "Droid",
+    "Claude Code",
     "Hermes Agent",
-    "Helios",
+    "Droid",
+    "Pi Coding Agent",
+    "T3 Chat",
   ].join(", ");
 }
 
@@ -277,6 +278,7 @@ async function main() {
       all: { type: "boolean", default: false },
       claude: { type: "boolean", default: false },
       codex: { type: "boolean", default: false },
+      omp: { type: "boolean", default: false },
       agy: { type: "boolean", default: false },
       gemini: { type: "boolean", default: false },
       cursor: { type: "boolean", default: false },

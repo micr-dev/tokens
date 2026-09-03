@@ -1,37 +1,40 @@
 export type ProviderId =
-  | "claude"
   | "codex"
+  | "omp"
+  | "opencode"
+  | "claude"
+  | "hermes"
+  | "droid"
+  | "pi"
   | "agy"
   | "gemini"
   | "cursor"
-  | "opencode"
-  | "pi"
-  | "droid"
-  | "hermes"
   | "helios";
 
 export const providerIds: ProviderId[] = [
-  "claude",
   "codex",
+  "omp",
+  "opencode",
+  "claude",
+  "hermes",
+  "droid",
+  "pi",
   "agy",
   "gemini",
   "cursor",
-  "opencode",
-  "pi",
-  "droid",
-  "hermes",
   "helios",
 ];
 
 export const providerStatusLabel: Record<ProviderId, string> = {
-  claude: "Claude code",
   codex: "Codex",
+  omp: "OMP",
+  opencode: "Open Code",
+  claude: "Claude Code",
+  hermes: "Hermes Agent",
+  droid: "Droid",
+  pi: "Pi Coding Agent",
   agy: "Antigravity CLI",
   gemini: "Gemini CLI (legacy)",
   cursor: "Cursor",
-  opencode: "Open Code",
-  pi: "Pi Coding Agent",
-  droid: "Droid",
-  hermes: "Hermes Agent",
   helios: "Helios",
 };

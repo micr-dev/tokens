@@ -47,23 +47,28 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const MAJOR_VENDOR_SHARE_THRESHOLD = 0.01;
 
 const providerTitles: Record<ProviderId, string> = {
-  claude: "Claude Code",
   codex: "Codex",
+  omp: "OMP",
+  opencode: "Open Code",
+  claude: "Claude Code",
+  hermes: "Hermes Agent",
+  droid: "Droid",
+  pi: "Pi Coding Agent",
+  t3: "T3 Chat",
   agy: "Antigravity CLI",
   gemini: "Gemini CLI (legacy)",
   cursor: "Cursor",
-  opencode: "Open Code",
-  pi: "Pi Coding Agent",
-  droid: "Droid",
-  hermes: "Hermes Agent",
   helios: "Helios",
-  t3: "T3 Chat",
 };
 
 const providerDetailThemes: Record<
   ProviderId,
   { accent: string; accentSoft: string }
 > = {
+  omp: {
+    accent: "#F84FCC",
+    accentSoft: "#2b1028",
+  },
   claude: {
     accent: "#f97316",
     accentSoft: "#fff7ed",

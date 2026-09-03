@@ -13,6 +13,7 @@ import {
   type ProviderId,
 } from "./lib/interfaces";
 import { loadOpenCodeRows } from "./lib/open-code";
+import { loadOmpRows } from "./lib/omp";
 import { loadPiRows } from "./lib/pi";
 import { hasUsage, mergeUsageSummaries } from "./lib/utils";
 
@@ -53,34 +54,37 @@ export async function aggregateUsage({
     ? requestedProviders
     : providerIds;
   const rowsByProvider: Record<ProviderId, UsageSummary | null> = {
-    claude: null,
     codex: null,
+    omp: null,
+    opencode: null,
+    claude: null,
+    hermes: null,
+    droid: null,
+    pi: null,
     agy: null,
     gemini: null,
     cursor: null,
-    opencode: null,
-    pi: null,
-    droid: null,
-    hermes: null,
     helios: null,
   };
   const warnings: string[] = [];
 
   for (const provider of providersToLoad) {
     const summary: UsageSummary | null =
-      provider === "claude"
-        ? await loadClaudeRows(start, end)
-        : provider === "codex"
-          ? await loadCodexRows(start, end, warnings)
+      provider === "codex"
+        ? await loadCodexRows(start, end, warnings)
+        : provider === "omp"
+          ? await loadOmpRows(start, end)
+        : provider === "opencode"
+          ? await loadOpenCodeRows(start, end)
+        : provider === "claude"
+          ? await loadClaudeRows(start, end)
           : provider === "agy"
             ? await loadAntigravityRows(start, end)
           : provider === "gemini"
             ? await loadGeminiRows(start, end)
           : provider === "cursor"
             ? await loadCursorRows(start, end)
-            : provider === "opencode"
-              ? await loadOpenCodeRows(start, end)
-              : provider === "pi"
+            : provider === "pi"
                 ? await loadPiRows(start, end)
                 : provider === "droid"
                   ? await loadDroidRows(start, end)

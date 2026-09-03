@@ -1,15 +1,16 @@
 export type ProviderId =
-  | "claude"
   | "codex"
+  | "omp"
+  | "opencode"
+  | "claude"
+  | "hermes"
+  | "droid"
+  | "pi"
+  | "t3"
   | "agy"
   | "gemini"
   | "cursor"
-  | "opencode"
-  | "pi"
-  | "droid"
-  | "hermes"
-  | "helios"
-  | "t3";
+  | "helios";
 
 export interface PublishedModelUsage {
   name: string;

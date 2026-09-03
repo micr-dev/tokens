@@ -1,6 +1,7 @@
 export type UsageProviderId =
   | "claude"
   | "codex"
+  | "omp"
   | "agy"
   | "gemini"
   | "cursor"
