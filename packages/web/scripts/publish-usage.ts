@@ -75,15 +75,17 @@ const CURRENT_MONTH_MODEL_PRICES_PER_MILLION: Record<
 };
 export const WEB_PROVIDER_ORDER = [
   "codex",
+  "omp",
   "opencode",
-  "agy",
-  "pi",
-  "droid",
-  "hermes",
   "claude",
+  "hermes",
+  "droid",
+  "pi",
+  "t3",
+  "agy",
+  "gemini",
   "cursor",
   "helios",
-  "t3",
 ] as const;
 
 function getDateWindow() {
