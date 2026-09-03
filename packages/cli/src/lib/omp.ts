@@ -75,9 +75,12 @@ export async function loadOmpRows(
 
       const cacheInput = positive(message.usage.cacheRead);
       const cacheOutput = positive(message.usage.cacheWrite);
-      const input = positive(message.usage.input) + cacheInput;
-      const output = positive(message.usage.output) + cacheOutput;
-      const total = Math.max(positive(message.usage.totalTokens), input + output);
+      const input = positive(message.usage.input);
+      const output = positive(message.usage.output);
+      const total = Math.max(
+        positive(message.usage.totalTokens),
+        input + output + cacheInput + cacheOutput,
+      );
 
       if (total <= 0) {
         continue;
@@ -86,7 +89,7 @@ export async function loadOmpRows(
       const model = normalizeModelName(message.model ?? "unknown");
       const tokenTotals = {
         input,
-        output: total - input,
+        output,
         cache: { input: cacheInput, output: cacheOutput },
         total,
       };
