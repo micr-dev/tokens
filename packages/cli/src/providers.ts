@@ -2,6 +2,7 @@ import type { UsageSummary } from "./interfaces";
 import { loadAntigravityRows } from "./lib/antigravity";
 import { loadClaudeRows } from "./lib/claude-code";
 import { loadCodexRows } from "./lib/codex";
+import { loadNanoClawRows } from "./lib/nanoclaw";
 import { loadCursorRows } from "./lib/cursor";
 import { loadDroidRows } from "./lib/droid";
 import { loadGeminiRows } from "./lib/gemini";
@@ -55,6 +56,7 @@ export async function aggregateUsage({
     : providerIds;
   const rowsByProvider: Record<ProviderId, UsageSummary | null> = {
     codex: null,
+    nanoclaw: null,
     omp: null,
     opencode: null,
     claude: null,
@@ -72,6 +74,8 @@ export async function aggregateUsage({
     const summary: UsageSummary | null =
       provider === "codex"
         ? await loadCodexRows(start, end, warnings)
+        : provider === "nanoclaw"
+          ? await loadNanoClawRows(start, end, warnings)
         : provider === "omp"
           ? await loadOmpRows(start, end)
         : provider === "opencode"

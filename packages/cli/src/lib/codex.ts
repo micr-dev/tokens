@@ -798,12 +798,13 @@ async function dedupeCodexFiles(
   };
 }
 
-export async function loadCodexRows(
+export async function loadCodexRowsFromFiles(
+  files: string[],
   start: Date,
   end: Date,
+  provider: Extract<UsageSummary["provider"], "codex" | "nanoclaw">,
   warnings: string[] = [],
 ): Promise<UsageSummary> {
-  const files = await getCodexFiles();
   const totals: DailyTotalsByDate = new Map();
   const modelTotals = new Map<string, ModelTokenTotals>();
   const recentModelTotals = new Map<string, ModelTokenTotals>();
@@ -855,10 +856,24 @@ export async function loadCodexRows(
   }
 
   return createUsageSummary(
-    "codex",
+    provider,
     totals,
     modelTotals,
     recentModelTotals,
     end,
+  );
+}
+
+export async function loadCodexRows(
+  start: Date,
+  end: Date,
+  warnings: string[] = [],
+): Promise<UsageSummary> {
+  return loadCodexRowsFromFiles(
+    await getCodexFiles(),
+    start,
+    end,
+    "codex",
+    warnings,
   );
 }

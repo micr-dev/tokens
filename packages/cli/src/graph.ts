@@ -117,6 +117,13 @@ export const heatmapThemes: Record<HeatmapThemeId, HeatmapTheme> = {
       ],
     },
   },
+  nanoclaw: {
+    title: "NanoClaw",
+    colors: {
+      light: ["#ecfeff", "#a5f3fc", "#67e8f9", "#0891b2", "#164e63"],
+      dark: ["#20292a", "#134e59", "#155e75", "#0e7490", "#22d3ee"],
+    },
+  },
   agy: {
     title: "Antigravity CLI",
     colors: {

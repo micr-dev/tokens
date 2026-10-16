@@ -1,5 +1,6 @@
 export type ProviderId =
   | "codex"
+  | "nanoclaw"
   | "omp"
   | "opencode"
   | "claude"

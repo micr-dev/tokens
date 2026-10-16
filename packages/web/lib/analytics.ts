@@ -48,6 +48,7 @@ const MAJOR_VENDOR_SHARE_THRESHOLD = 0.01;
 
 const providerTitles: Record<ProviderId, string> = {
   codex: "Codex",
+  nanoclaw: "NanoClaw",
   omp: "OMP",
   opencode: "Open Code",
   claude: "Claude Code",
@@ -76,6 +77,10 @@ const providerDetailThemes: Record<
   codex: {
     accent: "#4f46e5",
     accentSoft: "#e0e7ff",
+  },
+  nanoclaw: {
+    accent: "#22d3ee",
+    accentSoft: "#083344",
   },
   agy: {
     accent: "#ef4444",

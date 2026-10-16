@@ -1,5 +1,6 @@
 export type ProviderId =
   | "codex"
+  | "nanoclaw"
   | "omp"
   | "opencode"
   | "claude"
@@ -13,6 +14,7 @@ export type ProviderId =
 
 export const providerIds: ProviderId[] = [
   "codex",
+  "nanoclaw",
   "omp",
   "opencode",
   "claude",
@@ -27,6 +29,7 @@ export const providerIds: ProviderId[] = [
 
 export const providerStatusLabel: Record<ProviderId, string> = {
   codex: "Codex",
+  nanoclaw: "NanoClaw",
   omp: "OMP",
   opencode: "Open Code",
   claude: "Claude Code",

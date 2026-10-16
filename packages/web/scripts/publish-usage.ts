@@ -75,6 +75,7 @@ const CURRENT_MONTH_MODEL_PRICES_PER_MILLION: Record<
 };
 export const WEB_PROVIDER_ORDER = [
   "codex",
+  "nanoclaw",
   "omp",
   "opencode",
   "claude",

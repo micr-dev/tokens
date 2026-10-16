@@ -9,6 +9,7 @@ import {
   mergePublishedUsagePayloads,
   normalizeCostAnalysisPayload,
   writePublishedBackupArtifacts,
+  WEB_PROVIDER_ORDER,
 } from "../scripts/publish-usage";
 
 test("mergePublishedUsagePayloads preserves hosted providers and applies canonical web order", () => {
@@ -144,6 +145,13 @@ test("mergePublishedUsagePayloads preserves hosted providers and applies canonic
   assert.equal(merged.providers[2].daily[0]?.total, 5);
   assert.equal(merged.providers[3].daily[0]?.total, 7);
   assert.equal(merged.providers[4].daily[0]?.total, 12);
+});
+
+test("NanoClaw follows Codex in canonical published order", () => {
+  assert.equal(
+    WEB_PROVIDER_ORDER.indexOf("nanoclaw"),
+    WEB_PROVIDER_ORDER.indexOf("codex") + 1,
+  );
 });
 
 test("mergePublishedUsagePayloads folds Gemini CLI history into Antigravity CLI", () => {

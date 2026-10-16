@@ -1,6 +1,9 @@
 # web
 
 ## providers
+- label: NanoClaw session usage is collected as a separate turquoise provider
+  command: grep -Fq '"nanoclaw"' packages/cli/src/lib/interfaces.ts && grep -Fq 'loadNanoClawRows' packages/cli/src/providers.ts && grep -Fq 'NanoClaw' packages/web/lib/analytics.ts && grep -Fq '"nanoclaw",' packages/web/scripts/publish-usage.ts && grep -Fq '#22d3ee' packages/web/app/globals.css
+  tags: [implemented]
 - label: the web token report recognizes Antigravity CLI as the agy provider when agy usage is present
   command: grep -q '"agy"' packages/web/lib/types.ts && grep -q 'Antigravity CLI' packages/web/lib/analytics.ts && grep -q '"agy"' packages/web/scripts/publish-usage.ts && grep -q 'agy:' packages/cli/src/graph.ts
   tags: [implemented]

@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildCostAnalytics, getProviderDetailTheme } from "../lib/analytics";
+import {
+  buildCostAnalytics,
+  getProviderDetailTheme,
+  getProviderTitle,
+} from "../lib/analytics";
 import type { PublishedCostPayload, PublishedUsagePayload } from "../lib/types";
 import { normalizePublishedSvgMarkup } from "../lib/usage";
 
@@ -29,6 +33,14 @@ test("normalizePublishedSvgMarkup preserves dark heatmap colors and applies refe
     normalizePublishedSvgMarkup(input),
     '<svg><rect fill="#171717"></rect><rect fill="#262626"></rect><rect fill="#bbf7d0"></rect><text font-family="helveticaNeue, Helvetica Neue">Jun</text></svg>',
   );
+});
+
+test("NanoClaw has a separate title and turquoise detail theme", () => {
+  assert.equal(getProviderTitle("nanoclaw"), "NanoClaw");
+  assert.deepEqual(getProviderDetailTheme("nanoclaw"), {
+    accent: "#22d3ee",
+    accentSoft: "#083344",
+  });
 });
 
 test("getProviderDetailTheme keeps Hermes aligned with the heatmap palette", () => {

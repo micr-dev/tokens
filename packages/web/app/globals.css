@@ -622,6 +622,11 @@ body {
   --provider-accent-soft: #1e1b4b;
 }
 
+.provider-card--nanoclaw {
+  --provider-accent: #22d3ee;
+  --provider-accent-soft: #083344;
+}
+
 .provider-card--cursor,
 .provider-card--claude {
   --provider-accent: #f97316;

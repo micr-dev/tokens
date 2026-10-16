@@ -32,6 +32,7 @@ interface CliArgValues {
   all: boolean;
   claude: boolean;
   codex: boolean;
+  nanoclaw: boolean;
   omp: boolean;
   agy: boolean;
   gemini: boolean;
@@ -51,12 +52,13 @@ const HELP_TEXT = `slopmeter
 Generate rolling 1-year usage heatmap image(s) (today is the latest day).
 
 Usage:
-  slopmeter [--all] [--codex] [--omp] [--opencode] [--claude] [--hermes] [--droid] [--pi] [--dark] [--format png|svg|json] [--output ./heatmap-last-year.png]
+  slopmeter [--all] [--codex] [--nanoclaw] [--omp] [--opencode] [--claude] [--hermes] [--droid] [--pi] [--dark] [--format png|svg|json] [--output ./heatmap-last-year.png]
 
 Options:
   --all                       Render one merged graph for all providers
   --claude                    Render Claude Code graph
   --codex                     Render Codex graph
+  --nanoclaw                  Render NanoClaw graph
   --omp                       Render OMP graph
   --agy                       Render Antigravity CLI graph
   --gemini                    Render legacy Gemini CLI graph
@@ -87,6 +89,7 @@ function validateArgs(values: unknown): asserts values is CliArgValues {
       all: ow.boolean,
       claude: ow.boolean,
       codex: ow.boolean,
+      nanoclaw: ow.boolean,
       omp: ow.boolean,
       agy: ow.boolean,
       gemini: ow.boolean,
@@ -103,6 +106,7 @@ function validateArgs(values: unknown): asserts values is CliArgValues {
 function getProviderListLabel() {
   return [
     "Codex",
+    "NanoClaw",
     "OMP",
     "Open Code",
     "Claude Code",
@@ -278,6 +282,7 @@ async function main() {
       all: { type: "boolean", default: false },
       claude: { type: "boolean", default: false },
       codex: { type: "boolean", default: false },
+      nanoclaw: { type: "boolean", default: false },
       omp: { type: "boolean", default: false },
       agy: { type: "boolean", default: false },
       gemini: { type: "boolean", default: false },
