@@ -111,7 +111,7 @@ systemctl --user daemon-reload
 - commits and pushes the generated artifacts when the dataset changed
 - bounds every step with a timeout and records the failing stage in the run summary
 
-The service retries a failed run every 20 minutes, up to 4 attempts in 12 hours, and times out after 50 minutes.
+The timer runs the publisher four times a day (03:15, 09:15, 15:15, 21:15 UTC, up to 15 minutes later). A failed run is retried by the next tick; a run with no data change commits nothing. Each run times out after 50 minutes.
 
 ### Data rules
 
