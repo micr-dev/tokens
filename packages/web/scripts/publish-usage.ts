@@ -308,7 +308,9 @@ function buildCanonicalPayloadInputs({
     return (
       hostedTotal === undefined ||
       key.slice(key.indexOf(":") + 1) >= recomputeFromKey ||
-      freshTotal > hostedTotal
+      // Equal totals still take the fresh row so loader fixes to the model
+      // breakdown (e.g. newly recognized models) reach older days.
+      freshTotal >= hostedTotal
     );
   };
 

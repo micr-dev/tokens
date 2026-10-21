@@ -349,7 +349,18 @@ function getModelName(buffer: Buffer) {
 
   const displayModel = strings.find((value) => /^Gemini\s+/i.test(value.trim()));
 
-  return displayModel ? normalizeModelName(displayModel.trim()) : undefined;
+  if (displayModel) {
+    return normalizeModelName(displayModel.trim());
+  }
+
+  // Antigravity also serves Claude and GPT models; their generations carry the
+  // model id (e.g. "claude-opus-4-6-thinking") but no Gemini string, and were
+  // counted in day totals without a model.
+  const otherModel = strings
+    .map((value) => value.match(/^(?:claude|gpt)-[a-z0-9._-]+$/i)?.[0])
+    .find((value) => value !== undefined);
+
+  return otherModel ? normalizeModelName(otherModel) : undefined;
 }
 
 export function parseAntigravityGenerationMetadata(
