@@ -1439,14 +1439,14 @@
         },
         {
           "date": "2026-04-24",
-          "input": 707814535,
-          "output": 2623339,
+          "input": 415645817,
+          "output": 1358870,
           "cache": {
-            "input": 673889536,
+            "input": 395207680,
             "output": 0
           },
-          "total": 710437874,
-          "displayValue": 710437874,
+          "total": 417004687,
+          "displayValue": 417004687,
           "breakdown": [
             {
               "name": "gpt-5.4",
@@ -1458,18 +1458,6 @@
                   "output": 0
                 },
                 "total": 413809513
-              }
-            },
-            {
-              "name": "unattributed",
-              "tokens": {
-                "input": 292168718,
-                "output": 1264469,
-                "cache": {
-                  "input": 278681856,
-                  "output": 0
-                },
-                "total": 293433187
               }
             },
             {
