@@ -2,10 +2,9 @@
 Description=Publish tokens.micr.dev data from local and Tailscale machine histories
 Wants=network-online.target
 After=network-online.target
-# Up to 4 attempts per 12h: enough to ride out transient failures without
-# spinning all day on a persistent one.
-StartLimitIntervalSec=12h
-StartLimitBurst=4
+# Retries come from the timer's next tick. A start limit here would count
+# manual runs too and could make systemd refuse the scheduled run.
+StartLimitIntervalSec=0
 
 [Service]
 Type=oneshot
@@ -16,7 +15,3 @@ ExecStart=/usr/bin/env bun scripts/auto-publish-web.ts
 # A hung run would otherwise stay "activating" forever and swallow every later
 # timer tick. Each step inside the script is also bounded.
 TimeoutStartSec=50min
-# Transient failures (machine offline, network, push race, OOM kill) retry the
-# whole run; the script resets its clone first, so a retry is always safe.
-Restart=on-failure
-RestartSec=20min

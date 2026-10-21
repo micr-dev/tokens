@@ -1,9 +1,12 @@
 [Unit]
-Description=Daily tokens.micr.dev publish timer
+Description=tokens.micr.dev publish timer
 
 [Timer]
 Unit=tokens-publish.service
-OnCalendar=*-*-* 03:15:00
+# Four runs a day: a failed run is retried by the next tick without any
+# systemd restart/start-limit state, and manual runs cannot block it. A run
+# with no data change commits nothing.
+OnCalendar=*-*-* 03,09,15,21:15:00
 RandomizedDelaySec=15m
 Persistent=true
 
