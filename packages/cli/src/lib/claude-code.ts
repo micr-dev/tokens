@@ -11,7 +11,6 @@ import {
   addDailyTokenTotals,
   addModelTokenTotals,
   createUsageSummary,
-  formatLocalDate,
   getPositiveIntegerEnv,
   getRecentWindowStart,
   listFilesRecursive,
@@ -62,19 +61,9 @@ interface ClaudeStatsCacheEntry {
   tokensByModel?: Record<string, number>;
 }
 
-interface ClaudeStatsCacheDailyActivityEntry {
-  date?: string;
-  messageCount?: number;
-}
-
 interface ClaudeStatsCache {
-  dailyActivity?: ClaudeStatsCacheDailyActivityEntry[];
   dailyModelTokens?: ClaudeStatsCacheEntry[];
   modelUsage?: Record<string, ClaudeStatsCacheModelUsage>;
-}
-
-interface ClaudeHistoryEntry {
-  timestamp?: number | string;
 }
 
 function discoverClaudeWorkDirs() {
@@ -290,22 +279,6 @@ async function getClaudeFiles() {
   return files;
 }
 
-function getClaudeHistoryFiles() {
-  const unique = new Set<string>();
-  const files: string[] = [];
-
-  for (const basePath of getClaudeConfigPaths()) {
-    const historyFile = join(basePath, "history.jsonl");
-
-    if (existsSync(historyFile) && !unique.has(historyFile)) {
-      unique.add(historyFile);
-      files.push(historyFile);
-    }
-  }
-
-  return files;
-}
-
 async function loadClaudeStatsCacheRows(
   startDate: Date,
   endDate: Date,
@@ -365,89 +338,6 @@ async function loadClaudeStatsCacheRows(
   }
 }
 
-async function loadClaudeHistoryDisplayValues(
-  startDate: Date,
-  endDate: Date,
-  coveredDates: Set<string>,
-  displayValuesByDate: Map<string, number>,
-) {
-  const historyFiles = getClaudeHistoryFiles();
-
-  for (const file of historyFiles) {
-    for await (const line of readJsonLines<ClaudeHistoryEntry>(file)) {
-      const rawTimestamp = line.timestamp;
-      const timestamp =
-        typeof rawTimestamp === "number"
-          ? new Date(rawTimestamp)
-          : typeof rawTimestamp === "string"
-            ? new Date(rawTimestamp)
-            : null;
-
-      if (!timestamp || Number.isNaN(timestamp.getTime())) {
-        continue;
-      }
-
-      if (timestamp < startDate || timestamp > endDate) {
-        continue;
-      }
-
-      const dateKey = formatLocalDate(timestamp);
-
-      if (coveredDates.has(dateKey)) {
-        continue;
-      }
-
-      displayValuesByDate.set(dateKey, (displayValuesByDate.get(dateKey) ?? 0) + 1);
-    }
-  }
-}
-
-async function loadClaudeStatsCacheDisplayValues(
-  startDate: Date,
-  endDate: Date,
-  coveredDates: Set<string>,
-  displayValuesByDate: Map<string, number>,
-) {
-  const statsCacheFiles = getClaudeStatsCacheFiles();
-
-  for (const file of statsCacheFiles) {
-    let statsCache: ClaudeStatsCache;
-
-    try {
-      statsCache = await readJsonDocument<ClaudeStatsCache>(file);
-    } catch {
-      continue;
-    }
-
-    for (const row of statsCache.dailyActivity ?? []) {
-      if (!row.date || coveredDates.has(row.date)) {
-        continue;
-      }
-
-      const timestamp = new Date(`${row.date}T00:00:00`);
-
-      if (
-        Number.isNaN(timestamp.getTime()) ||
-        timestamp < startDate ||
-        timestamp > endDate
-      ) {
-        continue;
-      }
-
-      const messageCount = Math.max(0, Math.round(row.messageCount ?? 0));
-
-      if (messageCount <= 0) {
-        continue;
-      }
-
-      displayValuesByDate.set(
-        row.date,
-        (displayValuesByDate.get(row.date) ?? 0) + messageCount,
-      );
-    }
-  }
-}
-
 function createUniqueHash(messageId?: string, requestId?: string) {
   if (!messageId || !requestId) {
     return null;
@@ -464,7 +354,6 @@ export async function loadClaudeRows(
   const totals: DailyTotalsByDate = new Map();
   const modelTotals = new Map<string, ModelTokenTotals>();
   const recentModelTotals = new Map<string, ModelTokenTotals>();
-  const displayValuesByDate = new Map<string, number>();
   const recentStart = getRecentWindowStart(endDate, 30);
   const processedHashes = new Set<string>();
   const fileConcurrency = getPositiveIntegerEnv(
@@ -531,25 +420,11 @@ export async function loadClaudeRows(
     recentStart,
   );
 
-  await loadClaudeHistoryDisplayValues(
-    startDate,
-    endDate,
-    new Set(totals.keys()),
-    displayValuesByDate,
-  );
-  await loadClaudeStatsCacheDisplayValues(
-    startDate,
-    endDate,
-    new Set([...totals.keys(), ...displayValuesByDate.keys()]),
-    displayValuesByDate,
-  );
-
   return createUsageSummary(
     "claude",
     totals,
     modelTotals,
     recentModelTotals,
     endDate,
-    displayValuesByDate,
   );
 }

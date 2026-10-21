@@ -7,7 +7,6 @@ import {
   buildBundledPublishedDataModule,
   buildPublishedBackupPaths,
   mergePublishedUsagePayloads,
-  normalizeCostAnalysisPayload,
   writePublishedBackupArtifacts,
   WEB_PROVIDER_ORDER,
 } from "../scripts/publish-usage";
@@ -138,13 +137,16 @@ test("mergePublishedUsagePayloads preserves hosted providers and applies canonic
 
   assert.deepEqual(
     merged.providers.map((provider) => provider.provider),
-    ["codex", "opencode", "agy", "droid", "claude", "t3"],
+    ["codex", "opencode", "claude", "droid", "t3", "agy"],
   );
-  assert.equal(merged.providers[0].daily[0]?.total, 10);
-  assert.equal(merged.providers[1].daily[0]?.total, 6);
-  assert.equal(merged.providers[2].daily[0]?.total, 5);
-  assert.equal(merged.providers[3].daily[0]?.total, 7);
-  assert.equal(merged.providers[4].daily[0]?.total, 12);
+  const firstTotal = (id: string) =>
+    merged.providers.find((provider) => provider.provider === id)?.daily[0]
+      ?.total;
+  assert.equal(firstTotal("codex"), 10);
+  assert.equal(firstTotal("opencode"), 6);
+  assert.equal(firstTotal("agy"), 5);
+  assert.equal(firstTotal("droid"), 7);
+  assert.equal(firstTotal("claude"), 12);
 });
 
 test("NanoClaw follows Codex in canonical published order", () => {
@@ -596,6 +598,63 @@ test("mergePublishedUsagePayloads preserves canonical hosted rows over overlappi
   );
 });
 
+test("mergePublishedUsagePayloads recomputes only the last two days and lets older rows grow but not shrink", () => {
+  const row = (date: string, total: number) => ({
+    date,
+    input: total,
+    output: 0,
+    cache: { input: 0, output: 0 },
+    total,
+    breakdown: [],
+  });
+  const merged = mergePublishedUsagePayloads({
+    currentPayload: {
+      version: "2026-03-03",
+      start: "2026-04-10",
+      end: "2026-04-15",
+      providers: [
+        {
+          provider: "codex",
+          daily: [row("2026-04-11", 50), row("2026-04-12", 1), row("2026-04-14", 7)],
+        },
+      ],
+    },
+    importedPayload: {
+      version: "2026-03-03",
+      start: "2026-04-10",
+      end: "2026-04-15",
+      providers: [{ provider: "codex", daily: [row("2026-04-11", 30)] }],
+    },
+    hostedPayload: {
+      version: "2026-03-03",
+      start: "2026-04-10",
+      end: "2026-04-15",
+      updatedAt: "2026-04-15T00:00:00.000Z",
+      providers: [
+        {
+          provider: "codex",
+          daily: [row("2026-04-11", 60), row("2026-04-12", 40), row("2026-04-14", 9)],
+        },
+      ],
+    },
+    opencodeDailyRecoveryPayload: null,
+    t3Summary: null,
+    updatedAt: new Date("2026-04-15T00:00:00.000Z"),
+  });
+
+  assert.deepEqual(
+    merged.providers[0]?.daily.map((entry) => [entry.date, entry.total]),
+    [
+      // Machines sum to 80 > 60: older row grows.
+      ["2026-04-11", 80],
+      // Fresh 1 < 40 outside the window: hosted history wins.
+      ["2026-04-12", 40],
+      // Inside the window: fresh replaces hosted even when smaller.
+      ["2026-04-14", 7],
+    ],
+  );
+});
+
 test("buildPublishedBackupPaths creates filesystem-safe snapshot paths", () => {
   const paths = buildPublishedBackupPaths(
     "/tmp/slopmeter-history",
@@ -699,74 +758,4 @@ test("buildBundledPublishedDataModule emits a typed module with payload and svg"
   assert.match(moduleSource, /publishedSvgMarkup/);
   assert.match(moduleSource, /<svg>ok<\/svg>/);
   assert.match(moduleSource, /"provider": "codex"/);
-});
-
-test("normalizeCostAnalysisPayload maps ccusage-backed analysis into the published cost payload", () => {
-  const payload = normalizeCostAnalysisPayload({
-    generated_at: "2026-06-19T00:00:00Z",
-    source: "ccusage test",
-    date_range: {
-      start: "2026-06-01",
-      end: "2026-06-30",
-    },
-    grand_total_tokens: 125,
-    grand_total_cost_usd: 42.5,
-    cost_coverage_note: "coverage note",
-    providers: {
-      codex: {
-        label: "Codex",
-        active_days: 2,
-        date_range: {
-          first: "2026-06-01",
-          last: "2026-06-02",
-        },
-        totals: {
-          input_tokens: 100,
-          output_tokens: 25,
-          cache_read_tokens: 80,
-          total_tokens: 125,
-        },
-        total_cost_usd: 42.5,
-        monthly: [
-          {
-            month: "2026-06",
-            input_tokens: 100,
-            output_tokens: 25,
-            cache_read_tokens: 80,
-            total_tokens: 125,
-            active_days: 2,
-            cost_usd: 42.5,
-          },
-        ],
-      },
-    },
-    monthly_totals: [
-      {
-        month: "2026-06",
-        input_tokens: 100,
-        output_tokens: 25,
-        cache_read_tokens: 80,
-        total_tokens: 125,
-        active_days: 2,
-        cost_usd: 42.5,
-      },
-    ],
-    model_cost_summary: [
-      {
-        model: "gpt-5.4",
-        total_input: 100,
-        total_output: 25,
-        total_cache_read: 80,
-        total_tokens: 125,
-        months_active: 1,
-        cost_usd: 50,
-      },
-    ],
-  });
-
-  assert.equal(payload.harnessTotalCostUsd, 42.5);
-  assert.equal(payload.modelTotalCostUsd, 42.5);
-  assert.equal(payload.harnesses[0]?.id, "codex");
-  assert.equal(payload.harnesses[0]?.monthly[0]?.costUsd, 42.5);
-  assert.equal(payload.models[0]?.name, "gpt-5.4");
 });

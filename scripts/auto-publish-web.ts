@@ -3,19 +3,28 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
-  readdirSync,
+  rmSync,
   writeFileSync,
 } from "node:fs";
 import { homedir } from "node:os";
-import { basename, dirname, resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+// Daily publisher run by ops/systemd/tokens-publish.service from a dedicated
+// automation clone. It is the only writer of the generated artifacts below, so
+// it owns them: leftovers from an interrupted run are discarded, never treated
+// as a reason to stop publishing.
+
 const REPO_ROOT = resolve(fileURLToPath(new URL("..", import.meta.url)));
-const DEFAULT_RECOVERY_DB_PATH = resolve(
+const RECOVERY_DB_PATH = resolve(
   homedir(),
   ".local/share/opencode/recovery/opencode-salvage-merged.db",
 );
-const DEFAULT_STATE_PATH = resolve(
+const MACHINE_IMPORT_PATH = resolve(
+  homedir(),
+  ".local/share/slopmeter/machine-import.json",
+);
+const STATE_PATH = resolve(
   homedir(),
   ".local/state/slopmeter-automation/last-run.json",
 );
@@ -27,28 +36,31 @@ const GENERATED_ARTIFACTS = [
 ] as const;
 const GIT_AUTHOR_NAME = "Microck";
 const GIT_AUTHOR_EMAIL = "contact@micr.dev";
-
-interface CommandResult {
-  status: number | null;
-  stdout: string;
-  stderr: string;
-}
+// Every step is bounded so a hung child (ssh, git, build) fails the run
+// instead of leaving the oneshot "activating" forever, which blocks every
+// later timer tick.
+const STEP_TIMEOUT_MS = 15 * 60 * 1000;
 
 interface RunSummary {
   ranAt: string;
-  repoRoot: string;
+  ok: boolean;
+  stage: string;
+  error: string | null;
   usedRecoveryRefresh: boolean;
-  latestBackupDir: string | null;
-  materialChangeDetected: boolean;
   committed: boolean;
   commitSha: string | null;
   pushed: boolean;
 }
 
+let stage = "start";
+
 function runCommand(command: string, args: string[], env?: NodeJS.ProcessEnv) {
   const result = spawnSync(command, args, {
     cwd: REPO_ROOT,
     encoding: "utf8",
+    timeout: STEP_TIMEOUT_MS,
+    killSignal: "SIGKILL",
+    maxBuffer: 256 * 1024 * 1024,
     env: {
       ...process.env,
       ...env,
@@ -58,10 +70,10 @@ function runCommand(command: string, args: string[], env?: NodeJS.ProcessEnv) {
       GIT_COMMITTER_NAME: GIT_AUTHOR_NAME,
       GIT_COMMITTER_EMAIL: GIT_AUTHOR_EMAIL,
     },
-  }) satisfies CommandResult;
+  });
 
   if (result.error) {
-    throw result.error;
+    throw new Error(`${command} ${args.join(" ")}: ${result.error.message}`);
   }
 
   return result;
@@ -74,256 +86,160 @@ function assertCommand(
 ) {
   const result = runCommand(command, args, env);
 
+  // Child output goes to the journal so failures are diagnosable afterwards.
+  process.stdout.write(result.stdout);
+  process.stderr.write(result.stderr);
+
   if (result.status !== 0) {
     throw new Error(
-      `${command} ${args.join(" ")} failed\n${result.stderr || result.stdout}`,
+      `${command} ${args.join(" ")} exited ${result.status}\n${(result.stderr || result.stdout).slice(-4000)}`,
     );
   }
 
   return result.stdout.trim();
 }
 
-function readTextIfExists(pathValue: string) {
-  if (!existsSync(pathValue)) {
-    return null;
-  }
+function step<T>(name: string, run: () => T) {
+  stage = name;
+  process.stdout.write(`== ${name}\n`);
 
-  return readFileSync(pathValue, "utf8");
+  return run();
 }
 
-function hasPackageScript(scriptName: string) {
-  const packageJsonText = readTextIfExists(resolve(REPO_ROOT, "package.json"));
-
-  if (!packageJsonText) {
-    return false;
-  }
-
-  const parsed = JSON.parse(packageJsonText) as {
-    scripts?: Record<string, string>;
-  };
-
-  return typeof parsed.scripts?.[scriptName] === "string";
+function writeState(summary: RunSummary) {
+  mkdirSync(dirname(STATE_PATH), { recursive: true });
+  writeFileSync(STATE_PATH, `${JSON.stringify(summary, null, 2)}\n`, "utf8");
+  console.log(JSON.stringify(summary, null, 2));
 }
 
-function normalizePublishedJson(jsonText: string | null) {
-  if (!jsonText) {
-    return null;
-  }
+// Drop anything a previous interrupted run left behind in paths this script
+// owns, then require the rest of the clone to match origin/main exactly.
+function resetAutomationClone() {
+  assertCommand("git", ["fetch", "origin", "main"]);
+  assertCommand("git", ["checkout", "--", ...GENERATED_ARTIFACTS]);
 
-  try {
-    const parsed = JSON.parse(jsonText) as { updatedAt?: string };
-
-    delete parsed.updatedAt;
-
-    return JSON.stringify(parsed);
-  } catch {
-    return jsonText;
-  }
-}
-
-function assertCleanTrackedWorktree() {
-  const status = assertCommand("git", [
+  const dirty = assertCommand("git", [
     "status",
     "--porcelain",
     "--untracked-files=no",
   ]);
 
-  if (status) {
+  if (dirty) {
     throw new Error(
-      `Automation clone is not clean. Refusing to publish.\n${status}`,
+      `Automation clone has edits outside generated artifacts; refusing to discard them.\n${dirty}`,
     );
   }
+
+  // The clone never carries its own commits: a failed push from an earlier
+  // run is regenerated from current data instead of being replayed.
+  assertCommand("git", ["switch", "--force-create", "main", "origin/main"]);
+  rmSync(resolve(REPO_ROOT, ".next"), { recursive: true, force: true });
 }
 
-function ensureMainBranch() {
-  const branch = assertCommand("git", ["branch", "--show-current"]);
+function readArtifacts() {
+  return GENERATED_ARTIFACTS.map((path) => {
+    const fullPath = resolve(REPO_ROOT, path);
 
-  if (branch === "main") {
-    return;
-  }
+    if (!existsSync(fullPath)) {
+      return null;
+    }
 
-  // A prior jj export can leave this clean automation clone detached at the
-  // same commit as main. Repair only that safe case before publishing.
-  assertCleanTrackedWorktree();
-  assertCommand("git", ["switch", "main"]);
-}
+    const text = readFileSync(fullPath, "utf8");
 
-function pullLatestMain() {
-  assertCommand("git", ["fetch", "origin", "main"]);
-  assertCommand("git", ["pull", "--ff-only", "origin", "main"]);
-}
-
-function installDependencies() {
-  assertCommand("bun", ["install", "--frozen-lockfile"]);
-}
-
-function getLatestBackupDir() {
-  const historyDir = resolve(REPO_ROOT, ".slopmeter-data/history");
-
-  if (!existsSync(historyDir)) {
-    return null;
-  }
-
-  const latestDir = readdirSync(historyDir, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => entry.name)
-    .sort()
-    .at(-1);
-
-  return latestDir ? resolve(historyDir, latestDir) : null;
-}
-
-function restoreGeneratedArtifacts() {
-  assertCommand("git", ["restore", "--", ...GENERATED_ARTIFACTS]);
-}
-
-function restoreBuildArtifacts() {
-  assertCommand("git", ["restore", "--", ".next"]);
-  assertCommand("git", ["clean", "-fd", "--", ".next"]);
-}
-
-function writeState(summary: RunSummary) {
-  mkdirSync(dirname(DEFAULT_STATE_PATH), { recursive: true });
-  writeFileSync(
-    DEFAULT_STATE_PATH,
-    `${JSON.stringify(summary, null, 2)}\n`,
-    "utf8",
-  );
+    // updatedAt and generatedAt change every run; ignore them when deciding
+    // whether the dataset changed.
+    return text.replace(/"(updatedAt|generatedAt)":\s*"[^"]*"/g, "");
+  });
 }
 
 function main() {
-  const beforeJson = normalizePublishedJson(
-    readTextIfExists(resolve(REPO_ROOT, GENERATED_ARTIFACTS[0])),
-  );
-  const beforeCost = readTextIfExists(
-    resolve(REPO_ROOT, GENERATED_ARTIFACTS[1]),
-  );
-  const beforeSvg = readTextIfExists(
-    resolve(REPO_ROOT, GENERATED_ARTIFACTS[2]),
-  );
-  const recoveryRefreshAvailable = hasPackageScript(
-    "publish:web:refresh-opencode-recovery",
-  );
-  const useRecoveryRefresh =
-    existsSync(DEFAULT_RECOVERY_DB_PATH) && recoveryRefreshAvailable;
-  const publishEnv = {
-    SLOPMETER_WEB_SKIP_BLOB_UPLOAD: "1",
-    SLOPMETER_WEB_SKIP_COST_REFRESH: "1",
-  } satisfies NodeJS.ProcessEnv;
+  const usedRecoveryRefresh = existsSync(RECOVERY_DB_PATH);
 
-  ensureMainBranch();
-  assertCleanTrackedWorktree();
-  pullLatestMain();
-  installDependencies();
-
-  if (useRecoveryRefresh) {
-    assertCommand("bun", ["run", "machine-exports:pull"], publishEnv);
-    assertCommand("bun", ["run", "machine-exports:merge"], publishEnv);
-    assertCommand("bun", ["run", "publish:web:refresh-opencode-recovery"], {
-      ...publishEnv,
-      SLOPMETER_WEB_IMPORT_PATH: resolve(
-        homedir(),
-        ".local/share/slopmeter/machine-import.json",
-      ),
-    });
-  } else {
-    assertCommand("bun", ["run", "machine-exports:pull"], publishEnv);
-    assertCommand("bun", ["run", "machine-exports:merge"], publishEnv);
-    assertCommand("bun", ["run", "publish:web"], {
-      ...publishEnv,
-      SLOPMETER_WEB_IMPORT_PATH: resolve(
-        homedir(),
-        ".local/share/slopmeter/machine-import.json",
-      ),
-    });
-  }
-
-  assertCommand("bun", ["x", "next", "build"]);
-  restoreBuildArtifacts();
-
-  const afterJson = normalizePublishedJson(
-    readTextIfExists(resolve(REPO_ROOT, GENERATED_ARTIFACTS[0])),
+  step("reset automation clone", resetAutomationClone);
+  step("install dependencies", () =>
+    assertCommand("bun", ["install", "--frozen-lockfile"]),
   );
-  const afterCost = readTextIfExists(
-    resolve(REPO_ROOT, GENERATED_ARTIFACTS[1]),
+
+  const before = readArtifacts();
+
+  step("pull machine exports", () =>
+    assertCommand("bun", ["run", "machine-exports:pull"]),
   );
-  const afterSvg = readTextIfExists(resolve(REPO_ROOT, GENERATED_ARTIFACTS[2]));
-  const materialChangeDetected =
-    beforeJson !== afterJson ||
-    beforeCost !== afterCost ||
-    beforeSvg !== afterSvg;
-  const latestBackupDir = getLatestBackupDir();
+  step("merge machine exports", () =>
+    assertCommand("bun", ["run", "machine-exports:merge"]),
+  );
+  step("publish", () =>
+    assertCommand(
+      "bun",
+      [
+        "run",
+        usedRecoveryRefresh
+          ? "publish:web:refresh-opencode-recovery"
+          : "publish:web",
+      ],
+      {
+        SLOPMETER_WEB_SKIP_BLOB_UPLOAD: "1",
+        SLOPMETER_WEB_IMPORT_PATH: MACHINE_IMPORT_PATH,
+      },
+    ),
+  );
+  step("build", () => assertCommand("bun", ["x", "next", "build"]));
+  rmSync(resolve(REPO_ROOT, ".next"), { recursive: true, force: true });
 
-  if (!materialChangeDetected) {
-    restoreGeneratedArtifacts();
+  const after = readArtifacts();
+  const changed = before.some((text, index) => text !== after[index]);
 
-    const summary: RunSummary = {
+  if (!changed) {
+    assertCommand("git", ["checkout", "--", ...GENERATED_ARTIFACTS]);
+    writeState({
       ranAt: new Date().toISOString(),
-      repoRoot: REPO_ROOT,
-      usedRecoveryRefresh: useRecoveryRefresh,
-      latestBackupDir,
-      materialChangeDetected: false,
+      ok: true,
+      stage: "done",
+      error: null,
+      usedRecoveryRefresh,
       committed: false,
       commitSha: null,
       pushed: false,
-    };
-
-    writeState(summary);
-    console.log(JSON.stringify(summary, null, 2));
+    });
     return;
   }
 
-  assertCommand("git", ["add", "--", ...GENERATED_ARTIFACTS]);
-  const stagedDiff = runCommand("git", [
-    "diff",
-    "--cached",
-    "--quiet",
-    "--exit-code",
-  ]);
+  const commitSha = step("commit", () => {
+    assertCommand("git", ["add", "--", ...GENERATED_ARTIFACTS]);
+    assertCommand("git", [
+      "commit",
+      "-m",
+      `chore(data): daily publish ${new Date().toISOString().slice(0, 10)}`,
+    ]);
 
-  if (stagedDiff.status === 0) {
-    const summary: RunSummary = {
-      ranAt: new Date().toISOString(),
-      repoRoot: REPO_ROOT,
-      usedRecoveryRefresh: useRecoveryRefresh,
-      latestBackupDir,
-      materialChangeDetected: false,
-      committed: false,
-      commitSha: null,
-      pushed: false,
-    };
+    return assertCommand("git", ["rev-parse", "HEAD"]);
+  });
 
-    writeState(summary);
-    console.log(JSON.stringify(summary, null, 2));
-    return;
-  }
-
-  if (stagedDiff.status !== 1) {
-    throw new Error(stagedDiff.stderr || stagedDiff.stdout);
-  }
-
-  const dateKey = new Date().toISOString().slice(0, 10);
-  assertCommand("git", [
-    "commit",
-    "-m",
-    `chore(data): daily publish ${dateKey}`,
-  ]);
-  const commitSha = assertCommand("git", ["rev-parse", "HEAD"]);
-  assertCommand("git", ["push", "origin", "main"]);
-
-  const summary: RunSummary = {
+  step("push", () => assertCommand("git", ["push", "origin", "main"]));
+  writeState({
     ranAt: new Date().toISOString(),
-    repoRoot: REPO_ROOT,
-    usedRecoveryRefresh: useRecoveryRefresh,
-    latestBackupDir,
-    materialChangeDetected: true,
+    ok: true,
+    stage: "done",
+    error: null,
+    usedRecoveryRefresh,
     committed: true,
     commitSha,
     pushed: true,
-  };
-
-  writeState(summary);
-  console.log(JSON.stringify(summary, null, 2));
+  });
 }
 
-main();
+try {
+  main();
+} catch (error) {
+  writeState({
+    ranAt: new Date().toISOString(),
+    ok: false,
+    stage,
+    error: error instanceof Error ? error.message : String(error),
+    usedRecoveryRefresh: existsSync(RECOVERY_DB_PATH),
+    committed: false,
+    commitSha: null,
+    pushed: false,
+  });
+  process.exitCode = 1;
+}

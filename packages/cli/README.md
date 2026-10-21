@@ -136,14 +136,13 @@ npx slopmeter --dark --format svg --output ./out/heatmap-dark.svg
 
 - `--format json` writes a machine-readable export with `version`, `start`, `end`, and `providers`.
 - Each provider entry contains `provider`, `daily`, and optional `insights`.
-- Each `daily` row contains `date`, `input`, `output`, `cache`, `total`, optional `displayValue`, and `breakdown`.
+- Each `daily` row contains `date`, `input`, `output`, `cache`, `total`, `displayValue` (equal to `total`), and `breakdown`. Days without measured tokens are omitted, never exported as zero rows.
 
 ## Data locations
 
 - Claude Code: `$CLAUDE_CONFIG_DIR/*/projects` or `~/.config/claude/projects`, `~/.claude/projects`
 - Older Claude Code layouts: falls back to `$CLAUDE_CONFIG_DIR/stats-cache.json`, `~/.config/claude/stats-cache.json`, or `~/.claude/stats-cache.json` for days not present in project logs
-- Earliest Claude Code activity fallback: uses `$CLAUDE_CONFIG_DIR/history.jsonl`, `~/.config/claude/history.jsonl`, or `~/.claude/history.jsonl` to mark activity-only days when token totals are unavailable
-- Codex: `$CODEX_HOME/sessions` or `~/.codex/sessions`
+- Codex: `$CODEX_HOME/sessions` or `~/.codex/sessions`, reading both `rollout-*.jsonl` and Codex's zstd-compressed `rollout-*.jsonl.zst`; a plain `.jsonl` hides its compressed sibling. Archived threads in `archived_sessions` are not read.
 - Gemini CLI: `$GEMINI_HOME/tmp/*/chats/session-*.json` or `~/.gemini/tmp/*/chats/session-*.json`
 - Cursor: reads `cursorAuth/accessToken` and `cursorAuth/refreshToken` from `$CURSOR_STATE_DB_PATH`, `$CURSOR_CONFIG_DIR/User/globalStorage/state.vscdb`, `~/Library/Application Support/Cursor/User/globalStorage/state.vscdb` (macOS), `%APPDATA%/Cursor/User/globalStorage/state.vscdb` (Windows), or `~/.config/Cursor/User/globalStorage/state.vscdb` (Linux), then loads usage from Cursor's CSV export endpoint
 - Open Code: prefers `$OPENCODE_DATA_DIR/opencode.db` or `~/.local/share/opencode/opencode.db`, and falls back to `$OPENCODE_DATA_DIR/storage/message` or `~/.local/share/opencode/storage/message`
@@ -154,7 +153,6 @@ npx slopmeter --dark --format svg --output ./out/heatmap-dark.svg
 - Helios: `$HELIOS_HOME/helios.db` or `~/.helios/helios.db`
 
 When Claude Code falls back to `stats-cache.json`, the daily input/output/cache split is reconstructed from Claude's cached model totals because the older layout does not keep per-request usage logs.
-When Claude Code falls back to `history.jsonl`, those days are rendered as activity-only cells and do not affect the token totals shown in the header.
 
 ## Exit behavior
 

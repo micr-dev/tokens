@@ -17,23 +17,21 @@ These notes are repo-local guidance for `tokens.micr.dev`.
   - `.slopmeter-data/published/heatmap-last-year.svg`
   - `packages/web/lib/published-data.generated.ts`
 - If a generated artifact changes, keep the bundled TypeScript module in sync.
-- `publish:web` refreshes cost data before publishing usage. If `ccusage` hangs locally, do not claim a fresh ccusage refresh; use the existing artifact as the current published snapshot and call out the limitation.
+- `publish:usage` (and `publish:web`) computes `cost-analysis.json` from the merged `daily-usage.json` it just built: every provider/day/model breakdown row is priced with `packages/web/lib/model-prices.ts`. There is no ccusage step and no preserved cost history; the same usage always yields the same cost artifact.
 
 ## Cost Tab Accounting
 
-- Treat harness spend as the canonical top-line cost total.
-- Treat Provider/Model cost rows as an allocation of that same canonical harness spend. The displayed model subtotal should round to the displayed harness spend.
-- Do not sum imported `model_cost_summary` as a separate UI subtotal. Those rows are useful as model-rate inputs and diagnostics, but they can disagree with harness spend because preserved, subscription-plan, null-cost, and refreshed sources have different coverage.
-- OpenCode cost history includes sessions from another machine. Do not treat local `ccusage opencode` as a complete oracle.
-- Pi should use model-estimated spend when local ccusage undercounts the published Pi history.
-- Keep model alias canonicalization aligned between artifact normalization and analytics so names such as `cliproxyapi/gpt-5.4` and `gpt-5.4` do not split in the UI.
+- Treat harness spend as the canonical top-line cost total. Model rows are priced from the same breakdown rows, so harness and model totals match by construction.
+- Per row: uncached input × input price + cache reads × cached-input price + cache writes × cache-write price (input price when none is published) + output × output price. omp stores cache tokens outside input/output; every other loader folds them in (see `splitBillableTokens`).
+- Add prices only from LiteLLM's `model_prices_and_context_window.json`, an official vendor pricing page, or a documented $0 tier, and record the source on the entry. Map naming variants through `MODEL_PRICE_ALIASES`. Never guess: unknown models must stay in `modelWarnings` as missing-cost.
+- Keep model alias canonicalization aligned between the price table and analytics so names such as `cliproxyapi/gpt-5.4` and `gpt-5.4` do not split in the UI.
 
 ## Verification
 
 - Focused web checks:
   - `bun run --cwd packages/web typecheck`
   - `bun test packages/web/test/usage.test.ts`
-  - `bun test packages/web/test/publish-usage.test.ts --test-name-pattern 'normalizeCostAnalysisPayload'`
+  - `bun test packages/web/test/cost-analysis.test.ts`
   - `bun run --cwd packages/web build`
 - A full `packages/web/test/publish-usage.test.ts` run currently has unrelated merge-behavior failures. Do not hide those failures, but do not treat them as cost-tab regressions unless the touched change affects that merge path.
 - For browser verification, start the web app on `0.0.0.0` with an unused port and inspect the rendered Cost tab. A healthy Cost tab shows Harness spend and Model subtotal as the same rounded dollar amount.

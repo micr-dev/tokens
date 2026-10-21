@@ -92,27 +92,34 @@ bun run opencode:recovery:export
 
 ## Daily Automation
 
-The daily publish job runs from a dedicated clean clone on the machine that holds the local usage histories.
-
-- Automation clone: `~/.local/share/tokens-publish/repo`
-- Service unit: `~/.config/systemd/user/tokens-publish.service`
-- Timer unit: `~/.config/systemd/user/tokens-publish.timer`
-- Last run summary: `~/.local/state/slopmeter-automation/last-run.json`
-
-The service executes:
+The daily publish job runs from a dedicated clone on the machine that holds the local usage histories. The units in `ops/systemd/` are the source of truth; install them with symlinks so the deployed units cannot drift from the repo:
 
 ```bash
-bun scripts/auto-publish-web.ts
+ln -sf ~/.local/share/tokens-publish/repo/ops/systemd/tokens-publish.{service,timer} ~/.config/systemd/user/
+systemctl --user daemon-reload
 ```
 
-That script:
+- Automation clone: `~/.local/share/tokens-publish/repo`
+- Last run summary: `~/.local/state/slopmeter-automation/last-run.json` (`ok`, failing `stage`, `error`)
+- Machine export config: `~/.config/slopmeter/machines.json`
 
-- pulls `origin/main` fast-forward only
-- installs dependencies
-- refreshes OpenCode recovery first when `~/.local/share/opencode/recovery/opencode-salvage-merged.db` exists
-- runs the publish pipeline
-- writes an immutable backup under `.slopmeter-data/history/<timestamp>/`
-- commits only the canonical published artifacts when the dataset materially changed
+`scripts/auto-publish-web.ts`:
+
+- owns the clone: it discards leftovers of an interrupted run in the generated artifacts and `.next`, then resets `main` to `origin/main`; it refuses to run only if other tracked files were edited
+- pulls remote machine exports (an unreachable machine keeps its last export), merges them, and runs `publish:web`
+- commits and pushes the generated artifacts when the dataset changed
+- bounds every step with a timeout and records the failing stage in the run summary
+
+The service retries a failed run every 20 minutes, up to 4 attempts in 12 hours, and times out after 50 minutes.
+
+### Data rules
+
+- Published history is the system of record. A publish may recompute today and yesterday freely; older provider/day rows may grow (for example, when a new machine backfills) but never shrink. Local sources lose history over time: Claude Code prunes transcripts after 30 days and Codex compresses old rollouts.
+- Cost is computed on every publish from the merged daily usage and `packages/web/lib/model-prices.ts`. Models without a price are listed as `missing-cost`; add a price there, never in the generated artifacts.
+
+### Remote machine exporters
+
+Each remote machine runs `ops/exporter/run-export.sh` (macOS/Linux) or `ops/exporter/run-export.ps1` (Windows) from a clone of this repo on a schedule. The wrapper resets the clone to `origin/main` before exporting, so loader fixes reach every machine. The central publisher warns in its journal when an export is older than 48 hours or contains no providers.
 
 To inspect or rerun it manually:
 
@@ -120,6 +127,7 @@ To inspect or rerun it manually:
 systemctl --user status tokens-publish.timer --no-pager
 systemctl --user status tokens-publish.service --no-pager
 journalctl --user -u tokens-publish.service -n 100 --no-pager
+cat ~/.local/state/slopmeter-automation/last-run.json
 systemctl --user start tokens-publish.service
 ```
 

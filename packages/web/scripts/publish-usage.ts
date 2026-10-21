@@ -1,4 +1,3 @@
-import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, resolve } from "node:path";
@@ -13,17 +12,13 @@ import {
 } from "../../cli/src/lib/export";
 import { mergeUsageSummaries } from "../../cli/src/lib/utils";
 import { providerIds, aggregateUsage } from "../../cli/src/providers";
-import type {
-  PublishedCostHarness,
-  PublishedCostModel,
-  PublishedCostMonthlyRow,
-  PublishedCostPayload,
-} from "../lib/types";
+import type { PublishedCostPayload } from "../lib/types";
 import type {
   JsonExportPayload,
   JsonUsageSummary,
   UsageSummary,
 } from "../../cli/src/interfaces";
+import { writePublishedCostArtifact } from "./lib/cost-analysis";
 import { syncPublishedArtifactsToGitBackupRepo } from "./lib/git-backup";
 import { loadT3PublishedSummary } from "./lib/t3-chat";
 
@@ -33,7 +28,6 @@ const DEFAULT_OPENCODE_RECOVERY_IMPORT_PATH =
   ".local/share/opencode/recovery/t3-chat-export-opencode-recovered.json";
 const DEFAULT_OPENCODE_DAILY_RECOVERY_IMPORT_PATH =
   ".local/share/opencode/recovery/opencode-daily-recovered.json";
-const DEFAULT_COST_ANALYSIS_IMPORT_PATH = "token-usage-analysis.json";
 const DEFAULT_LOCAL_OUTPUT_PATH = ".slopmeter-data/published/daily-usage.json";
 const DEFAULT_LOCAL_COST_OUTPUT_PATH =
   ".slopmeter-data/published/cost-analysis.json";
@@ -46,33 +40,6 @@ const DEFAULT_BLOB_PATH = "slopmeter/daily-usage.json";
 const DEFAULT_SVG_BLOB_PATH = "slopmeter/heatmap-last-year.svg";
 const REPO_ROOT = resolve(fileURLToPath(new URL("../../..", import.meta.url)));
 const CLAUDE_EXCLUDED_DATES = new Set(["2026-03-10", "2026-03-17"]);
-const COST_COVERAGE_NOTE =
-  "API-price equivalent for this token usage. Most or all of these tokens were used through subscription plans rather than metered API billing.";
-const CCUSAGE_BACKED_COST_HARNESSES = [
-  { id: "codex", label: "Codex" },
-  { id: "droid", label: "Droid" },
-  { id: "hermes", label: "Hermes Agent" },
-  { id: "pi", label: "Pi Coding Agent" },
-] as const;
-const MODEL_ESTIMATED_COST_HARNESSES = new Set(["pi"]);
-const CURRENT_MONTH_MODEL_PRICES_PER_MILLION: Record<
-  string,
-  { input: number; cachedInput: number; output: number }
-> = {
-  // OpenAI model pricing, verified against the official model pages on 2026-08-17.
-  "gpt-5.5": { input: 5, cachedInput: 0.5, output: 30 },
-  "gpt-5.6-sol": { input: 5, cachedInput: 0.5, output: 30 },
-  "gpt-5.6-luna": { input: 0.2, cachedInput: 0.02, output: 1.2 },
-  "gpt-5.6-terra": { input: 2, cachedInput: 0.2, output: 12 },
-  "gpt-5.3-codex-spark": { input: 1.75, cachedInput: 0.175, output: 14 },
-  "claude-opus-5": { input: 5, cachedInput: 0.5, output: 25 },
-  "claude-opus-4-6": { input: 5, cachedInput: 0.5, output: 25 },
-  "claude-sonnet-5": { input: 3, cachedInput: 0.3, output: 15 },
-  "kimi-k3-modal": { input: 3, cachedInput: 0.3, output: 15 },
-  "glm-5.3": { input: 1.4, cachedInput: 0.14, output: 4.4 },
-  "gemini-flash-3.6-high-control": { input: 0.75, cachedInput: 0.075, output: 3.75 },
-  "gemini-3.6-flash": { input: 0.75, cachedInput: 0.075, output: 3.75 },
-};
 export const WEB_PROVIDER_ORDER = [
   "codex",
   "nanoclaw",
@@ -140,917 +107,12 @@ function readExistingPublishedPayload(localOutputPath: string) {
   ) as PublishedUsagePayload;
 }
 
-function readJsonFile(pathValue: string) {
-  return JSON.parse(readFileSync(pathValue, "utf8")) as unknown;
-}
-
 function resolveRepoPath(pathValue: string) {
   return resolve(REPO_ROOT, pathValue);
 }
 
 function resolveHomePath(pathValue: string) {
   return resolve(homedir(), pathValue);
-}
-
-function readCostAnalysisPayload(importPath: string) {
-  if (!existsSync(importPath)) {
-    return null;
-  }
-
-  return normalizeCostAnalysisPayload(readJsonFile(importPath));
-}
-
-function numberOrZero(value: unknown) {
-  return typeof value === "number" && Number.isFinite(value) ? value : 0;
-}
-
-function numberOrNull(value: unknown) {
-  return typeof value === "number" && Number.isFinite(value) ? value : null;
-}
-
-function stringOrNull(value: unknown) {
-  return typeof value === "string" && value.trim() ? value.trim() : null;
-}
-
-function requireString(value: unknown, fieldName: string) {
-  const normalized = stringOrNull(value);
-
-  if (!normalized) {
-    throw new Error(`Cost analysis is missing ${fieldName}.`);
-  }
-
-  return normalized;
-}
-
-function asRecord(value: unknown, fieldName: string) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error(`Cost analysis ${fieldName} must be an object.`);
-  }
-
-  return value as Record<string, unknown>;
-}
-
-function asArray(value: unknown, fieldName: string) {
-  if (!Array.isArray(value)) {
-    throw new Error(`Cost analysis ${fieldName} must be an array.`);
-  }
-
-  return value;
-}
-
-function normalizeCostMonthlyRow(value: unknown): PublishedCostMonthlyRow {
-  const row = asRecord(value, "monthly row");
-
-  return {
-    month: requireString(row.month, "monthly row month"),
-    inputTokens: numberOrZero(row.input_tokens),
-    outputTokens: numberOrZero(row.output_tokens),
-    cacheReadTokens: numberOrZero(row.cache_read_tokens),
-    totalTokens: numberOrZero(row.total_tokens),
-    activeDays: numberOrZero(row.active_days),
-    costUsd: numberOrNull(row.cost_usd),
-  };
-}
-
-function normalizeCostHarness(
-  key: string,
-  value: unknown,
-): PublishedCostHarness {
-  const harness = asRecord(value, `provider ${key}`);
-  const totals = asRecord(harness.totals, `provider ${key} totals`);
-  const dateRange =
-    harness.date_range && typeof harness.date_range === "object"
-      ? (harness.date_range as Record<string, unknown>)
-      : {};
-
-  return {
-    id: key,
-    label: stringOrNull(harness.label) ?? key,
-    activeDays: numberOrZero(harness.active_days),
-    firstDate: stringOrNull(dateRange.first),
-    lastDate: stringOrNull(dateRange.last),
-    totalCostUsd: numberOrNull(harness.total_cost_usd),
-    totalTokens: numberOrZero(totals.total_tokens),
-    inputTokens: numberOrZero(totals.input_tokens),
-    outputTokens: numberOrZero(totals.output_tokens),
-    cacheReadTokens: numberOrZero(totals.cache_read_tokens),
-    monthly: asArray(harness.monthly, `provider ${key} monthly`).map(
-      normalizeCostMonthlyRow,
-    ),
-  };
-}
-
-function normalizeCostModel(value: unknown): PublishedCostModel {
-  const model = asRecord(value, "model cost summary row");
-
-  return {
-    name: requireString(model.model, "model name"),
-    totalCostUsd: numberOrZero(model.cost_usd),
-    totalTokens: numberOrZero(model.total_tokens),
-    inputTokens: numberOrZero(model.total_input),
-    outputTokens: numberOrZero(model.total_output),
-    cacheReadTokens: numberOrZero(model.total_cache_read),
-    monthsActive: numberOrZero(model.months_active),
-  };
-}
-
-function todayDateKey() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function getCcusageCost(value: Record<string, unknown>) {
-  return (
-    numberOrNull(value.totalCost) ??
-    numberOrNull(value.costUSD) ??
-    numberOrNull(value.costUsd) ??
-    numberOrNull(value.total_cost_usd) ??
-    0
-  );
-}
-
-function getCcusageNumber(value: Record<string, unknown>, key: string) {
-  return numberOrZero(value[key]);
-}
-
-function runCcusageJson({
-  harnessId,
-  command,
-  since,
-  until,
-}: {
-  harnessId: string;
-  command: "daily" | "monthly";
-  since: string;
-  until: string;
-}) {
-  const timeoutMs = Number.parseInt(
-    process.env.SLOPMETER_CCUSAGE_TIMEOUT_MS ?? "120000",
-    10,
-  );
-  const result = spawnSync(
-    "ccusage",
-    [
-      harnessId,
-      command,
-      "--json",
-      "--offline",
-      "--since",
-      since,
-      "--until",
-      until,
-    ],
-    {
-      encoding: "utf8",
-      maxBuffer: 128 * 1024 * 1024,
-      timeout: Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : 120000,
-      killSignal: "SIGTERM",
-    },
-  );
-
-  if (result.status !== 0) {
-    throw new Error(
-      `ccusage ${harnessId} ${command} failed: ${
-        result.error?.message ||
-        result.stderr.trim() ||
-        result.stdout.trim() ||
-        "unknown error"
-      }`,
-    );
-  }
-
-  return asRecord(JSON.parse(result.stdout) as unknown, `ccusage ${harnessId}`);
-}
-
-function rowsFromCcusagePayload(
-  payload: Record<string, unknown>,
-  key: "daily" | "monthly",
-) {
-  return asArray(payload[key], `ccusage ${key}`).map((row) =>
-    asRecord(row, `ccusage ${key} row`),
-  );
-}
-
-function getCcusageModelsUsed(row: Record<string, unknown>) {
-  const modelsUsed = row.modelsUsed;
-
-  if (Array.isArray(modelsUsed)) {
-    return modelsUsed
-      .filter((model): model is string => typeof model === "string")
-      .sort((left, right) => left.localeCompare(right));
-  }
-
-  const models = row.models;
-
-  if (models && typeof models === "object" && !Array.isArray(models)) {
-    return Object.keys(models).sort((left, right) => left.localeCompare(right));
-  }
-
-  return [];
-}
-
-function activeDaysByMonth(dailyRows: Record<string, unknown>[]) {
-  const counts = new Map<string, number>();
-
-  for (const row of dailyRows) {
-    const date = requireString(row.date, "ccusage daily date");
-    const month = date.slice(0, 7);
-
-    counts.set(month, (counts.get(month) ?? 0) + 1);
-  }
-
-  return counts;
-}
-
-function toCostMonthlyRow(
-  row: Record<string, unknown>,
-  monthlyActiveDays: Map<string, number>,
-) {
-  const month = requireString(row.month, "ccusage monthly month");
-
-  return {
-    month,
-    input_tokens: getCcusageNumber(row, "inputTokens"),
-    output_tokens: getCcusageNumber(row, "outputTokens"),
-    cache_read_tokens: getCcusageNumber(row, "cacheReadTokens"),
-    total_tokens: getCcusageNumber(row, "totalTokens"),
-    active_days: monthlyActiveDays.get(month) ?? 0,
-    models_used: getCcusageModelsUsed(row),
-    cost_usd: getCcusageCost(row),
-  };
-}
-
-function toSourceCostMonthlyRow(row: PublishedCostMonthlyRow) {
-  return {
-    month: row.month,
-    input_tokens: row.inputTokens,
-    output_tokens: row.outputTokens,
-    cache_read_tokens: row.cacheReadTokens,
-    total_tokens: row.totalTokens,
-    active_days: row.activeDays ?? 0,
-    cost_usd: row.costUsd,
-  };
-}
-
-function buildCcusageCostHarness({
-  id,
-  label,
-  since,
-  until,
-}: {
-  id: string;
-  label: string;
-  since: string;
-  until: string;
-}) {
-  const dailyPayload = runCcusageJson({
-    harnessId: id,
-    command: "daily",
-    since,
-    until,
-  });
-  const monthlyPayload = runCcusageJson({
-    harnessId: id,
-    command: "monthly",
-    since,
-    until,
-  });
-  const dailyRows = rowsFromCcusagePayload(dailyPayload, "daily");
-  const monthlyRows = rowsFromCcusagePayload(monthlyPayload, "monthly");
-  const totals = asRecord(dailyPayload.totals, `ccusage ${id} totals`);
-  const dates = dailyRows
-    .map((row) => requireString(row.date, "ccusage daily date"))
-    .sort((left, right) => left.localeCompare(right));
-
-  if (dates.length === 0) {
-    throw new Error(`ccusage ${id} returned no daily rows.`);
-  }
-
-  const monthlyActiveDays = activeDaysByMonth(dailyRows);
-
-  return {
-    label,
-    active_days: dates.length,
-    date_range: {
-      first: dates[0],
-      last: dates[dates.length - 1],
-    },
-    totals: {
-      input_tokens: getCcusageNumber(totals, "inputTokens"),
-      output_tokens: getCcusageNumber(totals, "outputTokens"),
-      cache_read_tokens: getCcusageNumber(totals, "cacheReadTokens"),
-      total_tokens: getCcusageNumber(totals, "totalTokens"),
-    },
-    total_cost_usd: getCcusageCost(totals),
-    monthly: monthlyRows.map((row) => toCostMonthlyRow(row, monthlyActiveDays)),
-  };
-}
-
-function buildCostMonthlyTotals(
-  providers: Record<
-    string,
-    ReturnType<typeof buildCcusageCostHarness> | unknown
-  >,
-) {
-  const monthly = new Map<
-    string,
-    {
-      month: string;
-      input_tokens: number;
-      output_tokens: number;
-      cache_read_tokens: number;
-      total_tokens: number;
-      active_days: number;
-      cost_usd: number;
-      cost_note: string;
-    }
-  >();
-
-  for (const provider of Object.values(providers)) {
-    const record = asRecord(provider, "cost provider");
-
-    for (const row of asArray(record.monthly, "cost provider monthly")) {
-      const monthlyRow = asRecord(row, "cost provider monthly row");
-      const month = requireString(monthlyRow.month, "monthly row month");
-      const current = monthly.get(month) ?? {
-        month,
-        input_tokens: 0,
-        output_tokens: 0,
-        cache_read_tokens: 0,
-        total_tokens: 0,
-        active_days: 0,
-        cost_usd: 0,
-        cost_note:
-          "cost_usd includes live ccusage-backed harnesses plus preserved recovered history where available",
-      };
-
-      current.input_tokens += numberOrZero(monthlyRow.input_tokens);
-      current.output_tokens += numberOrZero(monthlyRow.output_tokens);
-      current.cache_read_tokens += numberOrZero(monthlyRow.cache_read_tokens);
-      current.total_tokens += numberOrZero(monthlyRow.total_tokens);
-      current.active_days += numberOrZero(monthlyRow.active_days);
-      current.cost_usd += numberOrZero(monthlyRow.cost_usd);
-      monthly.set(month, current);
-    }
-  }
-
-  return [...monthly.values()].sort((left, right) =>
-    left.month.localeCompare(right.month),
-  );
-}
-
-function buildCostSourceCoverage(
-  harnesses: PublishedCostHarness[],
-  refreshedHarnessIds: Set<string>,
-  modelEstimatedHarnessIds: Set<string>,
-) {
-  return harnesses.map((harness) => ({
-    harness: harness.id,
-    source: modelEstimatedHarnessIds.has(harness.id)
-      ? ("model-estimated" as const)
-      : refreshedHarnessIds.has(harness.id)
-        ? ("live-ccusage" as const)
-        : ("preserved-import" as const),
-    expectedMonths: harness.monthly.map((row) => row.month),
-    generatedMonths: harness.monthly.map((row) => row.month),
-    missingMonths: [],
-    firstDate: harness.firstDate,
-    lastDate: harness.lastDate,
-  }));
-}
-
-function buildCostValidation(
-  harnesses: PublishedCostHarness[],
-  refreshedHarnessIds: Set<string>,
-  modelEstimatedHarnessIds: Set<string>,
-) {
-  return harnesses.map((harness) => ({
-    harness: harness.id,
-    status: modelEstimatedHarnessIds.has(harness.id)
-      ? ("estimated" as const)
-      : refreshedHarnessIds.has(harness.id)
-        ? ("ok" as const)
-        : ("preserved" as const),
-    computedUsd: harness.totalCostUsd,
-    sourceUsd: harness.totalCostUsd,
-    deltaUsd: 0,
-    note: modelEstimatedHarnessIds.has(harness.id)
-      ? "estimated from published model token breakdown because local ccusage does not cover all displayed harness history"
-      : refreshedHarnessIds.has(harness.id)
-        ? "refreshed from local ccusage during publish"
-        : "preserved from imported or recovered history; local ccusage is not a completeness oracle for this harness",
-  }));
-}
-
-function buildMissingModelCostWarnings(models: PublishedCostModel[]) {
-  return models
-    .filter((model) => model.totalTokens > 0 && model.totalCostUsd <= 0)
-    .map((model) => ({
-      model: model.name,
-      totalTokens: model.totalTokens,
-      status: "missing-cost" as const,
-    }));
-}
-
-function canonicalCostModelName(value: string) {
-  const normalized = value.trim().toLowerCase();
-  const prefixes = [
-    "cliproxyapi/",
-    "google/",
-    "anthropic/",
-    "openai/",
-    "xai/",
-    "moonshot/",
-    "minimax/",
-    "deepseek/",
-    "alibaba/",
-    "nvidia/",
-    "z-ai/",
-    "[pi] ",
-  ];
-
-  for (const prefix of prefixes) {
-    if (normalized.startsWith(prefix)) {
-      return normalized.slice(prefix.length);
-    }
-  }
-
-  return normalized;
-}
-
-function buildModelCostRates(models: PublishedCostModel[]) {
-  const rates = new Map<string, number>();
-
-  for (const model of models) {
-    if (model.totalCostUsd <= 0 || model.totalTokens <= 0) {
-      continue;
-    }
-
-    rates.set(
-      canonicalCostModelName(model.name),
-      model.totalCostUsd / model.totalTokens,
-    );
-  }
-
-  return rates;
-}
-
-function buildModelEstimatedHarness({
-  harness,
-  usageProvider,
-  modelCostRates,
-}: {
-  harness: PublishedCostHarness;
-  usageProvider: PublishedUsagePayload["providers"][number];
-  modelCostRates: Map<string, number>;
-}): PublishedCostHarness | null {
-  const monthly = new Map<
-    string,
-    {
-      month: string;
-      inputTokens: number;
-      outputTokens: number;
-      cacheReadTokens: number;
-      totalTokens: number;
-      activeDays: number;
-      costUsd: number;
-    }
-  >();
-  let totalCostUsd = 0;
-
-  for (const day of usageProvider.daily) {
-    const month = day.date.slice(0, 7);
-    const current = monthly.get(month) ?? {
-      month,
-      inputTokens: 0,
-      outputTokens: 0,
-      cacheReadTokens: 0,
-      totalTokens: 0,
-      activeDays: 0,
-      costUsd: 0,
-    };
-    let dayCostUsd = 0;
-
-    for (const model of day.breakdown) {
-      const rate = modelCostRates.get(canonicalCostModelName(model.name));
-
-      if (!rate) {
-        continue;
-      }
-
-      dayCostUsd += model.tokens.total * rate;
-    }
-
-    current.inputTokens += day.input;
-    current.outputTokens += day.output;
-    current.cacheReadTokens += day.cache.input;
-    current.totalTokens += day.total;
-    current.activeDays += 1;
-    current.costUsd += dayCostUsd;
-    totalCostUsd += dayCostUsd;
-    monthly.set(month, current);
-  }
-
-  if (usageProvider.daily.length === 0 || totalCostUsd <= 0) {
-    return null;
-  }
-
-  const sortedDaily = [...usageProvider.daily].sort((left, right) =>
-    left.date.localeCompare(right.date),
-  );
-  const monthlyRows = [...monthly.values()].sort((left, right) =>
-    left.month.localeCompare(right.month),
-  );
-
-  return {
-    ...harness,
-    activeDays: usageProvider.daily.length,
-    firstDate: sortedDaily[0]?.date ?? harness.firstDate,
-    lastDate: sortedDaily[sortedDaily.length - 1]?.date ?? harness.lastDate,
-    totalCostUsd,
-    totalTokens: monthlyRows.reduce((sum, row) => sum + row.totalTokens, 0),
-    inputTokens: monthlyRows.reduce((sum, row) => sum + row.inputTokens, 0),
-    outputTokens: monthlyRows.reduce((sum, row) => sum + row.outputTokens, 0),
-    cacheReadTokens: monthlyRows.reduce(
-      (sum, row) => sum + row.cacheReadTokens,
-      0,
-    ),
-    monthly: monthlyRows,
-  };
-}
-
-function buildCurrentMonthPricedUsageRow(
-  usageProvider: PublishedUsagePayload["providers"][number],
-  month: string,
-) {
-  const row = {
-    month,
-    inputTokens: 0,
-    outputTokens: 0,
-    cacheReadTokens: 0,
-    totalTokens: 0,
-    activeDays: 0,
-    costUsd: 0,
-  };
-
-  for (const day of usageProvider.daily) {
-    if (!day.date.startsWith(month)) continue;
-
-    row.inputTokens += day.input;
-    row.outputTokens += day.output;
-    row.cacheReadTokens += day.cache.input;
-    row.totalTokens += day.total;
-    row.activeDays += 1;
-
-    for (const model of day.breakdown) {
-      const prices =
-        CURRENT_MONTH_MODEL_PRICES_PER_MILLION[canonicalCostModelName(model.name)];
-      if (!prices) continue;
-
-      row.costUsd +=
-        ((model.tokens.input - model.tokens.cache.input) * prices.input +
-          model.tokens.cache.input * prices.cachedInput +
-          model.tokens.output * prices.output) /
-        1_000_000;
-    }
-  }
-
-  return row.activeDays > 0 && row.costUsd > 0 ? row : null;
-}
-
-function mergeCurrentMonthPricedUsage(
-  harness: PublishedCostHarness,
-  usageProvider: PublishedUsagePayload["providers"][number] | undefined,
-  month: string,
-) {
-  if (!usageProvider) return harness;
-
-  const pricedUsage = buildCurrentMonthPricedUsageRow(usageProvider, month);
-  if (!pricedUsage) return harness;
-
-  const current = harness.monthly.find((row) => row.month === month);
-  if (current && (current.costUsd ?? 0) >= pricedUsage.costUsd) return harness;
-
-  const monthly = [
-    ...harness.monthly.filter((row) => row.month !== month),
-    pricedUsage,
-  ].sort((left, right) => left.month.localeCompare(right.month));
-
-  return {
-    ...harness,
-    monthly,
-    activeDays: monthly.reduce((sum, row) => sum + (row.activeDays ?? 0), 0),
-    totalCostUsd: monthly.reduce((sum, row) => sum + (row.costUsd ?? 0), 0),
-    totalTokens: monthly.reduce((sum, row) => sum + row.totalTokens, 0),
-    inputTokens: monthly.reduce((sum, row) => sum + row.inputTokens, 0),
-    outputTokens: monthly.reduce((sum, row) => sum + row.outputTokens, 0),
-    cacheReadTokens: monthly.reduce((sum, row) => sum + row.cacheReadTokens, 0),
-  };
-}
-
-function refreshCostPayloadFromCcusage(
-  payload: PublishedCostPayload,
-  usagePayload?: PublishedUsagePayload,
-) {
-  const providerEntries = new Map(
-    payload.harnesses.map((harness) => [harness.id, harness]),
-  );
-  const until = todayDateKey();
-  const refreshedHarnessIds = new Set<string>();
-  const modelEstimatedHarnessIds = new Set<string>();
-
-  const currentMonth = todayDateKey().slice(0, 7);
-
-  for (const harness of CCUSAGE_BACKED_COST_HARNESSES) {
-    const current = providerEntries.get(harness.id);
-    const since = current?.firstDate ?? payload.dateRange.start;
-    const refreshed = buildCcusageCostHarness({
-      id: harness.id,
-      label: current?.label ?? harness.label,
-      since,
-      until,
-    });
-
-    const normalized = normalizeCostHarness(harness.id, refreshed);
-
-    // Preserve completed months that ccusage can no longer see (e.g. session
-    // files deleted from disk). For completed months (before the current
-    // month), keep the pre-existing entry when its cost is higher — ccusage
-    // seeing fewer sessions means the live refresh under-counts.
-    if (current?.monthly?.length) {
-      const refreshedMonths = new Map(
-        normalized.monthly.map((m) => [m.month, m]),
-      );
-      const mergedMonthly = [...normalized.monthly];
-      for (const prevMonth of current.monthly) {
-        if (prevMonth.month >= currentMonth) continue; // never preserve current month
-        const refreshedMonth = refreshedMonths.get(prevMonth.month);
-        if (!refreshedMonth) {
-          // Month entirely missing from ccusage — preserve from history
-          mergedMonthly.push(prevMonth);
-        } else if ((prevMonth.costUsd ?? 0) > (refreshedMonth.costUsd ?? 0)) {
-          // ccusage under-counted this month — use the higher preserved value
-          const idx = mergedMonthly.findIndex(
-            (m) => m.month === prevMonth.month,
-          );
-          mergedMonthly[idx] = prevMonth;
-        }
-      }
-      mergedMonthly.sort((a, b) => a.month.localeCompare(b.month));
-      normalized.monthly = mergedMonthly;
-      normalized.activeDays = mergedMonthly.reduce(
-        (sum, m) => sum + (m.activeDays ?? 0),
-        0,
-      );
-      normalized.totalCostUsd = mergedMonthly.reduce(
-        (sum, m) => sum + (m.costUsd ?? 0),
-        0,
-      );
-      normalized.totalTokens = mergedMonthly.reduce(
-        (sum, m) => sum + m.totalTokens,
-        0,
-      );
-      normalized.inputTokens = mergedMonthly.reduce(
-        (sum, m) => sum + m.inputTokens,
-        0,
-      );
-      normalized.outputTokens = mergedMonthly.reduce(
-        (sum, m) => sum + m.outputTokens,
-        0,
-      );
-      normalized.cacheReadTokens = mergedMonthly.reduce(
-        (sum, m) => sum + m.cacheReadTokens,
-        0,
-      );
-    }
-
-    providerEntries.set(harness.id, normalized);
-    refreshedHarnessIds.add(harness.id);
-  }
-
-  if (usagePayload) {
-    const modelCostRates = buildModelCostRates(payload.models);
-
-    for (const harnessId of MODEL_ESTIMATED_COST_HARNESSES) {
-      const harness = providerEntries.get(harnessId);
-      const usageProvider = usagePayload.providers.find(
-        (provider) => provider.provider === harnessId,
-      );
-
-      if (!harness || !usageProvider) {
-        continue;
-      }
-
-      const estimated = buildModelEstimatedHarness({
-        harness,
-        usageProvider,
-        modelCostRates,
-      });
-
-      if (!estimated || estimated.totalCostUsd === null) {
-        continue;
-      }
-
-      if (estimated.totalCostUsd <= (harness.totalCostUsd ?? 0)) {
-        continue;
-      }
-
-      providerEntries.set(harnessId, estimated);
-      refreshedHarnessIds.delete(harnessId);
-      modelEstimatedHarnessIds.add(harnessId);
-    }
-  }
-
-  const harnesses = payload.harnesses.map((harness) => {
-    const refreshed = providerEntries.get(harness.id) ?? harness;
-    const usageProvider = usagePayload?.providers.find(
-      (provider) => provider.provider === harness.id,
-    );
-
-    return mergeCurrentMonthPricedUsage(refreshed, usageProvider, currentMonth);
-  });
-  const firstDate =
-    harnesses
-      .flatMap((harness) => (harness.firstDate ? [harness.firstDate] : []))
-      .sort((left, right) => left.localeCompare(right))[0] ??
-    payload.dateRange.start;
-  const lastDate =
-    harnesses
-      .flatMap((harness) => (harness.lastDate ? [harness.lastDate] : []))
-      .sort((left, right) => right.localeCompare(left))[0] ??
-    payload.dateRange.end;
-  const harnessTotalCostUsd = harnesses.reduce(
-    (sum, harness) => sum + (harness.totalCostUsd ?? 0),
-    0,
-  );
-  const providerSourceRows = Object.fromEntries(
-    harnesses.map((harness) => [
-      harness.id,
-      {
-        label: harness.label,
-        active_days: harness.activeDays,
-        date_range: {
-          first: harness.firstDate,
-          last: harness.lastDate,
-        },
-        totals: {
-          input_tokens: harness.inputTokens,
-          output_tokens: harness.outputTokens,
-          cache_read_tokens: harness.cacheReadTokens,
-          total_tokens: harness.totalTokens,
-        },
-        total_cost_usd: harness.totalCostUsd,
-        monthly: harness.monthly.map(toSourceCostMonthlyRow),
-      },
-    ]),
-  );
-
-  return {
-    ...payload,
-    generatedAt: new Date().toISOString(),
-    source:
-      "tokens.micr.dev recovered history + live ccusage-backed harness refresh (offline pricing)",
-    dateRange: {
-      start: firstDate,
-      end: lastDate,
-    },
-    grandTotalTokens: harnesses.reduce(
-      (sum, harness) => sum + harness.totalTokens,
-      0,
-    ),
-    harnessTotalCostUsd: Math.round(harnessTotalCostUsd * 100) / 100,
-    modelTotalCostUsd: Math.round(harnessTotalCostUsd * 100) / 100,
-    harnesses,
-    monthlyTotals: buildCostMonthlyTotals(providerSourceRows).map(
-      normalizeCostMonthlyRow,
-    ),
-    sourceCoverage: buildCostSourceCoverage(
-      harnesses,
-      refreshedHarnessIds,
-      modelEstimatedHarnessIds,
-    ),
-    validation: buildCostValidation(
-      harnesses,
-      refreshedHarnessIds,
-      modelEstimatedHarnessIds,
-    ),
-    modelWarnings: buildMissingModelCostWarnings(payload.models),
-  };
-}
-
-export function normalizeCostAnalysisPayload(
-  value: unknown,
-): PublishedCostPayload {
-  const payload = asRecord(value, "payload");
-
-  // If the payload is already in published format (camelCase fields like
-  // dateRange, harnessTotalCostUsd, harnesses[]), return it as-is.  This
-  // happens when we use the existing published cost-analysis.json as the
-  // merge base instead of the raw ccusage source file.
-  if (
-    typeof payload.dateRange === "object" &&
-    payload.dateRange !== null &&
-    !Array.isArray(payload.dateRange) &&
-    Array.isArray(payload.harnesses)
-  ) {
-    return payload as unknown as PublishedCostPayload;
-  }
-
-  const dateRange = asRecord(payload.date_range, "date_range");
-  const providers = asRecord(payload.providers, "providers");
-  const modelCostSummary = asArray(
-    payload.model_cost_summary ?? payload.model_summary,
-    "model_cost_summary",
-  );
-  const harnesses = Object.entries(providers).map(([key, provider]) =>
-    normalizeCostHarness(key, provider),
-  );
-  const models = modelCostSummary.map(normalizeCostModel);
-  // The imported model summary is a rate source and diagnostic input. The
-  // published model subtotal must stay tied to canonical harness spend.
-  const harnessTotalCostUsd = numberOrZero(payload.grand_total_cost_usd);
-
-  return {
-    version: "2026-06-19",
-    generatedAt: requireString(payload.generated_at, "generated_at"),
-    source: requireString(payload.source, "source"),
-    dateRange: {
-      start: requireString(dateRange.start, "date_range.start"),
-      end: requireString(dateRange.end, "date_range.end"),
-    },
-    grandTotalTokens: numberOrZero(payload.grand_total_tokens),
-    harnessTotalCostUsd,
-    modelTotalCostUsd: Math.round(harnessTotalCostUsd * 100) / 100,
-    coverageNote: COST_COVERAGE_NOTE,
-    harnesses,
-    models,
-    monthlyTotals: asArray(payload.monthly_totals, "monthly_totals").map(
-      normalizeCostMonthlyRow,
-    ),
-  };
-}
-
-export function writePublishedCostArtifact({
-  sourcePath,
-  outputPath,
-  usagePayload,
-}: {
-  sourcePath: string;
-  outputPath: string;
-  usagePayload?: PublishedUsagePayload;
-}) {
-  // Prefer the existing published artifact as the merge base so that
-  // preserved/recovered harness history (which lives in cost-analysis.json,
-  // NOT in the raw ccusage source) survives the ccusage refresh.  The raw
-  // source file (token-usage-analysis.json) only provides model rates and
-  // diagnostic inputs; it should never be the authoritative base for the
-  // preserve-merge because it is regenerated from live session files alone
-  // and therefore reflects post-deletion totals when sessions are removed.
-  const publishedPayload = readCostAnalysisPayload(outputPath);
-  const payload = publishedPayload ?? readCostAnalysisPayload(sourcePath);
-
-  if (!payload) {
-    throw new Error(`Cost analysis source not found: ${sourcePath}`);
-  }
-
-  // Usage publication must remain available when local ccusage providers are
-  // unavailable or take too long. The scheduled publisher sets this flag for
-  // the recovery path and keeps the last verified cost snapshot unchanged.
-  if (process.env.SLOPMETER_WEB_SKIP_COST_REFRESH === "1") {
-    mkdirSync(dirname(outputPath), { recursive: true });
-    writeFileSync(outputPath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
-    return payload;
-  }
-
-  // If we fell back to the raw source, we still need the model/rate rows from
-  // it (the published artifact may carry them too, but the raw source is the
-  // canonical rate input when no published artifact exists yet).
-  if (!publishedPayload) {
-    const sourceRaw = readCostAnalysisPayload(sourcePath);
-    if (sourceRaw) {
-      payload.models = sourceRaw.models;
-    }
-  }
-
-  let refreshedPayload: typeof payload;
-  try {
-    refreshedPayload = refreshCostPayloadFromCcusage(payload, usagePayload);
-  } catch (error) {
-    process.stderr.write(
-      `ccusage cost refresh failed, using existing cost artifact: ${
-        error instanceof Error ? error.message : String(error)
-      }\n`,
-    );
-    refreshedPayload = payload;
-  }
-
-  mkdirSync(dirname(outputPath), { recursive: true });
-  writeFileSync(
-    outputPath,
-    `${JSON.stringify(refreshedPayload, null, 2)}\n`,
-    "utf8",
-  );
-
-  return refreshedPayload;
 }
 
 function formatBackupTimestamp(value: Date) {
@@ -1132,29 +194,38 @@ export function writeBundledPublishedArtifacts({
   );
 }
 
-function collectProviderDateKeys(payloads: JsonExportPayload[]) {
-  const keys = new Set<string>();
+// Published history is the system of record. Local sources are lossy over time:
+// Claude prunes old sessions, Codex compresses old rollouts, remote machine
+// exports can lag, and a loader can regress. Only the most recent days may be
+// recomputed downward (so same-day dedup fixes still land); older rows may
+// grow (new machine backfill) but never shrink.
+const RECOMPUTE_WINDOW_DAYS = 2;
+
+function sumProviderDateTotals(payloads: JsonExportPayload[]) {
+  const totals = new Map<string, number>();
 
   for (const payload of payloads) {
     for (const provider of payload.providers) {
       for (const row of provider.daily) {
-        keys.add(`${provider.provider}:${row.date}`);
+        const key = `${provider.provider}:${row.date}`;
+
+        totals.set(key, (totals.get(key) ?? 0) + row.total);
       }
     }
   }
 
-  return keys;
+  return totals;
 }
 
-function filterPayloadByProviderDateKeys(
+function filterPayloadRows(
   payload: JsonExportPayload,
-  excludedProviderDates: Set<string>,
+  keep: (providerDateKey: string) => boolean,
 ): JsonExportPayload | null {
   const providers: JsonExportPayload["providers"] = [];
 
   for (const provider of payload.providers) {
-    const daily = provider.daily.filter(
-      (row) => !excludedProviderDates.has(`${provider.provider}:${row.date}`),
+    const daily = provider.daily.filter((row) =>
+      keep(`${provider.provider}:${row.date}`),
     );
 
     if (daily.length === 0) {
@@ -1188,6 +259,10 @@ function filterImportableProviders(
   };
 }
 
+// Picks, per provider/date, either the hosted row or the fresh rows. Fresh
+// rows from several sources (this host, machine imports, recovery) are summed
+// later by mergeJsonExportsToPublishedUsage, so the comparison uses their
+// combined total.
 function buildCanonicalPayloadInputs({
   currentPayload,
   importedPayload,
@@ -1206,17 +281,40 @@ function buildCanonicalPayloadInputs({
   ]
     .filter((payload): payload is JsonExportPayload => payload !== null)
     .map((payload) => filterImportableProviders(payload));
-  const freshProviderDates = collectProviderDateKeys(freshPayloads);
-  const filteredHostedPayload = hostedPayload
-    ? filterPayloadByProviderDateKeys(
-        filterImportableProviders(toJsonExportPayload(hostedPayload)),
-        freshProviderDates,
-      )
-    : null;
 
-  return [filteredHostedPayload, ...freshPayloads].filter(
-    (payload): payload is JsonExportPayload => payload !== null,
+  if (!hostedPayload) {
+    return freshPayloads;
+  }
+
+  const hosted = filterImportableProviders(toJsonExportPayload(hostedPayload));
+  const hostedTotals = sumProviderDateTotals([hosted]);
+  const freshTotals = sumProviderDateTotals(freshPayloads);
+  const recomputeFrom = new Date(`${currentPayload.end}T00:00:00.000Z`);
+
+  recomputeFrom.setUTCDate(
+    recomputeFrom.getUTCDate() + 1 - RECOMPUTE_WINDOW_DAYS,
   );
+
+  const recomputeFromKey = recomputeFrom.toISOString().slice(0, 10);
+  const freshWins = (key: string) => {
+    const freshTotal = freshTotals.get(key);
+    const hostedTotal = hostedTotals.get(key);
+
+    if (freshTotal === undefined) {
+      return false;
+    }
+
+    return (
+      hostedTotal === undefined ||
+      key.slice(key.indexOf(":") + 1) >= recomputeFromKey ||
+      freshTotal > hostedTotal
+    );
+  };
+
+  return [
+    filterPayloadRows(hosted, (key) => !freshWins(key)),
+    ...freshPayloads.map((payload) => filterPayloadRows(payload, freshWins)),
+  ].filter((payload): payload is JsonExportPayload => payload !== null);
 }
 
 function parseDateOnly(value: string) {
@@ -1539,11 +637,6 @@ async function main() {
       ? process.env.SLOPMETER_WEB_OPENCODE_DAILY_RECOVERY_IMPORT_PATH.trim()
       : resolveHomePath(DEFAULT_OPENCODE_DAILY_RECOVERY_IMPORT_PATH),
   );
-  const costAnalysisImportPath = resolve(
-    process.env.SLOPMETER_WEB_COST_ANALYSIS_IMPORT_PATH?.trim()
-      ? process.env.SLOPMETER_WEB_COST_ANALYSIS_IMPORT_PATH.trim()
-      : resolveHomePath(DEFAULT_COST_ANALYSIS_IMPORT_PATH),
-  );
   const localOutputPath = resolve(
     process.env.SLOPMETER_WEB_LOCAL_OUTPUT_PATH?.trim()
       ? process.env.SLOPMETER_WEB_LOCAL_OUTPUT_PATH.trim()
@@ -1608,8 +701,9 @@ async function main() {
     updatedAt: publishTimestamp,
   });
   const svg = renderPublishedSvg(mergedPayload);
+  // Cost is a pure function of the merged usage just built, so every machine's
+  // history is priced the same way on every publish.
   const costPayload = writePublishedCostArtifact({
-    sourcePath: costAnalysisImportPath,
     outputPath: localCostOutputPath,
     usagePayload: mergedPayload,
   });
@@ -1663,7 +757,6 @@ async function main() {
           opencodeDailyRecoveryImportPath: opencodeDailyRecoveryPayload
             ? opencodeDailyRecoveryImportPath
             : null,
-          costAnalysisImportPath,
           localOutputPath,
           localCostOutputPath,
           localSvgOutputPath,
@@ -1714,7 +807,6 @@ async function main() {
         opencodeDailyRecoveryImportPath: opencodeDailyRecoveryPayload
           ? opencodeDailyRecoveryImportPath
           : null,
-        costAnalysisImportPath,
         localOutputPath,
         localCostOutputPath,
         localSvgOutputPath,

@@ -4,6 +4,7 @@ node_modules
 
 # output
 out
+.next
 dist
 *.tgz
 
@@ -32,6 +33,7 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 !.slopmeter-data/published/
 !.slopmeter-data/published/daily-usage.json
 !.slopmeter-data/published/heatmap-last-year.svg
+!.slopmeter-data/published/cost-analysis.json
 
 # IntelliJ based IDEs
 .idea

@@ -59,7 +59,13 @@ function main() {
       scpArgs.push(`${route.user}@${route.host}:${route.path}`, temporaryPath);
 
       try {
-        execFileSync("scp", scpArgs, { stdio: "inherit" });
+        // ConnectTimeout only covers the handshake; a stalled transfer over a
+        // flaky Tailscale/DERP path must not hang the whole publisher.
+        execFileSync("scp", scpArgs, {
+          stdio: "inherit",
+          timeout: 120_000,
+          killSignal: "SIGKILL",
+        });
         renameSync(temporaryPath, destination);
         process.stdout.write(`Pulled ${machine.id} via ${routeLabel} route\n`);
         pulled = true;

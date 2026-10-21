@@ -5,8 +5,9 @@ import {
   getProviderDetailTheme,
   getProviderTitle,
 } from "../lib/analytics";
-import type { PublishedCostPayload, PublishedUsagePayload } from "../lib/types";
+import type { PublishedUsagePayload } from "../lib/types";
 import { normalizePublishedSvgMarkup } from "../lib/usage";
+import { buildPublishedCostPayload } from "../scripts/lib/cost-analysis";
 
 function assertAlmostEqual(actual: number | undefined, expected: number) {
   assert.ok(
@@ -64,7 +65,25 @@ test("getProviderDetailTheme exposes legacy Gemini CLI colors for details cards"
   });
 });
 
-test("buildCostAnalytics partitions canonical harness spend by provider/model", () => {
+test("buildCostAnalytics shows exact per-model costs that sum to harness spend", () => {
+  const day = (date: string, name: string, input: number) => ({
+    date,
+    input,
+    output: 100_000,
+    cache: { input: input / 2, output: 0 },
+    total: input + 100_000,
+    breakdown: [
+      {
+        name,
+        tokens: {
+          input,
+          output: 100_000,
+          cache: { input: input / 2, output: 0 },
+          total: input + 100_000,
+        },
+      },
+    ],
+  });
   const usagePayload: PublishedUsagePayload = {
     version: "2026-03-03",
     start: "2026-05-01",
@@ -74,234 +93,38 @@ test("buildCostAnalytics partitions canonical harness spend by provider/model", 
       {
         provider: "codex",
         daily: [
-          {
-            date: "2026-05-01",
-            input: 10,
-            output: 2,
-            cache: { input: 3, output: 0 },
-            total: 12,
-            breakdown: [
-              {
-                name: "gpt-5.4",
-                tokens: {
-                  input: 10,
-                  output: 2,
-                  cache: { input: 3, output: 0 },
-                  total: 12,
-                },
-              },
-            ],
-          },
-          {
-            date: "2026-06-01",
-            input: 20,
-            output: 5,
-            cache: { input: 8, output: 0 },
-            total: 25,
-            breakdown: [
-              {
-                name: "gpt-5.4",
-                tokens: {
-                  input: 20,
-                  output: 5,
-                  cache: { input: 8, output: 0 },
-                  total: 25,
-                },
-              },
-            ],
-          },
+          day("2026-05-01", "gpt-5.4", 1_000_000),
+          day("2026-06-01", "kimi-k2.5-free", 1_000_000),
         ],
+      },
+      {
+        provider: "hermes",
+        daily: [day("2026-06-01", "cliproxyapi/gpt-5.4", 2_000_000)],
       },
     ],
   };
-  const costPayload: PublishedCostPayload = {
-    version: "2026-06-19",
-    generatedAt: "2026-06-19T00:00:00.000Z",
-    source: "test",
-    dateRange: { start: "2026-05-01", end: "2026-06-30" },
-    grandTotalTokens: 37,
-    harnessTotalCostUsd: 10,
-    modelTotalCostUsd: 12,
-    coverageNote: "test coverage note",
-    harnesses: [
-      {
-        id: "codex",
-        label: "Codex",
-        activeDays: 2,
-        firstDate: "2026-05-01",
-        lastDate: "2026-06-01",
-        totalCostUsd: 10,
-        totalTokens: 37,
-        inputTokens: 30,
-        outputTokens: 7,
-        cacheReadTokens: 11,
-        monthly: [
-          {
-            month: "2026-05",
-            inputTokens: 10,
-            outputTokens: 2,
-            cacheReadTokens: 3,
-            totalTokens: 12,
-            activeDays: 1,
-            costUsd: 4,
-          },
-          {
-            month: "2026-06",
-            inputTokens: 20,
-            outputTokens: 5,
-            cacheReadTokens: 8,
-            totalTokens: 25,
-            activeDays: 1,
-            costUsd: 7,
-          },
-        ],
-      },
-    ],
-    models: [
-      {
-        name: "gpt-5.4",
-        totalCostUsd: 12,
-        totalTokens: 37,
-        inputTokens: 30,
-        outputTokens: 7,
-        cacheReadTokens: 11,
-        monthsActive: 2,
-      },
-    ],
-    monthlyTotals: [
-      {
-        month: "2026-05",
-        inputTokens: 10,
-        outputTokens: 2,
-        cacheReadTokens: 3,
-        totalTokens: 12,
-        activeDays: 1,
-        costUsd: 4,
-      },
-      {
-        month: "2026-06",
-        inputTokens: 20,
-        outputTokens: 5,
-        cacheReadTokens: 8,
-        totalTokens: 25,
-        activeDays: 1,
-        costUsd: 7,
-      },
-    ],
-  };
+  const costPayload = buildPublishedCostPayload(usagePayload);
+  const analytics = buildCostAnalytics(costPayload);
+  const gpt = analytics?.models.find((model) => model.label === "gpt-5.4");
+  const kimi = analytics?.models.find((model) => model.label === "kimi-k2.5");
+  // gpt-5.4: $2.50 uncached, $0.25 cached, $15 output per million tokens.
+  const gptMay = (500_000 * 2.5 + 500_000 * 0.25 + 100_000 * 15) / 1_000_000;
+  const gptJune =
+    (1_000_000 * 2.5 + 1_000_000 * 0.25 + 100_000 * 15) / 1_000_000;
 
-  const analytics = buildCostAnalytics({ costPayload, usagePayload });
-
-  assert.equal(analytics?.harnessTotalCostUsd, 10);
-  assertAlmostEqual(analytics?.modelTotalCostUsd, 10);
+  assertAlmostEqual(gpt?.totalCostUsd ?? undefined, gptMay + gptJune);
+  assert.deepEqual(
+    gpt?.monthly.map((row) => row.month),
+    ["2026-05", "2026-06"],
+  );
+  assertAlmostEqual(gpt?.monthly[0]?.costUsd, gptMay);
+  // A $0 free model must not absorb a share of the harness's paid spend.
+  assert.equal(kimi?.totalCostUsd, 0);
+  assertAlmostEqual(analytics?.modelTotalCostUsd, gptMay + gptJune);
+  assert.equal(
+    analytics?.harnessTotalCostUsd,
+    Math.round((gptMay + gptJune) * 100) / 100,
+  );
   assert.deepEqual(analytics?.monthKeys, ["2026-05", "2026-06"]);
-  assert.equal(analytics?.topHarness?.label, "Codex");
-  assert.equal(analytics?.models[0]?.monthly.length, 2);
-  assertAlmostEqual(analytics?.models[0]?.monthly[0]?.costUsd, 40 / 11);
-  assertAlmostEqual(analytics?.models[0]?.monthly[1]?.costUsd, 70 / 11);
-});
-
-test("buildCostAnalytics allocates harness spend to missing-cost recent models", () => {
-  const usagePayload: PublishedUsagePayload = {
-    version: "2026-03-03",
-    start: "2026-06-01",
-    end: "2026-06-30",
-    updatedAt: "2026-06-30T00:00:00.000Z",
-    providers: [
-      {
-        provider: "codex",
-        daily: [
-          {
-            date: "2026-06-01",
-            input: 80,
-            output: 20,
-            cache: { input: 40, output: 0 },
-            total: 100,
-            breakdown: [
-              {
-                name: "gpt-5.5",
-                tokens: {
-                  input: 80,
-                  output: 20,
-                  cache: { input: 40, output: 0 },
-                  total: 100,
-                },
-              },
-            ],
-          },
-        ],
-      },
-    ],
-  };
-  const costPayload: PublishedCostPayload = {
-    version: "2026-06-19",
-    generatedAt: "2026-06-19T00:00:00.000Z",
-    source: "test",
-    dateRange: { start: "2026-06-01", end: "2026-06-30" },
-    grandTotalTokens: 100,
-    harnessTotalCostUsd: 9,
-    modelTotalCostUsd: 0,
-    coverageNote: "test coverage note",
-    harnesses: [
-      {
-        id: "codex",
-        label: "Codex",
-        activeDays: 1,
-        firstDate: "2026-06-01",
-        lastDate: "2026-06-01",
-        totalCostUsd: 9,
-        totalTokens: 100,
-        inputTokens: 80,
-        outputTokens: 20,
-        cacheReadTokens: 40,
-        monthly: [
-          {
-            month: "2026-06",
-            inputTokens: 80,
-            outputTokens: 20,
-            cacheReadTokens: 40,
-            totalTokens: 100,
-            activeDays: 1,
-            costUsd: 9,
-          },
-        ],
-      },
-    ],
-    models: [
-      {
-        name: "gpt-5.5",
-        totalCostUsd: 0,
-        totalTokens: 100,
-        inputTokens: 80,
-        outputTokens: 20,
-        cacheReadTokens: 40,
-        monthsActive: 1,
-      },
-    ],
-    monthlyTotals: [
-      {
-        month: "2026-06",
-        inputTokens: 80,
-        outputTokens: 20,
-        cacheReadTokens: 40,
-        totalTokens: 100,
-        activeDays: 1,
-        costUsd: 9,
-      },
-    ],
-  };
-
-  const analytics = buildCostAnalytics({ costPayload, usagePayload });
-  const model = analytics?.models[0];
-
-  assert.equal(model?.label, "gpt-5.5");
-  assert.equal(model?.totalCostUsd, 9);
-  assert.deepEqual(model?.monthly, [
-    {
-      month: "2026-06",
-      costUsd: 9,
-      totalTokens: 100,
-    },
-  ]);
-  assert.equal(analytics?.modelTotalCostUsd, 9);
+  assert.equal(analytics?.topHarness?.label, "Hermes Agent");
 });
