@@ -23,7 +23,7 @@ These notes are repo-local guidance for `tokens.micr.dev`.
 
 - Treat harness spend as the canonical top-line cost total. Model rows are priced from the same breakdown rows, so harness and model totals match by construction.
 - Per row: uncached input × input price + cache reads × cached-input price + cache writes × cache-write price (input price when none is published) + output × output price. omp stores cache tokens outside input/output; every other loader folds them in (see `splitBillableTokens`).
-- Add prices only from LiteLLM's `model_prices_and_context_window.json`, an official vendor pricing page, or a documented $0 tier, and record the source on the entry. Map naming variants through `MODEL_PRICE_ALIASES`. Never guess: unknown models must stay in `modelWarnings` as missing-cost.
+- Add prices only from the vendor's official pricing or model page, the vendor's first-party entry in models.dev, or a documented $0 tier, and record the source on the entry. Do not use LiteLLM data. Map naming variants through `MODEL_PRICE_ALIASES`. Never guess: unknown models must stay in `modelWarnings` as missing-cost.
 - Keep model alias canonicalization aligned between the price table and analytics so names such as `cliproxyapi/gpt-5.4` and `gpt-5.4` do not split in the UI.
 
 ## Verification
