@@ -17,14 +17,14 @@ These notes are repo-local guidance for `tokens.micr.dev`.
   - `.slopmeter-data/published/heatmap-last-year.svg`
   - `packages/web/lib/published-data.generated.ts`
 - If a generated artifact changes, keep the bundled TypeScript module in sync.
-- `publish:usage` (and `publish:web`) computes `cost-analysis.json` from the merged `daily-usage.json` it just built: every provider/day/model breakdown row is priced with `packages/web/lib/model-prices.ts`. There is no ccusage step and no preserved cost history; the same usage always yields the same cost artifact.
+- `publish:usage` (and `publish:web`) computes `cost-analysis.json` from the merged `daily-usage.json` it just built: every provider/day/model breakdown row is priced with `@pydantic/genai-prices` at the price that applied on that day. `publish:usage` downloads the latest price data first and falls back to the bundled data. There is no ccusage step and no preserved cost history; the same usage always yields the same cost artifact.
 
 ## Cost Tab Accounting
 
 - Treat harness spend as the canonical top-line cost total. Model rows are priced from the same breakdown rows, so harness and model totals match by construction.
 - Per row: uncached input × input price + cache reads × cached-input price + cache writes × cache-write price (input price when none is published) + output × output price. omp stores cache tokens outside input/output; every other loader folds them in (see `splitBillableTokens`).
-- Add prices only from the vendor's official pricing or model page, the vendor's first-party entry in models.dev, or a documented $0 tier, and record the source on the entry. Do not use LiteLLM data. Map naming variants through `MODEL_PRICE_ALIASES`. Never guess: unknown models must stay in `modelWarnings` as missing-cost.
-- Keep model alias canonicalization aligned between the price table and analytics so names such as `cliproxyapi/gpt-5.4` and `gpt-5.4` do not split in the UI.
+- Prices come only from `@pydantic/genai-prices`; do not add a local price table or use LiteLLM data. A missing model belongs upstream in pydantic/genai-prices. Map harness naming variants through `MODEL_PRICE_ALIASES` in `packages/web/lib/model-prices.ts`. Never guess: unknown models must stay in `modelWarnings` as missing-cost.
+- Keep model alias canonicalization aligned between `packages/web/lib/model-prices.ts` and analytics so names such as `cliproxyapi/gpt-5.4` and `gpt-5.4` do not split in the UI.
 
 ## Verification
 

@@ -115,7 +115,7 @@ The service retries a failed run every 20 minutes, up to 4 attempts in 12 hours,
 ### Data rules
 
 - Published history is the system of record. A publish may recompute today and yesterday freely; older provider/day rows may grow (for example, when a new machine backfills) but never shrink. Local sources lose history over time: Claude Code prunes transcripts after 30 days and Codex compresses old rollouts.
-- Cost is computed on every publish from the merged daily usage and `packages/web/lib/model-prices.ts`. Models without a price are listed as `missing-cost`; add a price there, never in the generated artifacts.
+- Cost is computed on every publish from the merged daily usage with `@pydantic/genai-prices`, using the latest price data (downloaded at publish time) and the price that applied on each day. Models it does not know are listed as `missing-cost`; add them upstream in pydantic/genai-prices, or add a naming alias in `packages/web/lib/model-prices.ts` when a harness reports a known model under another name.
 
 ### Remote machine exporters
 

@@ -12,6 +12,7 @@ import {
 } from "../../cli/src/lib/export";
 import { mergeUsageSummaries } from "../../cli/src/lib/utils";
 import { providerIds, aggregateUsage } from "../../cli/src/providers";
+import { loadLatestModelPrices } from "../lib/model-prices";
 import type { PublishedCostPayload } from "../lib/types";
 import type {
   JsonExportPayload,
@@ -701,8 +702,9 @@ async function main() {
     updatedAt: publishTimestamp,
   });
   const svg = renderPublishedSvg(mergedPayload);
-  // Cost is a pure function of the merged usage just built, so every machine's
-  // history is priced the same way on every publish.
+  // Cost is a function of the merged usage just built and the latest price
+  // data, so every machine's history is priced the same way on every publish.
+  await loadLatestModelPrices();
   const costPayload = writePublishedCostArtifact({
     outputPath: localCostOutputPath,
     usagePayload: mergedPayload,

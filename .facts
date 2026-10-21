@@ -40,8 +40,8 @@
 - label: the web report exposes a Cost tab with harness totals as the canonical top-line spend and provider/model costs as a partition drill-down subtotal
   command: grep -Fq 'Cost' packages/web/app/svg-usage.tsx && grep -Fq 'harnessTotalCostUsd' packages/web/lib/analytics.ts && grep -Fq 'modelTotalCostUsd' packages/web/lib/analytics.ts
   tags: [implemented]
-- label: the published web data bundle includes a generated cost payload computed by the publish path from the merged daily usage and the checked-in model price table
-  command: grep -Fq 'publishedCostPayload' packages/web/lib/published-data.generated.ts && grep -Fq 'writePublishedCostArtifact' packages/web/scripts/publish-usage.ts && grep -Fq 'MODEL_PRICES_PER_MILLION' packages/web/scripts/lib/cost-analysis.ts && ! grep -Fq 'refresh-cost-data' package.json
+- label: the published web data bundle includes a generated cost payload computed by the publish path from the merged daily usage and @pydantic/genai-prices price data
+  command: grep -Fq 'publishedCostPayload' packages/web/lib/published-data.generated.ts && grep -Fq 'writePublishedCostArtifact' packages/web/scripts/publish-usage.ts && grep -Fq '@pydantic/genai-prices' packages/web/lib/model-prices.ts && grep -Fq 'loadLatestModelPrices' packages/web/scripts/publish-usage.ts && ! grep -Fq 'refresh-cost-data' package.json
   tags: [implemented]
 - label: the Cost tab lets users switch between harness and provider/model grouping, rank by cost tokens or cost per million tokens, limit visible rows, manually hide rows, and optionally show zero-cost entries
   command: grep -Fq 'CostGroupMode' packages/web/app/svg-usage.tsx && grep -Fq 'costRankModes' packages/web/app/svg-usage.tsx && grep -Fq 'Show zero-cost' packages/web/app/svg-usage.tsx && grep -Fq 'cost-visible-toggle' packages/web/app/globals.css

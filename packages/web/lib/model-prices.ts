@@ -1,556 +1,27 @@
-// Per-million-token API list prices used to compute the published Cost tab.
-//
-// Sources, recorded per entry so every number can be traced during audits
-// (all checked 2026-10-21):
-// - "official:<page>": the vendor's own pricing or model page. Retired models
-//   use the archived page from while they were served.
-// - "models.dev:<provider>/<id>": the vendor's first-party entry in
-//   https://models.dev/api.json, used where the vendor page was not checked
-//   directly (current Google, xAI, Moonshot models).
-// - "opencode-zen-free": OpenCode Zen "-free" model IDs, which are served at $0.
-// Prices are the standard short-context list rate. Daily usage rows cannot
-// tell long-context, batch, fast-mode, or off-peak requests apart.
-// Missing cache-read prices fall back to the input price because no discount
-// is published.
-//
-// Models missing here are reported as missing-cost instead of being guessed.
-export interface ModelPricePerMillion {
-  input: number;
-  cachedInput: number;
-  // Cache writes are billed at the input price unless the vendor publishes a
-  // separate write price.
-  cacheWrite?: number;
-  output: number;
-  source: string;
-}
+import {
+  calcPrice,
+  updatePrices,
+  waitForUpdate,
+} from "@pydantic/genai-prices";
 
-export const MODEL_PRICES_PER_MILLION: Record<string, ModelPricePerMillion> = {
-  "big-pickle": {
-    input: 0,
-    cachedInput: 0,
-    output: 0,
-    source: "opencode-zen-free",
-  },
-  "claude-fable-5": {
-    input: 10,
-    cachedInput: 1,
-    cacheWrite: 12.5,
-    output: 50,
-    source: "official:platform.claude.com/docs/en/about-claude/pricing",
-  },
-  "claude-fable-5-1": {
-    input: 10,
-    cachedInput: 0.25,
-    cacheWrite: 12.5,
-    output: 50,
-    source: "official:platform.claude.com/docs/en/about-claude/pricing",
-  },
-  "claude-haiku-4-5": {
-    input: 1,
-    cachedInput: 0.1,
-    cacheWrite: 1.25,
-    output: 5,
-    source: "official:platform.claude.com/docs/en/about-claude/pricing",
-  },
-  "claude-haiku-5-5": {
-    input: 0.1,
-    cachedInput: 0.01,
-    cacheWrite: 0.125,
-    output: 0.5,
-    source: "official:platform.claude.com/docs/en/about-claude/pricing",
-  },
-  "claude-opus-4-5": {
-    input: 5,
-    cachedInput: 0.5,
-    cacheWrite: 6.25,
-    output: 25,
-    source: "official:platform.claude.com/docs/en/about-claude/pricing",
-  },
-  "claude-opus-4-6": {
-    input: 5,
-    cachedInput: 0.5,
-    cacheWrite: 6.25,
-    output: 25,
-    source: "official:platform.claude.com/docs/en/about-claude/pricing",
-  },
-  "claude-opus-4-8": {
-    input: 5,
-    cachedInput: 0.5,
-    cacheWrite: 6.25,
-    output: 25,
-    source: "official:platform.claude.com/docs/en/about-claude/pricing",
-  },
-  "claude-opus-5": {
-    input: 5,
-    cachedInput: 0.5,
-    cacheWrite: 6.25,
-    output: 25,
-    source: "official:platform.claude.com/docs/en/about-claude/pricing",
-  },
-  "claude-opus-5-5": {
-    input: 4,
-    cachedInput: 0.2,
-    cacheWrite: 5,
-    output: 20,
-    source: "official:platform.claude.com/docs/en/about-claude/pricing",
-  },
-  "claude-sonnet-4-5": {
-    input: 3,
-    cachedInput: 0.3,
-    cacheWrite: 3.75,
-    output: 15,
-    source: "official:platform.claude.com/docs/en/about-claude/pricing",
-  },
-  "claude-sonnet-4-6": {
-    input: 3,
-    cachedInput: 0.3,
-    cacheWrite: 3.75,
-    output: 15,
-    source: "official:platform.claude.com/docs/en/about-claude/pricing",
-  },
-  "claude-sonnet-5": {
-    input: 2,
-    cachedInput: 0.2,
-    cacheWrite: 2.5,
-    output: 10,
-    source: "official:platform.claude.com/docs/en/about-claude/pricing",
-  },
-  "claude-sonnet-5-5": {
-    input: 2,
-    cachedInput: 0.1,
-    cacheWrite: 2.5,
-    output: 10,
-    source: "official:platform.claude.com/docs/en/about-claude/pricing",
-  },
-  "deepseek-r1": {
-    input: 0.55,
-    cachedInput: 0.14,
-    output: 2.19,
-    source: "official:api-docs.deepseek.com/quick_start/pricing (deepseek-reasoner, archived)",
-  },
-  "deepseek-v4-flash": {
-    input: 0.3,
-    cachedInput: 0.006,
-    output: 1.2,
-    source: "official:api-docs.deepseek.com/quick_start/pricing (peak rate)",
-  },
-  "deepseek-v4-flash-free": {
-    input: 0,
-    cachedInput: 0,
-    output: 0,
-    source: "opencode-zen-free",
-  },
-  "deepseek-v4-pro": {
-    input: 1.32,
-    cachedInput: 0.044,
-    output: 3.96,
-    source: "official:api-docs.deepseek.com/quick_start/pricing (peak rate)",
-  },
-  "gemini-2.0-flash": {
-    input: 0.1,
-    cachedInput: 0.025,
-    output: 0.4,
-    source: "official:ai.google.dev/gemini-api/docs/pricing (model shut down 2026-06-01)",
-  },
-  "gemini-2.5-flash": {
-    input: 0.3,
-    cachedInput: 0.03,
-    output: 2.5,
-    source: "models.dev:google/gemini-2.5-flash",
-  },
-  "gemini-2.5-flash-lite": {
-    input: 0.1,
-    cachedInput: 0.01,
-    output: 0.4,
-    source: "models.dev:google/gemini-2.5-flash-lite",
-  },
-  "gemini-2.5-pro": {
-    input: 1.25,
-    cachedInput: 0.125,
-    output: 10,
-    source: "models.dev:google/gemini-2.5-pro",
-  },
-  "gemini-3-flash-preview": {
-    input: 0.5,
-    cachedInput: 0.05,
-    output: 3,
-    source: "models.dev:google/gemini-3-flash-preview",
-  },
-  "gemini-3-pro-preview": {
-    input: 2,
-    cachedInput: 0.2,
-    output: 12,
-    source: "official:ai.google.dev/gemini-api/docs/pricing (archived 2026-02-01; model shut down 2026-03-09)",
-  },
-  "gemini-3.1-flash-lite": {
-    input: 0.25,
-    cachedInput: 0.025,
-    output: 1.5,
-    source: "models.dev:google/gemini-3.1-flash-lite",
-  },
-  "gemini-3.1-pro-preview": {
-    input: 2,
-    cachedInput: 0.2,
-    output: 12,
-    source: "models.dev:google/gemini-3.1-pro-preview",
-  },
-  "gemini-3.5-flash": {
-    input: 1.5,
-    cachedInput: 0.15,
-    output: 9,
-    source: "models.dev:google/gemini-3.5-flash",
-  },
-  "gemini-3.6-flash": {
-    input: 0.75,
-    cachedInput: 0.075,
-    output: 3.75,
-    source: "models.dev:google/gemini-3.6-flash",
-  },
-  "gemini-3.7-flash": {
-    input: 0.75,
-    cachedInput: 0.075,
-    output: 3.75,
-    source: "models.dev:google/gemini-3.7-flash",
-  },
-  "gemini-4-argon": {
-    input: 2,
-    cachedInput: 0.1,
-    output: 10,
-    source: "models.dev:google/gemini-4-argon",
-  },
-  "glm-4.5-air": {
-    input: 0.2,
-    cachedInput: 0.03,
-    output: 1.1,
-    source: "official:docs.z.ai/guides/overview/pricing",
-  },
-  "glm-4.6": {
-    input: 0.6,
-    cachedInput: 0.11,
-    output: 2.2,
-    source: "official:docs.z.ai/guides/overview/pricing",
-  },
-  "glm-4.7": {
-    input: 0.6,
-    cachedInput: 0.11,
-    output: 2.2,
-    source: "official:docs.z.ai/guides/overview/pricing",
-  },
-  "glm-4.7-flash": {
-    input: 0,
-    cachedInput: 0,
-    output: 0,
-    source: "official:docs.z.ai/guides/overview/pricing",
-  },
-  "glm-4.7-free": {
-    input: 0,
-    cachedInput: 0,
-    output: 0,
-    source: "opencode-zen-free",
-  },
-  "glm-5": {
-    input: 1,
-    cachedInput: 0.2,
-    output: 3.2,
-    source: "official:docs.z.ai/guides/overview/pricing",
-  },
-  "glm-5-free": {
-    input: 0,
-    cachedInput: 0,
-    output: 0,
-    source: "opencode-zen-free",
-  },
-  "glm-5.1": {
-    input: 1.4,
-    cachedInput: 0.26,
-    output: 4.4,
-    source: "official:docs.z.ai/guides/overview/pricing",
-  },
-  "glm-5.2": {
-    input: 1.4,
-    cachedInput: 0.26,
-    output: 4.4,
-    source: "official:docs.z.ai/guides/overview/pricing",
-  },
-  "glm-5.3": {
-    input: 1.4,
-    cachedInput: 0.26,
-    output: 4.4,
-    source: "official:docs.z.ai/guides/overview/pricing",
-  },
-  "glm-5.3-flash": {
-    input: 0.15,
-    cachedInput: 0.03,
-    output: 0.5,
-    source: "official:docs.z.ai/guides/overview/pricing",
-  },
-  "gpt-4.1": {
-    input: 2,
-    cachedInput: 0.5,
-    output: 8,
-    source: "official:developers.openai.com/api/docs/pricing",
-  },
-  "gpt-4o": {
-    input: 2.5,
-    cachedInput: 1.25,
-    output: 10,
-    source: "official:developers.openai.com/api/docs/pricing",
-  },
-  "gpt-5": {
-    input: 1.25,
-    cachedInput: 0.125,
-    output: 10,
-    source: "official:developers.openai.com/api/docs/pricing",
-  },
-  "gpt-5-chat": {
-    input: 1.25,
-    cachedInput: 0.125,
-    output: 10,
-    source: "official:developers.openai.com/api/docs/models/gpt-5-chat-latest",
-  },
-  "gpt-5-mini": {
-    input: 0.25,
-    cachedInput: 0.025,
-    output: 2,
-    source: "official:developers.openai.com/api/docs/pricing",
-  },
-  "gpt-5-nano": {
-    input: 0.05,
-    cachedInput: 0.005,
-    output: 0.4,
-    source: "official:developers.openai.com/api/docs/pricing",
-  },
-  "gpt-5.1": {
-    input: 1.25,
-    cachedInput: 0.125,
-    output: 10,
-    source: "official:developers.openai.com/api/docs/pricing",
-  },
-  "gpt-5.1-chat-latest": {
-    input: 1.25,
-    cachedInput: 0.125,
-    output: 10,
-    source: "official:developers.openai.com/api/docs/models/gpt-5.1-chat-latest",
-  },
-  "gpt-5.1-codex-max": {
-    input: 1.25,
-    cachedInput: 0.125,
-    output: 10,
-    source: "official:developers.openai.com/api/docs/models/gpt-5.1-codex-max",
-  },
-  "gpt-5.1-codex-mini": {
-    input: 0.25,
-    cachedInput: 0.025,
-    output: 2,
-    source: "official:developers.openai.com/api/docs/models/gpt-5.1-codex-mini",
-  },
-  "gpt-5.2": {
-    input: 1.75,
-    cachedInput: 0.175,
-    output: 14,
-    source: "official:developers.openai.com/api/docs/pricing",
-  },
-  "gpt-5.2-chat-latest": {
-    input: 1.75,
-    cachedInput: 0.175,
-    output: 14,
-    source: "official:developers.openai.com/api/docs/models/gpt-5.2-chat-latest",
-  },
-  "gpt-5.2-codex": {
-    input: 1.75,
-    cachedInput: 0.175,
-    output: 14,
-    source: "official:developers.openai.com/api/docs/models/gpt-5.2-codex",
-  },
-  "gpt-5.3-codex": {
-    input: 1.75,
-    cachedInput: 0.175,
-    output: 14,
-    source: "official:developers.openai.com/api/docs/pricing",
-  },
-  "gpt-5.3-codex-spark": {
-    input: 1.75,
-    cachedInput: 0.175,
-    output: 14,
-    source: "official:developers.openai.com/api/docs/pricing",
-  },
-  "gpt-5.4": {
-    input: 2.5,
-    cachedInput: 0.25,
-    output: 15,
-    source: "official:developers.openai.com/api/docs/pricing",
-  },
-  "gpt-5.4-mini": {
-    input: 0.75,
-    cachedInput: 0.075,
-    output: 4.5,
-    source: "official:developers.openai.com/api/docs/pricing",
-  },
-  "gpt-5.5": {
-    input: 5,
-    cachedInput: 0.5,
-    output: 30,
-    source: "official:developers.openai.com/api/docs/pricing",
-  },
-  "gpt-5.6-luna": {
-    input: 0.2,
-    cachedInput: 0.02,
-    cacheWrite: 0.25,
-    output: 1.2,
-    source: "official:developers.openai.com/api/docs/pricing",
-  },
-  "gpt-5.6-sol": {
-    input: 4,
-    cachedInput: 0.4,
-    cacheWrite: 5,
-    output: 20,
-    source: "official:developers.openai.com/api/docs/pricing",
-  },
-  "gpt-5.6-terra": {
-    input: 2,
-    cachedInput: 0.2,
-    cacheWrite: 2.5,
-    output: 12,
-    source: "official:developers.openai.com/api/docs/pricing",
-  },
-  "gpt-6-astra": {
-    input: 10,
-    cachedInput: 1,
-    cacheWrite: 12.5,
-    output: 50,
-    source: "official:developers.openai.com/api/docs/pricing",
-  },
-  "gpt-6-luna": {
-    input: 0.1,
-    cachedInput: 0.01,
-    cacheWrite: 0.125,
-    output: 0.5,
-    source: "official:developers.openai.com/api/docs/pricing",
-  },
-  "gpt-6-sol": {
-    input: 2,
-    cachedInput: 0.2,
-    cacheWrite: 2.5,
-    output: 10,
-    source: "official:developers.openai.com/api/docs/pricing",
-  },
-  "gpt-6.1-sol": {
-    input: 2,
-    cachedInput: 0.1,
-    cacheWrite: 2.5,
-    output: 10,
-    source: "official:developers.openai.com/api/docs/pricing",
-  },
-  "gpt-daybreak-blue-latest": {
-    input: 4,
-    cachedInput: 0.4,
-    cacheWrite: 5,
-    output: 20,
-    source: "official:developers.openai.com/api/docs/pricing",
-  },
-  "grok-4.5": {
-    input: 2,
-    cachedInput: 0.3,
-    output: 6,
-    source: "models.dev:xai/grok-4.5",
-  },
-  "grok-4.6": {
-    input: 2,
-    cachedInput: 0.5,
-    output: 6,
-    source: "models.dev:xai/grok-4.6",
-  },
-  "kimi-k3": {
-    input: 3,
-    cachedInput: 0.3,
-    cacheWrite: 3,
-    output: 15,
-    source: "models.dev:moonshotai/kimi-k3",
-  },
-  "kimi-k2.5": {
-    input: 0.6,
-    cachedInput: 0.1,
-    output: 3,
-    source: "official:platform.kimi.ai launch price (discontinued 2026-08-31); input/output match Azure listing",
-  },
-  "kimi-k2.5-free": {
-    input: 0,
-    cachedInput: 0,
-    output: 0,
-    source: "opencode-zen-free",
-  },
-  "kimi-k2.6": {
-    input: 0.95,
-    cachedInput: 0.16,
-    output: 4,
-    source: "models.dev:moonshotai/kimi-k2.6",
-  },
-  "kimi-k2.7-code": {
-    input: 0.95,
-    cachedInput: 0.19,
-    output: 4,
-    source: "models.dev:moonshotai/kimi-k2.7-code",
-  },
-  "mimo-v2-flash-free": {
-    input: 0,
-    cachedInput: 0,
-    output: 0,
-    source: "opencode-zen-free",
-  },
-  "mimo-v2.6-flash-free": {
-    input: 0,
-    cachedInput: 0,
-    output: 0,
-    source: "opencode-zen-free",
-  },
-  "minimax-m2.1-free": {
-    input: 0,
-    cachedInput: 0,
-    output: 0,
-    source: "opencode-zen-free",
-  },
-  "minimax-m2.5-free": {
-    input: 0,
-    cachedInput: 0,
-    output: 0,
-    source: "opencode-zen-free",
-  },
-  "minimax-m3-free": {
-    input: 0,
-    cachedInput: 0,
-    output: 0,
-    source: "opencode-zen-free",
-  },
-  "nemotron-3-ultra-free": {
-    input: 0,
-    cachedInput: 0,
-    output: 0,
-    source: "opencode-zen-free",
-  },
-  o3: {
-    input: 2,
-    cachedInput: 0.5,
-    output: 8,
-    source: "official:developers.openai.com/api/docs/pricing",
-  },
-  "o3-mini": {
-    input: 1.1,
-    cachedInput: 0.55,
-    output: 4.4,
-    source: "official:developers.openai.com/api/docs/pricing",
-  },
-  "o4-mini": {
-    input: 1.1,
-    cachedInput: 0.275,
-    output: 4.4,
-    source: "official:developers.openai.com/api/docs/pricing",
-  },
-};
+// Model prices come from @pydantic/genai-prices: a maintained, MIT-licensed
+// price database with per-model price history, so each day is billed at the
+// price that applied on that day. publish:usage refreshes the database from
+// the package's GitHub data file before pricing (loadLatestModelPrices), so
+// models released after the installed package version still get priced.
+//
+// This file only maps the names harnesses emit onto names the database knows.
+// Unknown models are reported as missing-cost instead of being guessed.
 
 // Naming variants that harnesses emit for a priced model. Keys are applied after
 // normalizeModelPriceName, so provider prefixes, "-thinking"/"-reasoning"
 // suffixes, and dotted Claude versions never need their own entry here.
 export const MODEL_PRICE_ALIASES: Record<string, string> = {
+  "grok-code": "grok-code-fast-1",
+  "grok-v3": "grok-3",
+  "grok-v3-mini": "grok-3-mini",
+  "grok-v4": "grok-4",
+  "kimi-k2-0905": "kimi-k2-0905-preview",
   "gemini-flash-3.6-high-control": "gemini-3.6-flash",
   "kimi-k3-modal": "kimi-k3",
   "antigravity-claude-opus-4-5": "claude-opus-4-5",
@@ -605,6 +76,9 @@ export function normalizeModelPriceName(modelName: string) {
     name = name.slice(prefix.length);
   }
 
+  // Ollama Cloud tags (":cloud") serve the vendor model unchanged.
+  name = name.replace(/:cloud$/, "");
+
   // Thinking/reasoning variants bill at the base model's token prices.
   name = name.replace(/-(?:thinking|reasoning)$/, "");
 
@@ -613,12 +87,83 @@ export function normalizeModelPriceName(modelName: string) {
     .replace(/^claude-(\d+)\.(\d+)-(opus|sonnet|haiku)$/, "claude-$3-$1-$2");
 }
 
-export function resolveModelPrice(
+// Token counts for one model on one day, already split into disjoint buckets.
+export interface BillableTokens {
+  input: number;
+  cacheRead: number;
+  cacheWrite: number;
+  output: number;
+}
+
+// Returns the USD price of one day's usage of a model, or null when the model
+// has no known price.
+export type ModelPricer = (
   modelName: string,
-  prices: Record<string, ModelPricePerMillion> = MODEL_PRICES_PER_MILLION,
-  aliases: Record<string, string> = MODEL_PRICE_ALIASES,
-) {
+  date: string,
+  tokens: BillableTokens,
+) => number | null;
+
+const FREE_MODELS = new Set(["big-pickle", "glm-4.7-flash"]);
+
+// Below the smallest published long-context threshold (100K, Claude Haiku 5.5).
+const PRICE_SAMPLE_INPUT_TOKENS = 10_000;
+
+export const priceModelUsage: ModelPricer = (modelName, date, tokens) => {
   const normalized = normalizeModelPriceName(modelName);
 
-  return prices[aliases[normalized] ?? normalized] ?? null;
+  // OpenCode Zen serves its free models under "-free" IDs (plus big-pickle) at
+  // $0, and Z.ai lists GLM-4.7-Flash as free; the database has none of these.
+  if (normalized.endsWith("-free") || FREE_MODELS.has(normalized)) {
+    return 0;
+  }
+
+  // genai-prices counts input_tokens inclusive of cache reads and writes.
+  const inputTokens = tokens.input + tokens.cacheRead + tokens.cacheWrite;
+  // Long-context tiers (e.g. above 272K input on GPT-5.5) apply per request,
+  // but these are whole-day totals. Price a proportionally scaled-down sample
+  // that stays under every tier threshold, then scale back up, so the day is
+  // billed at the standard rate instead of as one giant request.
+  const scale =
+    inputTokens > PRICE_SAMPLE_INPUT_TOKENS
+      ? PRICE_SAMPLE_INPUT_TOKENS / inputTokens
+      : 1;
+  const result = calcPrice(
+    {
+      input_tokens: inputTokens * scale,
+      cache_read_tokens: tokens.cacheRead * scale,
+      cache_write_tokens: tokens.cacheWrite * scale,
+      output_tokens: tokens.output * scale,
+    },
+    MODEL_PRICE_ALIASES[normalized] ?? normalized,
+    { timestamp: new Date(`${date}T12:00:00.000Z`) },
+  );
+
+  return result ? result.total_price / scale : null;
+};
+
+// Replaces the bundled price database with the latest published one. A failed
+// download keeps the bundled data (the installed package version) and is
+// reported, so a GitHub outage cannot stop a publish.
+export async function loadLatestModelPrices(timeoutMs = 30_000) {
+  updatePrices(({ remoteDataUrl, setProviderData }) => {
+    setProviderData(
+      fetch(remoteDataUrl, { signal: AbortSignal.timeout(timeoutMs) })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+
+          return response.json();
+        })
+        .catch((error: unknown) => {
+          process.stderr.write(
+            `WARNING: could not refresh genai-prices data, using the bundled prices: ${String(error)}\n`,
+          );
+
+          return null;
+        }),
+    );
+  });
+
+  await waitForUpdate();
 }
