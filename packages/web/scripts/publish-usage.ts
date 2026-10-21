@@ -1,4 +1,11 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { homedir } from "node:os";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -35,6 +42,7 @@ const DEFAULT_LOCAL_COST_OUTPUT_PATH =
 const DEFAULT_LOCAL_SVG_OUTPUT_PATH =
   ".slopmeter-data/published/heatmap-last-year.svg";
 const DEFAULT_LOCAL_HISTORY_DIR = ".slopmeter-data/history";
+const LOCAL_HISTORY_SNAPSHOTS_KEPT = 30;
 const DEFAULT_BUNDLED_MODULE_OUTPUT_PATH =
   "packages/web/lib/published-data.generated.ts";
 const DEFAULT_BLOB_PATH = "slopmeter/daily-usage.json";
@@ -150,6 +158,15 @@ export function writePublishedBackupArtifacts({
     "utf8",
   );
   writeFileSync(paths.svgPath, svg, "utf8");
+
+  // Every published dataset is also a commit on GitHub, so these local
+  // snapshots are only a quick-restore cache; keep the newest ones and stop
+  // them from filling the publisher's disk.
+  const snapshots = readdirSync(historyDir).sort();
+
+  for (const name of snapshots.slice(0, -LOCAL_HISTORY_SNAPSHOTS_KEPT)) {
+    rmSync(resolve(historyDir, name), { recursive: true, force: true });
+  }
 
   return paths;
 }

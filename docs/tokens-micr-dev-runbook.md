@@ -107,6 +107,7 @@ systemctl --user daemon-reload
 
 - owns the clone: it discards leftovers of an interrupted run in the generated artifacts and `.next`, then resets `main` to `origin/main`; it refuses to run only if other tracked files were edited
 - pulls remote machine exports (an unreachable machine keeps its last export), merges them, and runs `publish:web`
+- validates the generated dataset against `origin/main` before committing: if any provider disappeared or any day older than yesterday shrank, the run fails at stage `validate` and the site keeps the last good data
 - commits and pushes the generated artifacts when the dataset changed
 - bounds every step with a timeout and records the failing stage in the run summary
 
@@ -115,6 +116,12 @@ The service retries a failed run every 20 minutes, up to 4 attempts in 12 hours,
 ### Data rules
 
 - Published history is the system of record. A publish may recompute today and yesterday freely; older provider/day rows may grow (for example, when a new machine backfills) but never shrink. Local sources lose history over time: Claude Code prunes transcripts after 30 days and Codex compresses old rollouts.
+- Where the data lives, most to least authoritative:
+  1. `.slopmeter-data/published/*` on GitHub `main`. Every publish is a commit, so git history is the full versioned backup; restore any day from any earlier commit.
+  2. The bundled `packages/web/lib/published-data.generated.ts` in each Vercel deployment.
+  3. `.slopmeter-data/history/` in the automation clone: the last 30 snapshots, a local quick-restore cache only.
+  4. `~/.local/share/slopmeter/machine-exports/` on the publisher: the last good export per remote machine, kept when a machine is unreachable.
+  5. Raw session files on each machine. These are pruned by the tools themselves, so they are not a backup.
 - Cost is computed on every publish from the merged daily usage with `@pydantic/genai-prices`, using the latest price data (downloaded at publish time) and the price that applied on each day. Models it does not know are listed as `missing-cost`; add them upstream in pydantic/genai-prices, or add a naming alias in `packages/web/lib/model-prices.ts` when a harness reports a known model under another name.
 
 ### Remote machine exporters

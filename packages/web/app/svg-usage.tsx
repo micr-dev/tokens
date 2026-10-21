@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { useSelectedLayoutSegment } from "next/navigation";
 import {
   memo,
   useEffect,
@@ -7,27 +9,36 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type ReactNode,
   type RefObject,
 } from "react";
 import { Cursor } from "../components/cursor";
 import {
+  buildDailyBurn,
   formatCompactNumber,
   formatPercent,
-  getProviderDetailTheme,
-  getProviderTitle,
 } from "../lib/analytics";
 import type {
   CostAnalytics,
   CostEntityAnalytics,
+  DailyBurn,
   DetailsAnalytics,
   ModelsTimeScale,
   ProviderAnalytics,
   VendorModelsAnalytics,
 } from "../lib/types";
+import { buildMonotoneAreaPath, getBurnAxisTicks } from "./burn-chart";
+import {
+  findUsageViewBySegment,
+  getUsageViewHref,
+  usageViews,
+  type UsageViewId,
+} from "./views";
 
 interface SvgUsageProps {
   svgMarkup: string;
   analytics: DetailsAnalytics | null;
+  children: ReactNode;
 }
 
 interface TooltipMetric {
@@ -59,10 +70,19 @@ interface DetailsTooltipState {
 }
 
 type TooltipState = HeatmapTooltipState | DetailsTooltipState;
-type ActiveView = "heatmap" | "details" | "models" | "cost";
 type CostGroupMode = "harness" | "model";
 type CostRankMode = "cost" | "tokens" | "rate";
 type CostVisibleLimit = 5 | 10 | 20 | "all";
+type BurnRangeDays = (typeof burnRanges)[number]["days"];
+
+const burnRanges = [
+  { label: "7d", days: 7 },
+  { label: "30d", days: 30 },
+  { label: "90d", days: 90 },
+  { label: "1y", days: 365 },
+] as const;
+const burnChartWidth = 1000;
+const burnChartHeight = 240;
 
 const exactNumberFormatter = new Intl.NumberFormat("en-US");
 const currencyFormatter = new Intl.NumberFormat("en-US", {
@@ -165,17 +185,17 @@ function formatFullDate(value: string) {
   });
 }
 
+function formatShortDate(value: string) {
+  return new Date(`${value}T00:00:00`).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+}
+
 function formatMonthLabel(value: string) {
   return new Date(`${value}-01T00:00:00`).toLocaleDateString("en-US", {
     month: "short",
     year: "2-digit",
-  });
-}
-
-function formatPeakMonthLabel(value: string) {
-  return new Date(`${value}-01T00:00:00`).toLocaleDateString("en-US", {
-    month: "short",
-    year: "numeric",
   });
 }
 
@@ -269,7 +289,7 @@ function readElementAccent(element: Element) {
 
 function readAccentFromChildren(source: Element) {
   const coloredChild = source.querySelector(
-    ".models-row__legend-swatch, .models-bar__segment, .series-bars__fill, .model-share__fill",
+    ".models-row__legend-swatch, .models-bar__segment",
   );
 
   if (!(coloredChild instanceof Element)) {
@@ -330,249 +350,294 @@ function readDetailsTooltipState(target: Element, x: number, y: number) {
   }
 }
 
-function SeriesBars({
-  points,
-  formatter,
-  noteFormatter,
-}: {
-  points: Array<{ label: string; value: number }>;
-  formatter: (value: number) => string;
-  noteFormatter?: (value: number) => string;
-}) {
-  const maxValue = Math.max(...points.map((point) => point.value), 0);
-
-  return (
-    <div className="series-bars">
-      {points.map((point) => (
-        <div
-          key={point.label}
-          className="series-bars__item"
-          data-details-tooltip={createDetailsTooltip(
-            point.label,
-            formatter(point.value),
-            noteFormatter?.(point.value),
-          )}
-        >
-          <div className="series-bars__track">
-            <div
-              className="series-bars__fill"
-              style={{
-                height: `${maxValue > 0 ? (point.value / maxValue) * 100 : 0}%`,
-              }}
-            />
-          </div>
-          <div className="series-bars__label">{point.label}</div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function ModelShareBars({
-  models,
-}: {
-  models: ProviderAnalytics["topModels"];
-}) {
-  return (
-    <div className="model-share">
-      {models.map((model) => (
-        <div
-          key={model.name}
-          className="model-share__row"
-          data-details-tooltip={createDetailsTooltip(
-            model.name,
-            `${formatExactNumber(model.total)} tokens`,
-            `${formatPercent(model.share * 100)} of provider total`,
-          )}
-        >
-          <div className="model-share__meta">
-            <span className="model-share__name">{model.name}</span>
-            <span className="model-share__value">
-              {formatCompactNumber(model.total)} ·{" "}
-              {formatPercent(model.share * 100)}
-            </span>
-          </div>
-          <div className="model-share__track">
-            <div
-              className="model-share__fill"
-              style={{ width: `${model.share * 100}%` }}
-            />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function LegacyProviderCards({
-  providers,
-}: {
-  providers: ProviderAnalytics[];
-}) {
-  const hasAntigravityUsage = providers.some(
-    (provider) => provider.provider === "agy",
-  );
-
-  return (
-    <section className="details-grid">
-      {hasAntigravityUsage ? null : <AntigravityNoDataCard />}
-      {providers.map((provider) => {
-        const theme = getProviderDetailTheme(provider.provider);
-        const cardStyle = {
-          "--provider-accent": theme.accent,
-          "--provider-accent-soft": theme.accentSoft,
-        } as CSSProperties;
-
-        return (
-          <section
-            key={provider.provider}
-            className={`provider-card provider-card--${provider.provider}`}
-            style={cardStyle}
-          >
-            <header className="provider-card__header">
-              <h2 className="provider-card__title">
-                {getProviderTitle(provider.provider)}
-              </h2>
-              <div className="provider-card__total">
-                {formatCompactNumber(provider.total)}
-              </div>
-            </header>
-
-            <div className="provider-card__stats">
-              <div>
-                <span className="provider-card__stat-label">Input</span>
-                <span className="provider-card__stat-value">
-                  {formatCompactNumber(provider.input)}
-                </span>
-              </div>
-              <div>
-                <span className="provider-card__stat-label">Output</span>
-                <span className="provider-card__stat-value">
-                  {formatCompactNumber(provider.output)}
-                </span>
-              </div>
-              <div>
-                <span className="provider-card__stat-label">Cache share</span>
-                <span className="provider-card__stat-value">
-                  {formatPercent(provider.cacheShare)}
-                </span>
-              </div>
-              <div>
-                <span className="provider-card__stat-label">Active days</span>
-                <span className="provider-card__stat-value">
-                  {provider.activeDays}
-                </span>
-              </div>
-              <div>
-                <span className="provider-card__stat-label">
-                  Longest streak
-                </span>
-                <span className="provider-card__stat-value">
-                  {provider.longestStreak}
-                </span>
-              </div>
-              <div>
-                <span className="provider-card__stat-label">
-                  Current streak
-                </span>
-                <span className="provider-card__stat-value">
-                  {provider.currentStreak}
-                </span>
-              </div>
-            </div>
-
-            <div className="provider-card__highlights">
-              <div>
-                <div className="provider-card__eyebrow">Peak day</div>
-                <div className="provider-card__highlight">
-                  {provider.topDay
-                    ? formatFullDate(provider.topDay.date)
-                    : "None"}
-                </div>
-                <div className="provider-card__subtle">
-                  {provider.topDay
-                    ? formatCompactNumber(provider.topDay.total)
-                    : ""}
-                </div>
-              </div>
-              <div>
-                <div className="provider-card__eyebrow">Peak month</div>
-                <div className="provider-card__highlight">
-                  {provider.topMonth
-                    ? formatPeakMonthLabel(provider.topMonth.label)
-                    : "None"}
-                </div>
-                <div className="provider-card__subtle">
-                  {provider.topMonth
-                    ? formatCompactNumber(provider.topMonth.total)
-                    : ""}
-                </div>
-              </div>
-              <div>
-                <div className="provider-card__eyebrow">Most used model</div>
-                <div className="provider-card__highlight provider-card__highlight--truncate">
-                  {provider.mostUsedModel?.name ?? "None"}
-                </div>
-                <div className="provider-card__subtle">
-                  {provider.mostUsedModel
-                    ? formatCompactNumber(provider.mostUsedModel.total)
-                    : ""}
-                </div>
-              </div>
-              <div>
-                <div className="provider-card__eyebrow">Recent model</div>
-                <div className="provider-card__highlight provider-card__highlight--truncate">
-                  {provider.recentMostUsedModel?.name ?? "None"}
-                </div>
-                <div className="provider-card__subtle">
-                  {provider.recentMostUsedModel
-                    ? formatCompactNumber(provider.recentMostUsedModel.total)
-                    : ""}
-                </div>
-              </div>
-            </div>
-
-            <div className="provider-card__section">
-              <div className="provider-card__section-title">Monthly totals</div>
-              <SeriesBars
-                points={provider.monthly.map((point) => ({
-                  ...point,
-                  label: formatMonthLabel(point.label),
-                }))}
-                formatter={formatCompactNumber}
-                noteFormatter={(value) => `${formatExactNumber(value)} tokens`}
-              />
-            </div>
-
-            <div className="provider-card__section">
-              <div className="provider-card__section-title">Weekday shape</div>
-              <SeriesBars
-                points={provider.weekdays}
-                formatter={formatCompactNumber}
-                noteFormatter={(value) => `${formatExactNumber(value)} tokens`}
-              />
-            </div>
-
-            <div className="provider-card__section">
-              <div className="provider-card__section-title">Top models</div>
-              <ModelShareBars models={provider.topModels} />
-            </div>
-          </section>
-        );
-      })}
-    </section>
-  );
-}
-
 function AntigravityNoDataCard() {
   return (
-    <section className="provider-empty provider-card--agy">
+    <section className="provider-empty">
       <h2 className="provider-empty__title">Antigravity CLI</h2>
       <p className="provider-empty__body">
         No published Antigravity CLI usage yet. Token totals are shown after
         legacy Gemini CLI history or current agy rows exist in the published
         data.
       </p>
+    </section>
+  );
+}
+
+function BurnChart({ burn }: { burn: DailyBurn }) {
+  const geometry = useMemo(() => {
+    const ticks = getBurnAxisTicks(burn.peak?.total ?? 0);
+    const max = ticks[ticks.length - 1] || 1;
+    const lastIndex = burn.dates.length - 1;
+    const step = lastIndex > 0 ? burnChartWidth / lastIndex : burnChartWidth;
+    const xs = burn.dates.map((_, index) =>
+      lastIndex > 0 ? index * step : burnChartWidth / 2,
+    );
+    const stackTops = burn.dates.map(() => 0);
+    // Each layer fills from its stack top down to the baseline; painting the
+    // tallest first lets lower layers cover it, leaving one visible band each.
+    const areas = burn.layers
+      .map((layer) => ({
+        provider: layer.provider,
+        accent: layer.accent,
+        path: buildMonotoneAreaPath(
+          layer.values.map((value, index) => {
+            stackTops[index] += value;
+
+            return {
+              x: xs[index],
+              y: burnChartHeight - (stackTops[index] / max) * burnChartHeight,
+            };
+          }),
+          burnChartHeight,
+        ),
+      }))
+      .reverse();
+    const days = burn.dates.map((date, index) => {
+      const contributors = burn.layers
+        .filter((layer) => layer.values[index] > 0)
+        .sort((left, right) => right.values[index] - left.values[index]);
+      const left = Math.max(0, xs[index] - step / 2);
+
+      return {
+        date,
+        x: xs[index],
+        left,
+        width: Math.min(burnChartWidth, xs[index] + step / 2) - left,
+        accent: contributors[0]?.accent ?? defaultCursorAccent,
+        tooltip: createDetailsTooltip(
+          formatFullDate(date),
+          `${formatExactNumber(burn.totals[index])} tokens`,
+          contributors
+            .map(
+              (layer) =>
+                `${layer.title}: ${formatCompactNumber(layer.values[index])}`,
+            )
+            .join("\n") || undefined,
+        ),
+      };
+    });
+
+    return { ticks, max, areas, days };
+  }, [burn]);
+
+  if (burn.dates.length === 0) {
+    return null;
+  }
+
+  const firstDay = burn.dates[0];
+  const lastDay = burn.dates[burn.dates.length - 1];
+  const formatAxisDate =
+    firstDay.slice(0, 4) === lastDay.slice(0, 4)
+      ? formatShortDate
+      : formatFullDate;
+  const firstDate = formatAxisDate(firstDay);
+  const lastDate = formatAxisDate(lastDay);
+
+  return (
+    <div className="burn-chart">
+      <div className="burn-chart__y" aria-hidden="true">
+        {geometry.ticks.map((tick) => (
+          <span
+            key={tick}
+            className="burn-chart__tick"
+            style={{ bottom: `${(tick / geometry.max) * 100}%` }}
+          >
+            {formatCompactNumber(tick)}
+          </span>
+        ))}
+      </div>
+      <svg
+        className="burn-chart__svg"
+        viewBox={`0 0 ${burnChartWidth} ${burnChartHeight}`}
+        preserveAspectRatio="none"
+        role="img"
+        aria-label={`Daily tokens by harness, ${firstDate} to ${lastDate}`}
+      >
+        {geometry.ticks.map((tick) => {
+          const y = burnChartHeight - (tick / geometry.max) * burnChartHeight;
+
+          return (
+            <line
+              key={tick}
+              className="burn-chart__grid"
+              x1={0}
+              x2={burnChartWidth}
+              y1={y}
+              y2={y}
+              vectorEffect="non-scaling-stroke"
+            />
+          );
+        })}
+        {geometry.areas.map((area) => (
+          <path
+            key={area.provider}
+            className="burn-chart__area"
+            d={area.path}
+            fill={area.accent}
+          />
+        ))}
+        {geometry.days.map((day) => (
+          <g
+            key={day.date}
+            className="burn-chart__day"
+            data-details-tooltip={day.tooltip}
+            style={{ "--provider-accent": day.accent } as CSSProperties}
+          >
+            <rect
+              x={day.left}
+              y={0}
+              width={day.width}
+              height={burnChartHeight}
+            />
+            <line
+              className="burn-chart__guide"
+              x1={day.x}
+              x2={day.x}
+              y1={0}
+              y2={burnChartHeight}
+              vectorEffect="non-scaling-stroke"
+            />
+          </g>
+        ))}
+      </svg>
+      <div className="burn-chart__x" aria-hidden="true">
+        <span>{firstDate}</span>
+        <span>{lastDate}</span>
+      </div>
+    </div>
+  );
+}
+
+function BurnTable({ burn }: { burn: DailyBurn }) {
+  if (burn.layers.length === 0) {
+    return null;
+  }
+
+  const input = burn.layers.reduce((sum, layer) => sum + layer.input, 0);
+  const output = burn.layers.reduce((sum, layer) => sum + layer.output, 0);
+  const cache = burn.layers.reduce((sum, layer) => sum + layer.cache, 0);
+
+  return (
+    <div className="burn-table-scroll">
+      <table className="burn-table">
+        <thead>
+          <tr>
+            <th scope="col">Harness</th>
+            <th scope="col">Tokens</th>
+            <th scope="col">Share</th>
+            <th scope="col">Input</th>
+            <th scope="col">Output</th>
+            <th scope="col">Cache</th>
+            <th scope="col">Days</th>
+            <th scope="col">Peak</th>
+            <th scope="col" title="Current / longest, all time">
+              Streak
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {burn.layers.map((layer) => (
+            <tr key={layer.provider}>
+              <th scope="row">
+                <span
+                  className="burn-table__swatch"
+                  style={{ background: layer.accent }}
+                />
+                {layer.title}
+              </th>
+              <td>{formatCompactNumber(layer.total)}</td>
+              <td>{formatPercent((layer.total / burn.total) * 100)}</td>
+              <td>{formatCompactNumber(layer.input)}</td>
+              <td>{formatCompactNumber(layer.output)}</td>
+              <td>{formatPercent((layer.cache / layer.total) * 100)}</td>
+              <td>{layer.activeDays}</td>
+              <td>
+                {layer.peak ? (
+                  <>
+                    {formatCompactNumber(layer.peak.total)}{" "}
+                    <span className="burn-table__muted">
+                      {formatShortDate(layer.peak.date)}
+                    </span>
+                  </>
+                ) : null}
+              </td>
+              <td>
+                {layer.currentStreak} / {layer.longestStreak}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr>
+            <th scope="row">All</th>
+            <td>{formatCompactNumber(burn.total)}</td>
+            <td>{formatPercent(100)}</td>
+            <td>{formatCompactNumber(input)}</td>
+            <td>{formatCompactNumber(output)}</td>
+            <td>{formatPercent((cache / burn.total) * 100)}</td>
+            <td>{burn.activeDays}</td>
+            <td>
+              {burn.peak ? (
+                <>
+                  {formatCompactNumber(burn.peak.total)}{" "}
+                  <span className="burn-table__muted">
+                    {formatShortDate(burn.peak.date)}
+                  </span>
+                </>
+              ) : null}
+            </td>
+            <td />
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  );
+}
+
+function DetailsView({ providers }: { providers: ProviderAnalytics[] }) {
+  const [rangeDays, setRangeDays] = useState<BurnRangeDays>(30);
+  const burn = useMemo(
+    () => buildDailyBurn(providers, rangeDays),
+    [providers, rangeDays],
+  );
+
+  return (
+    <section className="burn-view">
+      <header className="burn-view__header">
+        <h2 className="burn-view__title">Daily burn</h2>
+        <div className="burn-view__controls">
+          <div className="view-toggle" role="group" aria-label="Range">
+            {burnRanges.map((range) => (
+              <button
+                key={range.days}
+                type="button"
+                aria-pressed={rangeDays === range.days}
+                className={
+                  rangeDays === range.days
+                    ? "view-toggle__button is-active"
+                    : "view-toggle__button"
+                }
+                onClick={() => setRangeDays(range.days)}
+              >
+                {range.label}
+              </button>
+            ))}
+          </div>
+          <div className="burn-view__peak">
+            <span className="burn-view__peak-label">Peak</span>
+            <span className="burn-view__peak-value">
+              {formatCompactNumber(burn.peak?.total ?? 0)}
+            </span>
+            {burn.peak ? (
+              <span className="burn-view__peak-date">
+                {formatShortDate(burn.peak.date)}
+              </span>
+            ) : null}
+          </div>
+        </div>
+      </header>
+      <BurnChart burn={burn} />
+      <BurnTable burn={burn} />
     </section>
   );
 }
@@ -1281,12 +1346,27 @@ const HeatmapView = memo(function HeatmapView({
   );
 });
 
-export function SvgUsage({ svgMarkup, analytics }: SvgUsageProps) {
+function isViewAvailable(view: UsageViewId, analytics: DetailsAnalytics | null) {
+  switch (view) {
+    case "heatmap":
+      return true;
+    case "models":
+      return Boolean(analytics?.vendors.length);
+    case "cost":
+      return Boolean(analytics?.cost);
+    case "details":
+      return analytics !== null;
+  }
+}
+
+export function SvgUsage({ svgMarkup, analytics, children }: SvgUsageProps) {
   const containerRef = useRef<HTMLElement>(null);
   const detailsTooltipTargetRef = useRef<Element | null>(null);
   const cursorTargetRef = useRef<Element | null>(null);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
-  const [activeView, setActiveView] = useState<ActiveView>("heatmap");
+  // `null` means the URL is not a tab (the not-found page renders as children).
+  const activeView =
+    findUsageViewBySegment(useSelectedLayoutSegment())?.id ?? null;
   const [modelsScale, setModelsScale] = useState<ModelsTimeScale>("month");
   const showAntigravityNoData =
     analytics !== null &&
@@ -1450,63 +1530,30 @@ export function SvgUsage({ svgMarkup, analytics }: SvgUsageProps) {
   return (
     <div className="page-root">
       <div className="page-header">
-        <div className="view-toggle" role="tablist" aria-label="Page view">
-          <button
-            type="button"
-            className={
-              activeView === "heatmap"
-                ? "view-toggle__button is-active"
-                : "view-toggle__button"
-            }
-            onClick={() => setActiveView("heatmap")}
-          >
-            Harnesses
-          </button>
-          {analytics?.vendors.length ? (
-            <button
-              type="button"
-              className={
-                activeView === "models"
-                  ? "view-toggle__button is-active"
-                  : "view-toggle__button"
-              }
-              onClick={() => setActiveView("models")}
-            >
-              Models
-            </button>
-          ) : null}
-          {analytics?.cost ? (
-            <button
-              type="button"
-              className={
-                activeView === "cost"
-                  ? "view-toggle__button is-active"
-                  : "view-toggle__button"
-              }
-              onClick={() => setActiveView("cost")}
-            >
-              Cost
-            </button>
-          ) : null}
-          {analytics ? (
-            <button
-              type="button"
-              className={
-                activeView === "details"
-                  ? "view-toggle__button is-active"
-                  : "view-toggle__button"
-              }
-              onClick={() => setActiveView("details")}
-            >
-              Details
-            </button>
-          ) : null}
-        </div>
+        <nav className="view-toggle" aria-label="Page view">
+          {usageViews.map((view) =>
+            isViewAvailable(view.id, analytics) ? (
+              <Link
+                key={view.id}
+                href={getUsageViewHref(view)}
+                scroll={false}
+                aria-current={activeView === view.id ? "page" : undefined}
+                className={
+                  activeView === view.id
+                    ? "view-toggle__button is-active"
+                    : "view-toggle__button"
+                }
+              >
+                {view.label}
+              </Link>
+            ) : null,
+          )}
+        </nav>
       </div>
       {activeView === "heatmap" && showAntigravityNoData ? (
         <AntigravityNoDataCard />
       ) : null}
-      {activeView === "heatmap" || !analytics ? (
+      {activeView === null ? null : activeView === "heatmap" || !analytics ? (
         <HeatmapView
           containerRef={containerRef}
           className="page-shell"
@@ -1514,7 +1561,7 @@ export function SvgUsage({ svgMarkup, analytics }: SvgUsageProps) {
         />
       ) : activeView === "details" ? (
         <main ref={containerRef} className="page-shell page-shell--details">
-          <LegacyProviderCards providers={analytics.providers} />
+          <DetailsView providers={analytics.providers} />
         </main>
       ) : activeView === "cost" && analytics.cost ? (
         <main ref={containerRef} className="page-shell page-shell--cost">
@@ -1529,6 +1576,7 @@ export function SvgUsage({ svgMarkup, analytics }: SvgUsageProps) {
           />
         </main>
       )}
+      {children}
       <Cursor
         active
         accentColor={tooltip?.accentColor ?? "#111111"}

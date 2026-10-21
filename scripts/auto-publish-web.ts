@@ -152,6 +152,63 @@ function readArtifacts() {
   });
 }
 
+interface PublishedRow {
+  date: string;
+  total: number;
+}
+
+interface PublishedDataset {
+  end: string;
+  providers: { provider: string; daily: PublishedRow[] }[];
+}
+
+// Last line of defense before anything reaches git: compare the generated
+// dataset with the one on origin/main and refuse to publish if history was
+// lost, whatever the cause (merge bug, broken loader, truncated write). A
+// failed run leaves the site on the last good dataset and records why.
+function validatePublishedDataset(previousText: string, nextText: string) {
+  const previous = JSON.parse(previousText) as PublishedDataset;
+  const next = JSON.parse(nextText) as PublishedDataset;
+  const nextTotals = new Map<string, number>();
+  const problems: string[] = [];
+
+  for (const provider of next.providers) {
+    for (const row of provider.daily) {
+      nextTotals.set(`${provider.provider}:${row.date}`, row.total);
+    }
+  }
+
+  // Same window as RECOMPUTE_WINDOW_DAYS in publish-usage.ts: today and
+  // yesterday may legitimately be recomputed downward.
+  const windowStart = new Date(`${next.end}T00:00:00.000Z`);
+
+  windowStart.setUTCDate(windowStart.getUTCDate() - 1);
+  const windowStartKey = windowStart.toISOString().slice(0, 10);
+
+  for (const provider of previous.providers) {
+    if (!next.providers.some((entry) => entry.provider === provider.provider)) {
+      problems.push(`provider ${provider.provider} disappeared`);
+      continue;
+    }
+
+    for (const row of provider.daily) {
+      const nextTotal = nextTotals.get(`${provider.provider}:${row.date}`) ?? 0;
+
+      if (row.date < windowStartKey && nextTotal < row.total) {
+        problems.push(
+          `${provider.provider} ${row.date} shrank ${row.total} -> ${nextTotal}`,
+        );
+      }
+    }
+  }
+
+  if (problems.length > 0) {
+    throw new Error(
+      `Generated dataset loses published history; refusing to publish.\n${problems.slice(0, 20).join("\n")}`,
+    );
+  }
+}
+
 function main() {
   const usedRecoveryRefresh = existsSync(RECOVERY_DB_PATH);
 
@@ -161,6 +218,10 @@ function main() {
   );
 
   const before = readArtifacts();
+  const previousDatasetText = readFileSync(
+    resolve(REPO_ROOT, GENERATED_ARTIFACTS[0]),
+    "utf8",
+  );
 
   step("pull machine exports", () =>
     assertCommand("bun", ["run", "machine-exports:pull"]),
@@ -181,6 +242,12 @@ function main() {
         SLOPMETER_WEB_SKIP_BLOB_UPLOAD: "1",
         SLOPMETER_WEB_IMPORT_PATH: MACHINE_IMPORT_PATH,
       },
+    ),
+  );
+  step("validate", () =>
+    validatePublishedDataset(
+      previousDatasetText,
+      readFileSync(resolve(REPO_ROOT, GENERATED_ARTIFACTS[0]), "utf8"),
     ),
   );
   step("build", () => assertCommand("bun", ["x", "next", "build"]));

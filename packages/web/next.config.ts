@@ -8,6 +8,11 @@ const basePath =
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  experimental: {
+    // Prefetch per segment so tab links share the root layout's data payload
+    // instead of downloading the full page payload once per tab.
+    clientSegmentCache: true,
+  },
   basePath,
 };
 

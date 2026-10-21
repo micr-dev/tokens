@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { AnimatedFavicon } from "../packages/web/app/animated-favicon";
+import { UsageShell } from "../packages/web/app/usage-shell";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Daily Usage",
+  title: { default: "Daily Usage", template: "%s · Daily Usage" },
   description: "Merged daily coding-agent usage heatmap.",
 };
 
@@ -14,7 +15,7 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <AnimatedFavicon />
-        {children}
+        <UsageShell>{children}</UsageShell>
       </body>
     </html>
   );

@@ -1,1 +1,1 @@
-export { default } from "../packages/web/app/page";
+export { default, metadata } from "../packages/web/app/page";

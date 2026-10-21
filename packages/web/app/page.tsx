@@ -1,24 +1,11 @@
-import { buildAnalytics } from "../lib/analytics";
-import { getPublishedSvgMarkup } from "../lib/usage";
-import { SvgUsage } from "./svg-usage";
-import {
-  getPublishedCostPayload,
-  getPublishedUsagePayload,
-} from "../lib/usage";
+import type { Metadata } from "next";
 
-export default async function Page() {
-  const [svgMarkup, publishedUsage, publishedCost] = await Promise.all([
-    getPublishedSvgMarkup(),
-    getPublishedUsagePayload(),
-    getPublishedCostPayload(),
-  ]);
+// The layout title template only applies to child segments, not this page.
+export const metadata: Metadata = {
+  title: { absolute: "Harnesses · Daily Usage" },
+};
 
-  return (
-    <SvgUsage
-      svgMarkup={svgMarkup}
-      analytics={
-        publishedUsage ? buildAnalytics(publishedUsage, publishedCost) : null
-      }
-    />
-  );
+// The root layout renders every tab; the page only names the route.
+export default function Page() {
+  return null;
 }
