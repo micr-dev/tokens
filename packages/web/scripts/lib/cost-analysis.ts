@@ -3,10 +3,9 @@ import { dirname } from "node:path";
 import type { PublishedUsagePayload } from "../../../cli/src/lib/export";
 import { getProviderTitle } from "../../lib/analytics";
 import {
-  MODEL_PRICE_ALIASES,
-  MODEL_PRICES_PER_MILLION,
-  resolveModelPrice,
-  type ModelPricePerMillion,
+  priceModelUsage,
+  type BillableTokens,
+  type ModelPricer,
 } from "../../lib/model-prices";
 import type {
   ProviderId,
@@ -19,7 +18,7 @@ import type {
 
 const COST_PAYLOAD_VERSION = "2026-10-21";
 const COST_SOURCE =
-  "tokens.micr.dev published daily usage, priced per model with packages/web/lib/model-prices.ts";
+  "tokens.micr.dev published daily usage, priced per model and day with @pydantic/genai-prices";
 export const COST_COVERAGE_NOTE =
   "API-price equivalent for this token usage. Most or all of these tokens were used through subscription plans rather than metered API billing.";
 // Day totals that no model breakdown accounts for cannot be priced, but they
@@ -33,7 +32,8 @@ type TokenTotals = UsageDay["breakdown"][number]["tokens"];
 interface ModelAccumulator {
   model: PublishedCostModel;
   monthly: Map<string, PublishedCostMonthlyRow>;
-  priced: boolean;
+  // Tokens on days the model had no known price; reported as missing-cost.
+  unpricedTokens: number;
 }
 
 // Loaders disagree on where cache tokens live, so split them per harness:
@@ -42,7 +42,10 @@ interface ModelAccumulator {
 // - cursor folds cache writes into input ("Input (w/ Cache Write)");
 // - every other loader folds cache reads into input and cache writes into output.
 // Clamping keeps the rare row whose cache exceeds its bucket from going negative.
-function splitBillableTokens(provider: string, tokens: TokenTotals) {
+export function splitBillableTokens(
+  provider: string,
+  tokens: TokenTotals,
+): BillableTokens {
   const cacheRead = tokens.cache.input;
   const cacheWrite = tokens.cache.output;
 
@@ -70,22 +73,6 @@ function splitBillableTokens(provider: string, tokens: TokenTotals) {
     cacheWrite,
     output: Math.max(tokens.output - cacheWrite, 0),
   };
-}
-
-export function priceModelTokens(
-  provider: string,
-  tokens: TokenTotals,
-  price: ModelPricePerMillion,
-) {
-  const billable = splitBillableTokens(provider, tokens);
-
-  return (
-    (billable.input * price.input +
-      billable.cacheRead * price.cachedInput +
-      billable.cacheWrite * (price.cacheWrite ?? price.input) +
-      billable.output * price.output) /
-    1_000_000
-  );
 }
 
 function getMonthlyRow(
@@ -151,8 +138,11 @@ function addModelUsage({
       monthly: [],
     },
     monthly: new Map<string, PublishedCostMonthlyRow>(),
-    priced,
+    unpricedTokens: 0,
   };
+  if (!priced) {
+    accumulator.unpricedTokens += tokens.total;
+  }
   addUsage(getMonthlyRow(accumulator.monthly, month), tokens, costUsd);
   accumulator.model.totalCostUsd += costUsd;
   accumulator.model.totalTokens += tokens.total;
@@ -162,11 +152,10 @@ function addModelUsage({
   models.set(name, accumulator);
 }
 
-// Pure: the same usage payload and price table always produce the same artifact.
+// The same usage payload and price data always produce the same artifact.
 export function buildPublishedCostPayload(
   usagePayload: PublishedUsagePayload,
-  prices: Record<string, ModelPricePerMillion> = MODEL_PRICES_PER_MILLION,
-  aliases: Record<string, string> = MODEL_PRICE_ALIASES,
+  pricer: ModelPricer = priceModelUsage,
 ): PublishedCostPayload {
   const harnesses: PublishedCostHarness[] = [];
   const models = new Map<string, ModelAccumulator>();
@@ -193,10 +182,12 @@ export function buildPublishedCostPayload(
       let attributedTokens = 0;
 
       for (const breakdown of day.breakdown) {
-        const price = resolveModelPrice(breakdown.name, prices, aliases);
-        const costUsd = price
-          ? priceModelTokens(provider.provider, breakdown.tokens, price)
-          : 0;
+        const price = pricer(
+          breakdown.name,
+          day.date,
+          splitBillableTokens(provider.provider, breakdown.tokens),
+        );
+        const costUsd = price ?? 0;
 
         attributedTokens += breakdown.tokens.total;
         dayCostUsd += costUsd;
@@ -268,10 +259,10 @@ export function buildPublishedCostPayload(
     monthly: sortMonthly(monthly),
   }));
   const modelWarnings: PublishedCostModelWarning[] = [...models.values()]
-    .filter(({ priced, model }) => !priced && model.totalTokens > 0)
-    .map(({ model }) => ({
+    .filter(({ unpricedTokens }) => unpricedTokens > 0)
+    .map(({ model, unpricedTokens }) => ({
       model: model.name,
-      totalTokens: model.totalTokens,
+      totalTokens: unpricedTokens,
       status: "missing-cost" as const,
     }))
     .sort(

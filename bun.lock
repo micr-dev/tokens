@@ -52,17 +52,18 @@
     "packages/web": {
       "name": "slopmeter-web",
       "dependencies": {
+        "@pydantic/genai-prices": "0.1.13",
         "@vercel/blob": "^1.1.1",
         "next": "^15.5.6",
         "react": "^19.1.1",
         "react-dom": "^19.1.1",
       },
       "devDependencies": {
-        "@types/node": "latest",
+        "@types/node": "25.6.0",
         "@types/react": "^19.1.12",
         "@types/react-dom": "^19.1.9",
-        "tsx": "latest",
-        "typescript": "latest",
+        "tsx": "4.21.0",
+        "typescript": "6.0.3",
       },
     },
     "tooling/eslint-config": {
@@ -343,6 +344,8 @@
     "@open-draft/logger": ["@open-draft/logger@0.3.0", "", { "dependencies": { "is-node-process": "^1.2.0", "outvariant": "^1.4.0" } }, "sha512-X2g45fzhxH238HKO4xbSr7+wBS8Fvw6ixhTDuvLd5mqh6bJJCFAPwU9mPDxbcrRtfxv4u5IHCEH77BmxvXmmxQ=="],
 
     "@open-draft/until": ["@open-draft/until@2.1.0", "", {}, "sha512-U69T3ItWHvLwGg5eJ0n3I62nWuE6ilHlmz7zM0npLBRvPRd7e6NYmg54vvRtP5mZG7kZqZCFVdsTWo7BPtBujg=="],
+
+    "@pydantic/genai-prices": ["@pydantic/genai-prices@0.1.13", "", { "bin": { "genai-prices": "dist/cli.js" } }, "sha512-kKzGgPFJmKK/muihOFYDtuS8PXYliRFFYWDfzwDFy7bOgyZUnEnDXpBZpo4eT2aM8bz3bXvO50F8AhFSKvMxlw=="],
 
     "@repo/eslint-config": ["@repo/eslint-config@workspace:tooling/eslint-config"],
 
