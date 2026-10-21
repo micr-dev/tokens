@@ -4244,13 +4244,13 @@
             {
               "name": "gpt-5.6-sol",
               "tokens": {
-                "input": 446565158,
-                "output": 1014923,
+                "input": 1021783219,
+                "output": 1850985,
                 "cache": {
-                  "input": 436315136,
+                  "input": 1002492928,
                   "output": 0
                 },
-                "total": 447580081
+                "total": 1023634204
               }
             }
           ]
