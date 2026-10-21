@@ -170,6 +170,36 @@ export interface ProviderAnalytics {
   daily: ProviderDailyAnalytics[];
 }
 
+export interface DailyBurnLayer {
+  provider: ProviderId;
+  title: string;
+  accent: string;
+  values: number[];
+  total: number;
+  input: number;
+  output: number;
+  cache: number;
+  activeDays: number;
+  peak: {
+    date: string;
+    total: number;
+  } | null;
+  currentStreak: number;
+  longestStreak: number;
+}
+
+export interface DailyBurn {
+  dates: string[];
+  totals: number[];
+  total: number;
+  activeDays: number;
+  peak: {
+    date: string;
+    total: number;
+  } | null;
+  layers: DailyBurnLayer[];
+}
+
 export type ModelsTimeScale = "year" | "month" | "week" | "day";
 
 export type VendorCompanyId =

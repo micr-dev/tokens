@@ -3,6 +3,8 @@ import type {
   AnalyticsSeriesPoint,
   CostAnalytics,
   CostEntityAnalytics,
+  DailyBurn,
+  DailyBurnLayer,
   DetailsAnalytics,
   ModelsTimeScale,
   PublishedCostPayload,
@@ -1186,6 +1188,113 @@ export function buildProviderAnalytics(
     })),
     topModels,
     daily,
+  };
+}
+
+/**
+ * Daily token totals per provider for the `rangeDays` days ending on the
+ * latest published day. Missing days are zero; providers without usage in the
+ * range are dropped. Layers are ordered by range total, largest first.
+ */
+export function buildDailyBurn(
+  providers: ProviderAnalytics[],
+  rangeDays: number,
+): DailyBurn {
+  let endDate: string | null = null;
+
+  for (const provider of providers) {
+    for (const day of provider.daily) {
+      if (!endDate || day.date > endDate) {
+        endDate = day.date;
+      }
+    }
+  }
+
+  if (!endDate || rangeDays < 1) {
+    return {
+      dates: [],
+      totals: [],
+      total: 0,
+      activeDays: 0,
+      peak: null,
+      layers: [],
+    };
+  }
+
+  const start = addUtcDays(parseDateToUtc(endDate), 1 - rangeDays);
+  const dates = Array.from({ length: rangeDays }, (_, index) =>
+    formatDateKey(addUtcDays(start, index)),
+  );
+  const indexByDate = new Map(dates.map((date, index) => [date, index]));
+  const layers: DailyBurnLayer[] = [];
+
+  for (const provider of providers) {
+    const values = new Array<number>(rangeDays).fill(0);
+    const layer: DailyBurnLayer = {
+      provider: provider.provider,
+      title: getProviderTitle(provider.provider),
+      accent: getProviderDetailTheme(provider.provider).accent,
+      values,
+      total: 0,
+      input: 0,
+      output: 0,
+      cache: 0,
+      activeDays: 0,
+      peak: null,
+      currentStreak: provider.currentStreak,
+      longestStreak: provider.longestStreak,
+    };
+
+    for (const day of provider.daily) {
+      const index = indexByDate.get(day.date);
+
+      if (index === undefined || day.total <= 0) {
+        continue;
+      }
+
+      if (values[index] === 0) {
+        layer.activeDays += 1;
+      }
+
+      values[index] += day.total;
+      layer.total += day.total;
+      layer.input += day.input;
+      layer.output += day.output;
+      layer.cache += day.cacheInput + day.cacheOutput;
+    }
+
+    if (layer.total === 0) {
+      continue;
+    }
+
+    values.forEach((value, index) => {
+      if (value > 0 && (!layer.peak || value > layer.peak.total)) {
+        layer.peak = { date: dates[index], total: value };
+      }
+    });
+    layers.push(layer);
+  }
+
+  layers.sort((left, right) => right.total - left.total);
+
+  const totals = dates.map((_, index) =>
+    layers.reduce((sum, layer) => sum + layer.values[index], 0),
+  );
+  let peak: DailyBurn["peak"] = null;
+
+  totals.forEach((total, index) => {
+    if (total > 0 && (!peak || total > peak.total)) {
+      peak = { date: dates[index], total };
+    }
+  });
+
+  return {
+    dates,
+    totals,
+    total: totals.reduce((sum, total) => sum + total, 0),
+    activeDays: totals.filter((total) => total > 0).length,
+    peak,
+    layers,
   };
 }
 
