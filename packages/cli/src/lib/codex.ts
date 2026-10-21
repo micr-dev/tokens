@@ -1,4 +1,3 @@
-import { statSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import type { UsageSummary } from "../interfaces";
@@ -67,18 +66,16 @@ interface CodexNormalizedUsage {
 }
 
 interface CodexFileProcessingResult {
+  filePath: string;
   totals: DailyTotalsByDate;
   modelTotals: Map<string, ModelTokenTotals>;
   recentModelTotals: Map<string, ModelTokenTotals>;
   skippedOversizedIrrelevantRecords: number;
-}
-
-interface CodexFileFingerprint {
-  filePath: string;
-  fileSizeBytes: number;
-  startTimestampMs: number;
-  firstCumulativeUsageKey: string;
   sessionId: string | null;
+  firstCumulativeUsageKey: string | null;
+  // Tokens counted across the whole file, ignoring the requested window, so
+  // the fork winner does not depend on the date range being loaded.
+  countedTokens: number;
 }
 
 type JsonContext =
@@ -229,13 +226,19 @@ async function getCodexFiles() {
     ? resolve(process.env.CODEX_HOME)
     : join(homedir(), ".codex");
 
-  return listFilesRecursive(join(codexHome, "sessions"), ".jsonl");
-}
+  const files = await listFilesRecursive(
+    join(codexHome, "sessions"),
+    ".jsonl",
+    ".jsonl.zst",
+  );
+  // Codex compresses cold rollouts to `.jsonl.zst` and decompresses them back
+  // to plain `.jsonl` before appending, so a plain file is authoritative and
+  // hides its compressed sibling (same rule as codex-rs RolloutFile).
+  const plainFiles = new Set(files.filter((file) => file.endsWith(".jsonl")));
 
-function parseCodexTimestampMs(value: string) {
-  const parsed = Date.parse(value);
-
-  return Number.isFinite(parsed) ? parsed : null;
+  return files.filter(
+    (file) => !file.endsWith(".zst") || !plainFiles.has(file.slice(0, -4)),
+  );
 }
 
 function readJsonString(source: string, start: number) {
@@ -520,6 +523,9 @@ async function processCodexFile(
   const recentModelTotals = new Map<string, ModelTokenTotals>();
   let previousTotals: CodexNormalizedUsage | null = null;
   let currentModel: string | undefined;
+  let sessionId: string | null = null;
+  let firstCumulativeUsageKey: string | null = null;
+  let countedTokens = 0;
 
   let skippedOversizedIrrelevantRecords = 0;
 
@@ -554,6 +560,12 @@ async function processCodexFile(
     }
 
     if (record.classification === "session_meta") {
+      const sid = entry.payload?.session_id;
+
+      if (sessionId === null && typeof sid === "string" && sid.length > 0) {
+        sessionId = sid;
+      }
+
       continue;
     }
 
@@ -563,6 +575,10 @@ async function processCodexFile(
     let rawUsage: CodexNormalizedUsage | null = null;
 
     if (totalUsage) {
+      if (firstCumulativeUsageKey === null && totalUsage.total_tokens > 0) {
+        firstCumulativeUsageKey = getCodexUsageFingerprint(totalUsage);
+      }
+
       rawUsage = didCodexTotalsRollback(totalUsage, previousTotals)
         ? (lastUsage ?? totalUsage)
         : subtractCodexUsage(totalUsage, previousTotals);
@@ -590,6 +606,8 @@ async function processCodexFile(
       continue;
     }
 
+    countedTokens += usage.total;
+
     const date = new Date(entry.timestamp);
 
     if (date < start || date > end) {
@@ -615,110 +633,15 @@ async function processCodexFile(
   }
 
   return {
+    filePath,
     totals,
     modelTotals,
     recentModelTotals,
     skippedOversizedIrrelevantRecords,
-  };
-}
-
-async function readCodexFileFingerprint(
-  filePath: string,
-  maxRecordBytes: number,
-): Promise<CodexFileFingerprint | null> {
-  let startTimestampMs: number | null = null;
-  let firstCumulativeUsageKey: string | null = null;
-  let sessionId: string | null = null;
-
-  for await (const record of readJsonlRecords<
-    "turn_context" | "token_count" | "session_meta"
-  >(
-    filePath,
-    {
-      classificationPrefixBytes: CLASSIFICATION_PREFIX_BYTES,
-      classify: classifyCodexRecord,
-      maxRecordBytes,
-      oversizedErrorMessage: ({ filePath, lineNumber, maxRecordBytes }) =>
-        `Relevant Codex record exceeds ${maxRecordBytes} bytes in ${filePath}:${lineNumber}. Increase ${MAX_JSONL_RECORD_BYTES_ENV} to process this file.`,
-    },
-  )) {
-    let entry: CodexEventEntry;
-
-    try {
-      entry = JSON.parse(record.rawLine) as CodexEventEntry;
-    } catch {
-      continue;
-    }
-
-    if (startTimestampMs === null) {
-      startTimestampMs = parseCodexTimestampMs(entry.timestamp);
-    }
-
-    if (
-      record.classification === "session_meta" &&
-      sessionId === null
-    ) {
-      const sid = entry.payload?.session_id;
-      if (typeof sid === "string" && sid.length > 0) {
-        sessionId = sid;
-      }
-    }
-
-    if (
-      record.classification === "token_count" &&
-      firstCumulativeUsageKey === null
-    ) {
-      const totalUsage = normalizeCodexUsage(
-        entry.payload?.info?.total_token_usage,
-      );
-
-      if (totalUsage && totalUsage.total_tokens > 0) {
-        firstCumulativeUsageKey = getCodexUsageFingerprint(totalUsage);
-      }
-    }
-
-    if (
-      startTimestampMs !== null &&
-      firstCumulativeUsageKey !== null &&
-      sessionId !== null
-    ) {
-      break;
-    }
-    // Also break if we've seen both timestamp and usage but no session_meta
-    // (some older files may not have session_meta)
-    if (
-      startTimestampMs !== null &&
-      firstCumulativeUsageKey !== null &&
-      // Read enough of the file to have found session_meta if it exists.
-      // session_meta is always the first record, so if we haven't found it
-      // by the time we hit token_count, it's not there.
-      record.classification === "token_count"
-    ) {
-      break;
-    }
-  }
-
-  if (startTimestampMs === null || firstCumulativeUsageKey === null) {
-    return null;
-  }
-
-  return {
-    filePath,
-    fileSizeBytes: statSync(filePath).size,
-    startTimestampMs,
-    firstCumulativeUsageKey,
     sessionId,
+    firstCumulativeUsageKey,
+    countedTokens,
   };
-}
-
-function chooseFingerprintWinner(group: CodexFileFingerprint[]) {
-  return group.reduce((best, current) => {
-    if (current.fileSizeBytes !== best.fileSizeBytes) {
-      return current.fileSizeBytes > best.fileSizeBytes ? current : best;
-    }
-
-    return current.filePath.localeCompare(best.filePath) < 0 ? current : best;
-  });
 }
 
 /**
@@ -731,8 +654,8 @@ function chooseFingerprintWinner(group: CodexFileFingerprint[]) {
  * times.
  *
  * Files are grouped by their `session_id` (from the `session_meta` record at
- * the top of each file). Within a session, the largest file is kept — it has
- * the highest cumulative total and captures the full token range.
+ * the top of each file). Within a session, the file that counts the most
+ * tokens is kept — it captures the full token range.
  *
  * The old fingerprint-based approach (grouping by first cumulative usage
  * value) was fundamentally broken: independent sessions in the same repo
@@ -742,60 +665,54 @@ function chooseFingerprintWinner(group: CodexFileFingerprint[]) {
  *
  * Files without a session_id fall back to the fingerprint approach for
  * backwards compatibility with older session formats.
+ *
+ * Fingerprints are collected during the single processing pass instead of a
+ * separate early-exit prefix read: Bun 1.3 corrupts later zstd streams when a
+ * `.jsonl.zst` decompressor is destroyed mid-stream, and decompressing every
+ * compressed rollout twice would double the cost.
  */
-async function dedupeCodexFiles(
-  files: string[],
-  maxRecordBytes: number,
-  fileConcurrency: number,
-) {
-  const fingerprints = new Array<CodexFileFingerprint | null>(files.length);
-
-  await runWithConcurrency(files, fileConcurrency, async (file, index) => {
-    fingerprints[index] = await readCodexFileFingerprint(file, maxRecordBytes);
-  });
-
+function dedupeCodexResults(results: CodexFileProcessingResult[]) {
   // Group by session_id when available, fall back to fingerprint for files
   // that don't have session_meta (older formats).
-  const groupedByKey = new Map<string, CodexFileFingerprint[]>();
+  const groupedByKey = new Map<string, CodexFileProcessingResult[]>();
+  const kept: CodexFileProcessingResult[] = [];
 
-  for (const fingerprint of fingerprints) {
-    if (!fingerprint) {
+  for (const result of results) {
+    if (result.firstCumulativeUsageKey === null) {
+      kept.push(result);
       continue;
     }
 
-    const key =
-      fingerprint.sessionId ?? `fp:${fingerprint.firstCumulativeUsageKey}`;
-
+    const key = result.sessionId ?? `fp:${result.firstCumulativeUsageKey}`;
     const matches = groupedByKey.get(key) ?? [];
 
-    matches.push(fingerprint);
+    matches.push(result);
     groupedByKey.set(key, matches);
   }
 
-  const skippedFiles = new Set<string>();
   let duplicateGroups = 0;
+  let skippedFiles = 0;
 
   for (const matches of groupedByKey.values()) {
-    if (matches.length <= 1) {
-      continue;
+    if (matches.length > 1) {
+      duplicateGroups += 1;
+      skippedFiles += matches.length - 1;
     }
 
-    duplicateGroups += 1;
+    kept.push(
+      matches.reduce((best, current) => {
+        if (current.countedTokens !== best.countedTokens) {
+          return current.countedTokens > best.countedTokens ? current : best;
+        }
 
-    const winner = chooseFingerprintWinner(matches);
-
-    for (const fingerprint of matches) {
-      if (fingerprint.filePath !== winner.filePath) {
-        skippedFiles.add(fingerprint.filePath);
-      }
-    }
+        return current.filePath.localeCompare(best.filePath) < 0
+          ? current
+          : best;
+      }),
+    );
   }
 
-  return {
-    files: files.filter((file) => !skippedFiles.has(file)),
-    duplicateGroups,
-    skippedFiles: skippedFiles.size,
-  };
+  return { kept, duplicateGroups, skippedFiles };
 }
 
 export async function loadCodexRowsFromFiles(
@@ -816,22 +733,18 @@ export async function loadCodexRowsFromFiles(
     FILE_PROCESS_CONCURRENCY_ENV,
     DEFAULT_FILE_PROCESS_CONCURRENCY,
   );
-  const dedupedFiles = await dedupeCodexFiles(
-    files,
-    maxRecordBytes,
-    fileConcurrency,
-  );
-  const filesToProcess = dedupedFiles.files;
-  const results = new Array<CodexFileProcessingResult>(filesToProcess.length);
+  const results = new Array<CodexFileProcessingResult>(files.length);
 
-  await runWithConcurrency(filesToProcess, fileConcurrency, async (file, index) => {
+  await runWithConcurrency(files, fileConcurrency, async (file, index) => {
     results[index] = await processCodexFile(file, start, end, maxRecordBytes);
   });
+
+  const deduped = dedupeCodexResults(results);
 
   let skippedOversizedIrrelevantRecords = 0;
   let skippedFiles = 0;
 
-  for (const result of results) {
+  for (const result of deduped.kept) {
     mergeDailyTotalsByDate(totals, result.totals);
     mergeModelTotals(modelTotals, result.modelTotals);
     mergeModelTotals(recentModelTotals, result.recentModelTotals);
@@ -849,9 +762,9 @@ export async function loadCodexRowsFromFiles(
     );
   }
 
-  if (dedupedFiles.skippedFiles > 0) {
+  if (deduped.skippedFiles > 0) {
     warnings.push(
-      `Deduplicated ${dedupedFiles.skippedFiles} duplicate Codex session file(s) across ${dedupedFiles.duplicateGroups} group(s) by matching the first cumulative total token usage.`,
+      `Deduplicated ${deduped.skippedFiles} duplicate Codex session file(s) across ${deduped.duplicateGroups} group(s) by matching the first cumulative total token usage.`,
     );
   }
 

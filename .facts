@@ -4,6 +4,12 @@
 - label: NanoClaw session usage is collected as a separate turquoise provider
   command: grep -Fq '"nanoclaw"' packages/cli/src/lib/interfaces.ts && grep -Fq 'loadNanoClawRows' packages/cli/src/providers.ts && grep -Fq 'NanoClaw' packages/web/lib/analytics.ts && grep -Fq '"nanoclaw",' packages/web/scripts/publish-usage.ts && grep -Fq '#22d3ee' packages/web/app/globals.css
   tags: [implemented]
+- label: the CLI counts Codex sessions stored as zstd-compressed rollout-*.jsonl.zst files once, with a plain .jsonl hiding its compressed sibling
+  command: (bun run --cwd packages/cli build >/dev/null 2>&1; true) && bunx tsx --test --test-name-pattern 'Codex reads .jsonl.zst|mix plain and compressed' packages/cli/test/cli.test.ts
+  tags: [implemented]
+- label: no CLI provider emits zero-total daily rows, so activity-only Claude days left by pruned transcripts cannot overwrite published token history
+  command: (bun run --cwd packages/cli build >/dev/null 2>&1; true) && bunx tsx --test --test-name-pattern 'never activity-only zero rows' packages/cli/test/cli.test.ts && grep -Fq 'filter(([, entry]) => entry.tokens.total > 0)' packages/cli/src/lib/utils.ts
+  tags: [implemented]
 - label: the web token report recognizes Antigravity CLI as the agy provider when agy usage is present
   command: grep -q '"agy"' packages/web/lib/types.ts && grep -q 'Antigravity CLI' packages/web/lib/analytics.ts && grep -q '"agy"' packages/web/scripts/publish-usage.ts && grep -q 'agy:' packages/cli/src/graph.ts
   tags: [implemented]
@@ -14,6 +20,9 @@
 - the web report only shows the Antigravity CLI no-data state when neither legacy Gemini CLI nor current agy rows are published @implemented
 - label: the published web report folds legacy Gemini CLI and current agy usage into one Antigravity CLI provider row instead of describing agy as a Gemini CLI successor
   command: bunx tsx --test --test-name-pattern 'folds Gemini CLI history' packages/web/test/publish-usage.test.ts && grep -Fq 'foldGeminiIntoAntigravityProvider' packages/web/scripts/publish-usage.ts
+  tags: [implemented]
+- label: publishing never shrinks a published provider/day older than the last two days; older rows may only grow, so pruned or compressed local sessions cannot erase history
+  command: bunx tsx --test --test-name-pattern 'recomputes only the last two days' packages/web/test/publish-usage.test.ts
   tags: [implemented]
 
 ## design
@@ -31,14 +40,14 @@
 - label: the web report exposes a Cost tab with harness totals as the canonical top-line spend and provider/model costs as a partition drill-down subtotal
   command: grep -Fq 'Cost' packages/web/app/svg-usage.tsx && grep -Fq 'harnessTotalCostUsd' packages/web/lib/analytics.ts && grep -Fq 'modelTotalCostUsd' packages/web/lib/analytics.ts
   tags: [implemented]
-- label: the published web data bundle includes a generated cost payload seeded from the local cost analysis and refreshed by the publish path before deploy
-  command: grep -Fq 'publishedCostPayload' packages/web/lib/published-data.generated.ts && grep -Fq 'refresh-cost-data' package.json && grep -Fq 'readCostAnalysisPayload' packages/web/scripts/publish-usage.ts
+- label: the published web data bundle includes a generated cost payload computed by the publish path from the merged daily usage and the checked-in model price table
+  command: grep -Fq 'publishedCostPayload' packages/web/lib/published-data.generated.ts && grep -Fq 'writePublishedCostArtifact' packages/web/scripts/publish-usage.ts && grep -Fq 'MODEL_PRICES_PER_MILLION' packages/web/scripts/lib/cost-analysis.ts && ! grep -Fq 'refresh-cost-data' package.json
   tags: [implemented]
 - label: the Cost tab lets users switch between harness and provider/model grouping, rank by cost tokens or cost per million tokens, limit visible rows, manually hide rows, and optionally show zero-cost entries
   command: grep -Fq 'CostGroupMode' packages/web/app/svg-usage.tsx && grep -Fq 'costRankModes' packages/web/app/svg-usage.tsx && grep -Fq 'Show zero-cost' packages/web/app/svg-usage.tsx && grep -Fq 'cost-visible-toggle' packages/web/app/globals.css
   tags: [implemented]
 - label: the Cost tab explains costs as API-price equivalents rather than actual subscription-plan billing
-  command: grep -Fq 'API-price equivalent' packages/web/scripts/publish-usage.ts && grep -Fq 'subscription plans' packages/web/lib/published-data.generated.ts
+  command: grep -Fq 'API-price equivalent' packages/web/scripts/lib/cost-analysis.ts && grep -Fq 'subscription plans' packages/web/lib/published-data.generated.ts
   tags: [implemented]
 - label: the Cost tab visually separates filter groups for grouping ranking visibility and zero-cost controls
   command: grep -Fq 'cost-controls__group' packages/web/app/svg-usage.tsx && grep -Fq '.cost-controls__group + .cost-controls__group' packages/web/app/globals.css
@@ -46,9 +55,9 @@
 - label: the Cost tab defaults to showing all visible cost rows instead of a top-N subset
   command: grep -Fq 'useState<CostVisibleLimit>("all")' packages/web/app/svg-usage.tsx
   tags: [implemented]
-- label: the published cost refresh recomputes local ccusage-backed harnesses and marks preserved recovered harnesses with source coverage diagnostics
-  command: grep -Fq 'CCUSAGE_BACKED_COST_HARNESSES' packages/web/scripts/publish-usage.ts && grep -Fq 'sourceCoverage' packages/web/lib/types.ts && grep -Fq 'preserved from imported or recovered history' packages/web/scripts/publish-usage.ts && jq -e '.sourceCoverage[] | select(.harness == "opencode" and .source == "preserved-import")' .slopmeter-data/published/cost-analysis.json >/dev/null && jq -e '.sourceCoverage[] | select(.harness == "codex" and .source == "live-ccusage")' .slopmeter-data/published/cost-analysis.json >/dev/null
+- label: published cost prices every provider/day/model breakdown row with cached input, cache writes, and unpriced models reported as missing-cost instead of guessed, with no ccusage dependency
+  command: bun test packages/web/test/cost-analysis.test.ts && ! grep -rqi 'ccusage' packages/web/scripts packages/web/lib/types.ts package.json
   tags: [implemented]
-- label: the Cost tab provider/model subtotal partitions canonical harness spend instead of adding an independent model cost estimate
-  command: bun test packages/web/test/usage.test.ts --test-name-pattern 'partitions canonical harness spend'
+- label: the Cost tab provider/model rows show exact per-model costs that sum to canonical harness spend
+  command: bun test packages/web/test/usage.test.ts --test-name-pattern 'exact per-model costs'
   tags: [implemented]

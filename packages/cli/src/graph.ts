@@ -492,10 +492,6 @@ function buildCellTooltipPayload(providerTitle: string, row: DailyUsage) {
     cacheOutput: numberFormatter.format(row.cache.output),
   };
 
-  if (row.total <= 0 && (row.displayValue ?? 0) > 0) {
-    payload.note = "Activity recorded without full token totals";
-  }
-
   if (row.breakdown.length > 0) {
     const topModel = row.breakdown[0];
 

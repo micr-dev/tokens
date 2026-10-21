@@ -11,6 +11,7 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import test from "node:test";
+import { zstdCompressSync } from "node:zlib";
 import { summarizeCursorUsageCsv } from "../src/lib/cursor";
 
 const cliPath = resolve(import.meta.dirname, "../dist/cli.js");
@@ -52,6 +53,11 @@ function ensureParent(path: string) {
 function writeJsonlFile(path: string, records: string[]) {
   ensureParent(path);
   writeFileSync(path, `${records.join("\n")}\n`, "utf8");
+}
+
+function writeZstdJsonlFile(path: string, records: string[]) {
+  ensureParent(path);
+  writeFileSync(path, zstdCompressSync(`${records.join("\n")}\n`));
 }
 
 function writeJsonFile(path: string, value: string) {
@@ -564,6 +570,127 @@ test("Codex deduplicates parallel rollout session files by first cumulative tota
     }),
     codexTokenCount({
       timestamp: new Date(baseTimestamp.getTime() + 23_000).toISOString(),
+      totalUsage: { input: 120, output: 40, total: 160 },
+    }),
+  ]);
+
+  const result = await runCli(
+    ["--codex", "--format", "json", "--output", outputPath],
+    {
+      CODEX_HOME: codexHome,
+    },
+  );
+
+  assert.equal(result.code, 0, result.stderr || result.stdout);
+
+  const payload = JSON.parse(readFileSync(outputPath, "utf8")) as {
+    providers: Array<{ provider: string; daily: Array<{ total: number }> }>;
+  };
+
+  assert.equal(payload.providers[0]?.daily[0]?.total, 160);
+});
+
+test("Codex reads .jsonl.zst rollouts and lets a plain .jsonl hide its compressed sibling", async (t) => {
+  const workspace = createTempWorkspace("codex-zstd-rollouts");
+
+  t.after(() => {
+    rmSync(workspace, { recursive: true, force: true });
+  });
+
+  const codexHome = join(workspace, "codex");
+  const outputPath = join(workspace, "out.json");
+  const baseTimestamp = new Date();
+
+  baseTimestamp.setUTCHours(0, 0, 0, 0);
+
+  const at = (offsetMs: number) =>
+    new Date(baseTimestamp.getTime() + offsetMs).toISOString();
+  const sessionsDir = join(codexHome, "sessions", "2026", "07", "15");
+
+  writeZstdJsonlFile(join(sessionsDir, "rollout-compressed.jsonl.zst"), [
+    codexTokenCount({
+      timestamp: at(1_000),
+      totalUsage: { input: 70, output: 30, total: 100 },
+    }),
+  ]);
+  // Codex decompresses a cold rollout back to plain `.jsonl` before appending,
+  // so the plain file is authoritative and the stale `.zst` must be ignored.
+  writeJsonlFile(join(sessionsDir, "rollout-resumed.jsonl"), [
+    codexTokenCount({
+      timestamp: at(2_000),
+      totalUsage: { input: 40, output: 10, total: 50 },
+    }),
+  ]);
+  writeZstdJsonlFile(join(sessionsDir, "rollout-resumed.jsonl.zst"), [
+    codexTokenCount({
+      timestamp: at(2_000),
+      totalUsage: { input: 20, output: 10, total: 30 },
+    }),
+  ]);
+
+  const result = await runCli(
+    ["--codex", "--format", "json", "--output", outputPath],
+    {
+      CODEX_HOME: codexHome,
+    },
+  );
+
+  assert.equal(result.code, 0, result.stderr || result.stdout);
+
+  const payload = JSON.parse(readFileSync(outputPath, "utf8")) as {
+    providers: Array<{ provider: string; daily: Array<{ total: number }> }>;
+  };
+
+  assert.equal(payload.providers[0]?.daily[0]?.total, 150);
+});
+
+test("Codex keeps the fork that counts the most tokens when forks mix plain and compressed rollouts", async (t) => {
+  const workspace = createTempWorkspace("codex-zstd-fork-winner");
+
+  t.after(() => {
+    rmSync(workspace, { recursive: true, force: true });
+  });
+
+  const codexHome = join(workspace, "codex");
+  const outputPath = join(workspace, "out.json");
+  const baseTimestamp = new Date();
+
+  baseTimestamp.setUTCHours(0, 0, 0, 0);
+
+  const at = (offsetMs: number) =>
+    new Date(baseTimestamp.getTime() + offsetMs).toISOString();
+  const sessionMeta = JSON.stringify({
+    type: "session_meta",
+    timestamp: at(0),
+    payload: { session_id: "shared-session" },
+  });
+
+  // The plain fork is larger on disk, but the compressed fork holds more of
+  // the session, so on-disk size must not pick the winner.
+  writeJsonlFile(join(codexHome, "sessions", "fork-a.jsonl"), [
+    sessionMeta,
+    codexTokenCount({
+      timestamp: at(1_000),
+      totalUsage: { input: 70, output: 30, total: 100 },
+      padding: "x".repeat(4096),
+    }),
+    codexTokenCount({
+      timestamp: at(2_000),
+      totalUsage: { input: 90, output: 40, total: 130 },
+    }),
+  ]);
+  writeZstdJsonlFile(join(codexHome, "sessions", "fork-b.jsonl.zst"), [
+    sessionMeta,
+    codexTokenCount({
+      timestamp: at(1_000),
+      totalUsage: { input: 70, output: 30, total: 100 },
+    }),
+    codexTokenCount({
+      timestamp: at(2_000),
+      totalUsage: { input: 90, output: 40, total: 130 },
+    }),
+    codexTokenCount({
+      timestamp: at(3_000),
       totalUsage: { input: 120, output: 40, total: 160 },
     }),
   ]);
@@ -1120,8 +1247,8 @@ test("Claude falls back to stats-cache.json for older layouts without double cou
   );
 });
 
-test("Claude falls back to history.jsonl for activity-only days before token logs exist", async (t) => {
-  const workspace = createTempWorkspace("claude-history-fallback");
+test("Claude emits only days with token usage, never activity-only zero rows", async (t) => {
+  const workspace = createTempWorkspace("claude-no-zero-rows");
 
   t.after(() => {
     rmSync(workspace, { recursive: true, force: true });
@@ -1130,112 +1257,40 @@ test("Claude falls back to history.jsonl for activity-only days before token log
   const claudeConfig = join(workspace, "claude");
   const outputPath = join(workspace, "out.json");
 
+  // Claude Code prunes old project transcripts but keeps history.jsonl and
+  // stats-cache dailyActivity, so those days have prompts but no tokens.
   writeJsonFile(
     join(claudeConfig, "history.jsonl"),
     [
-      JSON.stringify({
-        timestamp: `${recentDate(6)}T08:00:00.000Z`,
-        sessionId: "s-1",
-      }),
-      JSON.stringify({
-        timestamp: `${recentDate(6)}T08:30:00.000Z`,
-        sessionId: "s-1",
-      }),
-      JSON.stringify({
-        timestamp: `${recentDate(5)}T09:00:00.000Z`,
-        sessionId: "s-2",
-      }),
+      JSON.stringify({ timestamp: `${recentDate(6)}T08:00:00.000Z` }),
+      JSON.stringify({ timestamp: `${recentDate(5)}T09:00:00.000Z` }),
     ].join("\n"),
   );
-
-  const result = await runCli(
-    ["--claude", "--format", "json", "--output", outputPath],
-    {
-      CLAUDE_CONFIG_DIR: claudeConfig,
-    },
-  );
-
-  assert.equal(result.code, 0, result.stderr || result.stdout);
-
-  const payload = JSON.parse(readFileSync(outputPath, "utf8")) as {
-    providers: Array<{
-      provider: string;
-      insights: {
-        streaks: {
-          longest: number;
-          current: number;
-        };
-      };
-      daily: Array<{
-        date: string;
-        total: number;
-        displayValue?: number;
-        breakdown: unknown[];
-      }>;
-    }>;
-  };
-
-  assert.deepEqual(
-    payload.providers[0]?.daily.map((day) => ({
-      date: day.date,
-      total: day.total,
-      displayValue: day.displayValue,
-      breakdownLength: day.breakdown.length,
-    })),
-    [
-      {
-        date: recentDate(6),
-        total: 0,
-        displayValue: 2,
-        breakdownLength: 0,
-      },
-      {
-        date: recentDate(5),
-        total: 0,
-        displayValue: 1,
-        breakdownLength: 0,
-      },
-    ],
-  );
-  assert.deepEqual(payload.providers[0]?.insights.streaks, {
-    longest: 2,
-    current: 0,
-  });
-});
-
-test("Claude falls back to stats-cache dailyActivity when token rows are unavailable", async (t) => {
-  const workspace = createTempWorkspace("claude-daily-activity");
-
-  t.after(() => {
-    rmSync(workspace, { recursive: true, force: true });
-  });
-
-  const claudeConfig = join(workspace, "claude");
-  const outputPath = join(workspace, "out.json");
-
   writeJsonFile(
     join(claudeConfig, "stats-cache.json"),
     JSON.stringify({
       version: 2,
-      lastComputedDate: recentDate(1),
-      dailyActivity: [
-        {
-          date: recentDate(6),
-          messageCount: 3,
-        },
-        {
-          date: recentDate(5),
-          messageCount: 1,
-        },
-      ],
+      dailyActivity: [{ date: recentDate(4), messageCount: 3 }],
       dailyModelTokens: [],
       modelUsage: {},
-      totalSessions: 0,
-      totalMessages: 4,
-      hourCounts: {},
-      totalSpeculationTimeSavedMs: 0,
     }),
   );
+  writeJsonlFile(join(claudeConfig, "projects", "session.jsonl"), [
+    claudeEntry({
+      timestamp: new Date(`${recentDate(3)}T12:00:00`).toISOString(),
+      messageId: "m-zero",
+      requestId: "r-zero",
+      input: 0,
+      output: 0,
+    }),
+    claudeEntry({
+      timestamp: new Date(`${recentDate(2)}T12:00:00`).toISOString(),
+      messageId: "m-1",
+      requestId: "r-1",
+      input: 6,
+      output: 4,
+    }),
+  ]);
 
   const result = await runCli(
     ["--claude", "--format", "json", "--output", outputPath],
@@ -1249,47 +1304,14 @@ test("Claude falls back to stats-cache dailyActivity when token rows are unavail
   const payload = JSON.parse(readFileSync(outputPath, "utf8")) as {
     providers: Array<{
       provider: string;
-      insights: {
-        streaks: {
-          longest: number;
-          current: number;
-        };
-      };
-      daily: Array<{
-        date: string;
-        total: number;
-        displayValue?: number;
-        breakdown: unknown[];
-      }>;
+      daily: Array<{ date: string; total: number }>;
     }>;
   };
 
   assert.deepEqual(
-    payload.providers[0]?.daily.map((day) => ({
-      date: day.date,
-      total: day.total,
-      displayValue: day.displayValue,
-      breakdownLength: day.breakdown.length,
-    })),
-    [
-      {
-        date: recentDate(6),
-        total: 0,
-        displayValue: 3,
-        breakdownLength: 0,
-      },
-      {
-        date: recentDate(5),
-        total: 0,
-        displayValue: 1,
-        breakdownLength: 0,
-      },
-    ],
+    payload.providers[0]?.daily.map(({ date, total }) => ({ date, total })),
+    [{ date: recentDate(2), total: 10 }],
   );
-  assert.deepEqual(payload.providers[0]?.insights.streaks, {
-    longest: 2,
-    current: 0,
-  });
 });
 
 test("Claude fails clearly on oversized JSONL records via the shared splitter", async (t) => {

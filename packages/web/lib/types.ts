@@ -90,25 +90,7 @@ export interface PublishedCostModel {
   outputTokens: number;
   cacheReadTokens: number;
   monthsActive: number;
-}
-
-export interface PublishedCostSourceCoverage {
-  harness: string;
-  source: "live-ccusage" | "preserved-import" | "model-estimated";
-  expectedMonths: string[];
-  generatedMonths: string[];
-  missingMonths: string[];
-  firstDate: string | null;
-  lastDate: string | null;
-}
-
-export interface PublishedCostValidation {
-  harness: string;
-  status: "ok" | "preserved" | "estimated";
-  computedUsd: number | null;
-  sourceUsd: number | null;
-  deltaUsd: number;
-  note: string;
+  monthly: PublishedCostMonthlyRow[];
 }
 
 export interface PublishedCostModelWarning {
@@ -132,9 +114,7 @@ export interface PublishedCostPayload {
   harnesses: PublishedCostHarness[];
   models: PublishedCostModel[];
   monthlyTotals: PublishedCostMonthlyRow[];
-  sourceCoverage?: PublishedCostSourceCoverage[];
-  validation?: PublishedCostValidation[];
-  modelWarnings?: PublishedCostModelWarning[];
+  modelWarnings: PublishedCostModelWarning[];
 }
 
 export interface AnalyticsSeriesPoint {

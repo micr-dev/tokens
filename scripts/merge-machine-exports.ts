@@ -71,6 +71,23 @@ function readEnvelope(path: string): JsonExportPayload {
     );
   }
 
+  // Stale or empty exports are still merged (the last good data beats none),
+  // but they are reported so a broken remote exporter is visible in the
+  // publisher journal instead of silently freezing that machine's history.
+  const ageHours = (Date.now() - Date.parse(value.exportedAt)) / 3_600_000;
+
+  if (ageHours > 48) {
+    process.stderr.write(
+      `WARNING: ${value.machine} export is ${Math.round(ageHours)}h old: ${path}\n`,
+    );
+  }
+
+  if (payload.providers.length === 0) {
+    process.stderr.write(
+      `WARNING: ${value.machine} export contains no providers: ${path}\n`,
+    );
+  }
+
   return payload;
 }
 
