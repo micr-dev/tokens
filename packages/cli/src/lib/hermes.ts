@@ -239,10 +239,18 @@ function loadHermesSessionsFromDatabase(databasePath: string) {
   });
 
   try {
+    // A session that was split by context compression can be left without a
+    // model; its continuation session (child) runs the same model. Older
+    // Hermes databases have no parent_session_id column.
+    const hasParentLinks = (
+      database.prepare("PRAGMA table_info(sessions)").all() as {
+        name: string;
+      }[]
+    ).some((column) => column.name === "parent_session_id");
     const query = database.prepare(`
       SELECT
         s.id AS session_id,
-        s.model AS session_model,
+        ${hasParentLinks ? "COALESCE(s.model, child.model)" : "s.model"} AS session_model,
         s.started_at AS started_at,
         s.ended_at AS ended_at,
         s.input_tokens AS input_tokens,
@@ -250,6 +258,17 @@ function loadHermesSessionsFromDatabase(databasePath: string) {
         m.timestamp AS message_timestamp,
         m.token_count AS message_token_count
       FROM sessions AS s
+      ${
+        hasParentLinks
+          ? `LEFT JOIN (
+        SELECT parent_session_id, MIN(model) AS model
+        FROM sessions
+        WHERE parent_session_id IS NOT NULL AND model IS NOT NULL
+        GROUP BY parent_session_id
+      ) AS child
+        ON child.parent_session_id = s.id`
+          : ""
+      }
       LEFT JOIN messages AS m
         ON m.session_id = s.id
        AND m.role = 'assistant'
