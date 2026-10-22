@@ -41,7 +41,7 @@
   command: bun test packages/web/test/daily-burn.test.ts --test-name-pattern 'tab routes' && grep -Fq 'export const dynamicParams = false;' 'packages/web/app/[view]/page.tsx' && grep -Fq 'export const dynamicParams = false;' 'app/[view]/page.tsx' && grep -Fq 'useSelectedLayoutSegment()' packages/web/app/svg-usage.tsx && grep -Fq '<Link' packages/web/app/svg-usage.tsx && grep -Fq 'template: "%s · Daily Usage"' packages/web/app/layout.tsx && grep -Fq 'template: "%s · Daily Usage"' app/layout.tsx && grep -Fq '<UsageShell>' app/layout.tsx
   tags: [implemented]
 - label: the Details tab shows a daily burn chart of smooth stacked token areas per harness in provider accent colors, with 7d/30d/90d/1y ranges, a PEAK readout for the visible range, per-day hover tooltips, and a per-harness range table instead of provider cards
-  command: bun test packages/web/test/daily-burn.test.ts && grep -Fq '<DetailsView providers={analytics.providers} />' packages/web/app/svg-usage.tsx && grep -Fq '{ label: "1y", days: 365 }' packages/web/app/svg-usage.tsx && grep -Fq 'data-details-tooltip={day.tooltip}' packages/web/app/svg-usage.tsx && ! grep -Fq 'LegacyProviderCards' packages/web/app/svg-usage.tsx && ! grep -Fq 'provider-card' packages/web/app/globals.css
+  command: bun test packages/web/test/daily-burn.test.ts && grep -Fq '<DetailsView analytics={analytics} />' packages/web/app/svg-usage.tsx && grep -Fq '{ label: "1y", days: 365 }' packages/web/app/svg-usage.tsx && grep -Fq 'data-details-tooltip={day.tooltip}' packages/web/app/svg-usage.tsx && ! grep -Fq 'LegacyProviderCards' packages/web/app/svg-usage.tsx && ! grep -Fq 'provider-card' packages/web/app/globals.css
   tags: [implemented]
 
 ## cost
@@ -68,4 +68,8 @@
   tags: [implemented]
 - label: the Cost tab provider/model rows show exact per-model costs that sum to canonical harness spend
   command: bun test packages/web/test/usage.test.ts --test-name-pattern 'exact per-model costs'
+  tags: [implemented]
+
+- label: Details groups daily usage by harness, canonical model, or model family with shared ranges and unattributed history retained
+  command: bun test packages/web/test/daily-burn.test.ts && grep -Fq 'aria-label="Usage grouping"' packages/web/app/svg-usage.tsx
   tags: [implemented]
