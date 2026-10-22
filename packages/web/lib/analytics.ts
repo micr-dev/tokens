@@ -1,5 +1,6 @@
 import type {
   AnalyticsModelShare,
+  BurnSeries,
   AnalyticsSeriesPoint,
   CostAnalytics,
   CostEntityAnalytics,
@@ -758,6 +759,11 @@ function getLatestUsageDate(payload: PublishedUsagePayload) {
   return latestDate ? parseDateToUtc(latestDate) : null;
 }
 
+function getLatestUsageDateKey(payload: PublishedUsagePayload) {
+  const latestDate = getLatestUsageDate(payload);
+  return latestDate ? formatDateKey(latestDate) : null;
+}
+
 function getEarliestUsageDate(payload: PublishedUsagePayload) {
   let earliestDate: string | null = null;
 
@@ -1200,7 +1206,25 @@ export function buildDailyBurn(
   providers: ProviderAnalytics[],
   rangeDays: number,
 ): DailyBurn {
-  let endDate: string | null = null;
+  return buildSeriesBurn(
+    providers.map((provider) => ({
+      provider: provider.provider,
+      title: getProviderTitle(provider.provider),
+      accent: getProviderDetailTheme(provider.provider).accent,
+      daily: provider.daily,
+      currentStreak: provider.currentStreak,
+      longestStreak: provider.longestStreak,
+    })),
+    rangeDays,
+  );
+}
+
+export function buildSeriesBurn(
+  providers: BurnSeries[],
+  rangeDays: number,
+  latestDate?: string | null,
+): DailyBurn {
+  let endDate: string | null = latestDate ?? null;
 
   for (const provider of providers) {
     for (const day of provider.daily) {
@@ -1232,8 +1256,8 @@ export function buildDailyBurn(
     const values = new Array<number>(rangeDays).fill(0);
     const layer: DailyBurnLayer = {
       provider: provider.provider,
-      title: getProviderTitle(provider.provider),
-      accent: getProviderDetailTheme(provider.provider).accent,
+      title: provider.title,
+      accent: provider.accent,
       values,
       total: 0,
       input: 0,
@@ -1305,6 +1329,7 @@ export function buildAnalytics(
   const providers = payload.providers.map(buildProviderAnalytics);
   const vendors = buildVendorAnalytics(payload);
   const cost = buildCostAnalytics(costPayload);
+  const latestUsageDate = getLatestUsageDateKey(payload);
   const providerTotal = providers.reduce(
     (sum, provider) => sum + provider.total,
     0,
@@ -1319,5 +1344,141 @@ export function buildAnalytics(
     vendor.share = vendorTotal > 0 ? vendor.total / vendorTotal : 0;
   }
 
-  return { providers, vendors, cost };
+  return {
+    providers,
+    models: buildModelBurnSeries(payload, "model", latestUsageDate),
+    families: buildModelBurnSeries(payload, "family", latestUsageDate),
+    vendors,
+    cost,
+    latestUsageDate,
+  };
+}
+
+const modelFamilyPatterns: [RegExp, string][] = [
+  [/^gpt(?:-|$)/, "GPT"],
+  [/^o\d(?:-|$)/, "OpenAI o-series"],
+  [/^claude(?:-|$)/, "Claude"],
+  [/^gemini(?:-|$)/, "Gemini"],
+  [/^glm(?:-|$)/, "GLM"],
+  [/^kimi(?:-|$)/, "Kimi"],
+  [/^deepseek(?:-|$)/, "DeepSeek"],
+  [/^qwen(?:[\d.-]|$)/, "Qwen"],
+  [/^grok(?:-|$)/, "Grok"],
+  [/^minimax(?:-|$)/, "MiniMax"],
+  [/^nemotron(?:-|$)/, "Nemotron"],
+];
+
+/** Broad model lineages; unrecognized names remain visible as their own family. */
+export function getModelFamily(modelName: string) {
+  const name = canonicalizeVendorModelName(modelName);
+  return (
+    modelFamilyPatterns.find(([pattern]) => pattern.test(name))?.[1] ?? name
+  );
+}
+
+export function buildModelBurnSeries(
+  payload: PublishedUsagePayload,
+  group: "model" | "family" = "model",
+  latestUsageDate = getLatestUsageDateKey(payload),
+): BurnSeries[] {
+  const groups = new Map<string, Map<string, BurnSeries["daily"][number]>>();
+  const latestKey = latestUsageDate ?? "";
+  for (const provider of payload.providers) {
+    for (const day of provider.daily) {
+      const rows = day.breakdown.map((row) => ({
+        name: canonicalizeVendorModelName(row.name) || "Unknown model",
+        total: row.tokens.total,
+        input: row.tokens.input,
+        output: row.tokens.output,
+        cacheInput: row.tokens.cache.input,
+        cacheOutput: row.tokens.cache.output,
+      }));
+      // Older published days may not have a complete model breakdown.
+      const breakdownTotals = {
+        total: 0,
+        input: 0,
+        output: 0,
+        cacheInput: 0,
+        cacheOutput: 0,
+      };
+      for (const row of rows) {
+        breakdownTotals.total += row.total;
+        breakdownTotals.input += row.input;
+        breakdownTotals.output += row.output;
+        breakdownTotals.cacheInput += row.cacheInput;
+        breakdownTotals.cacheOutput += row.cacheOutput;
+      }
+      if (day.total > breakdownTotals.total)
+        rows.push({
+          name: "Unattributed",
+          total: day.total - breakdownTotals.total,
+          input: Math.max(0, day.input - breakdownTotals.input),
+          output: Math.max(0, day.output - breakdownTotals.output),
+          cacheInput: Math.max(0, day.cache.input - breakdownTotals.cacheInput),
+          cacheOutput: Math.max(
+            0,
+            day.cache.output - breakdownTotals.cacheOutput,
+          ),
+        });
+      for (const row of rows) {
+        if (row.total <= 0) continue;
+        const name =
+          group === "family" && row.name !== "Unattributed"
+            ? getModelFamily(row.name)
+            : row.name;
+        const days =
+          groups.get(name) ?? new Map<string, BurnSeries["daily"][number]>();
+        const entry = days.get(day.date) ?? {
+          date: day.date,
+          total: 0,
+          input: 0,
+          output: 0,
+          cacheInput: 0,
+          cacheOutput: 0,
+        };
+        for (const key of [
+          "total",
+          "input",
+          "output",
+          "cacheInput",
+          "cacheOutput",
+        ] as const)
+          entry[key] += row[key];
+        days.set(day.date, entry);
+        groups.set(name, days);
+      }
+    }
+  }
+  return [...groups]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([name, days]) => {
+      const daily = [...days.values()].sort((a, b) =>
+        a.date.localeCompare(b.date),
+      );
+      let streak = 0,
+        longestStreak = 0;
+      let previous = "";
+      for (const day of daily) {
+        streak =
+          previous &&
+          formatDateKey(addUtcDays(parseDateToUtc(previous), 1)) === day.date
+            ? streak + 1
+            : 1;
+        longestStreak = Math.max(longestStreak, streak);
+        previous = day.date;
+      }
+      const hash = [...name].reduce(
+        (n, char) => (n * 31 + char.charCodeAt(0)) >>> 0,
+        0,
+      );
+      return {
+        provider: `${group}:${name}`,
+        title: name,
+        accent:
+          name === "Unattributed" ? "#a3a3a3" : `hsl(${hash % 360} 65% 55%)`,
+        daily,
+        longestStreak,
+        currentStreak: previous === latestKey ? streak : 0,
+      };
+    });
 }

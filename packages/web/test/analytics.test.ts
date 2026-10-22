@@ -1140,7 +1140,21 @@ test("buildAnalytics merges the current dataset's obvious vendor alias wrappers"
 test("buildAnalytics returns both provider and vendor analytics", () => {
   const analytics = buildAnalytics(detailsPayload);
 
-  assert.deepEqual(Object.keys(analytics), ["providers", "vendors"]);
+  assert.deepEqual(Object.keys(analytics), [
+    "providers",
+    "models",
+    "families",
+    "vendors",
+    "cost",
+    "latestUsageDate",
+  ]);
   assert.equal(analytics.providers.length, 2);
   assert.equal(analytics.vendors.length, 2);
+  assert.equal(
+    analytics.latestUsageDate,
+    detailsPayload.providers
+      .flatMap((provider) => provider.daily.map((day) => day.date))
+      .sort()
+      .at(-1) ?? null,
+  );
 });

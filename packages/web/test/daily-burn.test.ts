@@ -6,7 +6,13 @@ import {
   getBurnAxisTicks,
 } from "../app/burn-chart";
 import { findUsageViewBySegment, usageViewSlugs } from "../app/views";
-import { buildDailyBurn, buildProviderAnalytics } from "../lib/analytics";
+import {
+  buildDailyBurn,
+  buildProviderAnalytics,
+  buildModelBurnSeries,
+  buildSeriesBurn,
+  getModelFamily,
+} from "../lib/analytics";
 import type { PublishedUsagePayload } from "../lib/types";
 
 type PublishedProvider = PublishedUsagePayload["providers"][number];
@@ -148,4 +154,71 @@ test("tab routes map the root page to Harnesses and only known slugs to tabs", (
   assert.equal(findUsageViewBySegment("details")?.label, "Details");
   assert.equal(findUsageViewBySegment("unknown"), null);
   assert.equal(findUsageViewBySegment("/_not-found"), null);
+});
+
+test("model burn merges aliases across harnesses and families without losing unknown or unattributed usage", () => {
+  const namedDay = (date: string, total: number, model: string) => {
+    const day = createDay(date, total, 10);
+    day.breakdown[0].name = model;
+    return day;
+  };
+  const missing = createDay("2026-01-04", 20);
+  missing.breakdown = [];
+  const payload: PublishedUsagePayload = {
+    version: "1",
+    start: "2026-01-01",
+    end: "2026-01-04",
+    updatedAt: "2026-01-04",
+    providers: [
+      createProvider("codex", [
+        namedDay("2026-01-01", 100, "cliproxyapi/gpt-5.4"),
+        namedDay("2026-01-02", 40, "gpt-5.4"),
+        missing,
+      ]),
+      createProvider("omp", [
+        namedDay("2026-01-01", 50, "gpt-5.4"),
+        namedDay("2026-01-03", 60, "gpt-5.5"),
+        namedDay("2026-01-04", 30, "novel-model"),
+      ]),
+    ],
+  };
+  const models = buildModelBurnSeries(payload);
+  const burn = buildSeriesBurn(models, 4);
+  assert.deepEqual(burn.totals, [150, 40, 60, 50]);
+  assert.equal(
+    burn.total,
+    buildDailyBurn(payload.providers.map(buildProviderAnalytics), 4).total,
+  );
+  const gpt = burn.layers.find((row) => row.title === "gpt-5.4")!;
+  assert.deepEqual(gpt.values, [150, 40, 0, 0]);
+  assert.equal(gpt.cache, 30);
+  assert.equal(gpt.input, 160);
+  assert.equal(gpt.activeDays, 2);
+  assert.equal(gpt.longestStreak, 2);
+  assert.equal(gpt.currentStreak, 0);
+  assert.equal(
+    burn.layers.find((row) => row.title === "Unattributed")?.total,
+    20,
+  );
+  assert.equal(
+    burn.layers.find((row) => row.title === "novel-model")?.total,
+    30,
+  );
+  const family = buildSeriesBurn(buildModelBurnSeries(payload, "family"), 4);
+  assert.deepEqual(family.totals, burn.totals);
+  assert.deepEqual(
+    family.layers.find((row) => row.title === "GPT")?.values,
+    [150, 40, 60, 0],
+  );
+  assert.equal(
+    family.layers.find((row) => row.title === "GPT")?.longestStreak,
+    3,
+  );
+  assert.deepEqual(buildSeriesBurn(models, 2).totals, [60, 50]);
+  assert.deepEqual(buildSeriesBurn(models, 2, "2026-01-06").totals, [0, 0]);
+  assert.deepEqual(buildModelBurnSeries({ ...payload, providers: [] }), []);
+  assert.equal(getModelFamily("anthropic/claude-opus-4-6"), "Claude");
+  assert.equal(getModelFamily("gemini-3-pro-preview"), "Gemini");
+  assert.equal(getModelFamily("o3"), "OpenAI o-series");
+  assert.equal(getModelFamily("new-model"), "new-model");
 });

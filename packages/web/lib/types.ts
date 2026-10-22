@@ -170,8 +170,17 @@ export interface ProviderAnalytics {
   daily: ProviderDailyAnalytics[];
 }
 
+export interface BurnSeries {
+  provider: string;
+  title: string;
+  accent: string;
+  daily: ProviderDailyAnalytics[];
+  currentStreak: number;
+  longestStreak: number;
+}
+
 export interface DailyBurnLayer {
-  provider: ProviderId;
+  provider: string;
   title: string;
   accent: string;
   values: number[];
@@ -292,6 +301,9 @@ export interface CostAnalytics {
 
 export interface DetailsAnalytics {
   providers: ProviderAnalytics[];
+  models: BurnSeries[];
+  families: BurnSeries[];
   vendors: VendorModelsAnalytics[];
   cost: CostAnalytics | null;
+  latestUsageDate: string | null;
 }

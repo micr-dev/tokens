@@ -15,6 +15,7 @@ import {
 import { Cursor } from "../components/cursor";
 import {
   buildDailyBurn,
+  buildSeriesBurn,
   formatCompactNumber,
   formatPercent,
 } from "../lib/analytics";
@@ -24,7 +25,6 @@ import type {
   DailyBurn,
   DetailsAnalytics,
   ModelsTimeScale,
-  ProviderAnalytics,
   VendorModelsAnalytics,
 } from "../lib/types";
 import { buildMonotoneAreaPath, getBurnAxisTicks } from "./burn-chart";
@@ -363,7 +363,13 @@ function AntigravityNoDataCard() {
   );
 }
 
-function BurnChart({ burn }: { burn: DailyBurn }) {
+function BurnChart({
+  burn,
+  groupLabel,
+}: {
+  burn: DailyBurn;
+  groupLabel: string;
+}) {
   const geometry = useMemo(() => {
     const ticks = getBurnAxisTicks(burn.peak?.total ?? 0);
     const max = ticks[ticks.length - 1] || 1;
@@ -451,7 +457,7 @@ function BurnChart({ burn }: { burn: DailyBurn }) {
         viewBox={`0 0 ${burnChartWidth} ${burnChartHeight}`}
         preserveAspectRatio="none"
         role="img"
-        aria-label={`Daily tokens by harness, ${firstDate} to ${lastDate}`}
+        aria-label={`Daily tokens by ${groupLabel.toLowerCase()}, ${firstDate} to ${lastDate}`}
       >
         {geometry.ticks.map((tick) => {
           const y = burnChartHeight - (tick / geometry.max) * burnChartHeight;
@@ -508,7 +514,13 @@ function BurnChart({ burn }: { burn: DailyBurn }) {
   );
 }
 
-function BurnTable({ burn }: { burn: DailyBurn }) {
+function BurnTable({
+  burn,
+  groupLabel,
+}: {
+  burn: DailyBurn;
+  groupLabel: string;
+}) {
   if (burn.layers.length === 0) {
     return null;
   }
@@ -522,7 +534,7 @@ function BurnTable({ burn }: { burn: DailyBurn }) {
       <table className="burn-table">
         <thead>
           <tr>
-            <th scope="col">Harness</th>
+            <th scope="col">{groupLabel}</th>
             <th scope="col">Tokens</th>
             <th scope="col">Share</th>
             <th scope="col">Input</th>
@@ -594,18 +606,46 @@ function BurnTable({ burn }: { burn: DailyBurn }) {
   );
 }
 
-function DetailsView({ providers }: { providers: ProviderAnalytics[] }) {
+function DetailsView({ analytics }: { analytics: DetailsAnalytics }) {
+  const [group, setGroup] = useState<"harness" | "model" | "family">("harness");
+  const groupLabel = { harness: "Harness", model: "Model", family: "Family" }[
+    group
+  ];
   const [rangeDays, setRangeDays] = useState<BurnRangeDays>(30);
-  const burn = useMemo(
-    () => buildDailyBurn(providers, rangeDays),
-    [providers, rangeDays],
-  );
+  const burn = useMemo(() => {
+    if (group === "harness") {
+      return buildDailyBurn(analytics.providers, rangeDays);
+    }
+
+    return buildSeriesBurn(
+      group === "model" ? analytics.models : analytics.families,
+      rangeDays,
+      analytics.latestUsageDate,
+    );
+  }, [analytics, group, rangeDays]);
 
   return (
     <section className="burn-view">
       <header className="burn-view__header">
         <h2 className="burn-view__title">Daily burn</h2>
         <div className="burn-view__controls">
+          <div className="view-toggle" role="group" aria-label="Usage grouping">
+            {(["harness", "model", "family"] as const).map((value) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={group === value}
+                className={`view-toggle__button${group === value ? " is-active" : ""}`}
+                onClick={() => setGroup(value)}
+              >
+                {
+                  { harness: "Harnesses", model: "Models", family: "Families" }[
+                    value
+                  ]
+                }
+              </button>
+            ))}
+          </div>
           <div className="view-toggle" role="group" aria-label="Range">
             {burnRanges.map((range) => (
               <button
@@ -636,8 +676,8 @@ function DetailsView({ providers }: { providers: ProviderAnalytics[] }) {
           </div>
         </div>
       </header>
-      <BurnChart burn={burn} />
-      <BurnTable burn={burn} />
+      <BurnChart burn={burn} groupLabel={groupLabel} />
+      <BurnTable burn={burn} groupLabel={groupLabel} />
     </section>
   );
 }
@@ -1561,7 +1601,7 @@ export function SvgUsage({ svgMarkup, analytics, children }: SvgUsageProps) {
         />
       ) : activeView === "details" ? (
         <main ref={containerRef} className="page-shell page-shell--details">
-          <DetailsView providers={analytics.providers} />
+          <DetailsView analytics={analytics} />
         </main>
       ) : activeView === "cost" && analytics.cost ? (
         <main ref={containerRef} className="page-shell page-shell--cost">
