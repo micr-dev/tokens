@@ -162,7 +162,7 @@ const preferredVendorOrder: VendorCompanyId[] = [
   "xai",
   "nvidia",
 ];
-const modelCostFallbackColor = "#a3a3a3";
+const modelFallbackColor = "#a3a3a3";
 
 interface FlattenedModelUsage {
   date: string;
@@ -612,7 +612,7 @@ function buildHarnessCostAnalytics(
     const theme =
       providerId in providerDetailThemes
         ? providerDetailThemes[providerId]
-        : { accent: modelCostFallbackColor };
+        : { accent: modelFallbackColor };
 
     return {
       id: harness.id,
@@ -694,7 +694,7 @@ function buildModelCostAnalytics(
       groupLabel: vendor ? vendorTitles[vendor] : "Unknown",
       color: vendor
         ? getVendorModelColor(vendor, vendorIndex, models.size)
-        : modelCostFallbackColor,
+        : modelFallbackColor,
       totalCostUsd: model.totalCostUsd,
       totalTokens: model.totalTokens,
       costPerMillionTokens: getCostPerMillionTokens(
@@ -1354,26 +1354,59 @@ export function buildAnalytics(
   };
 }
 
-const modelFamilyPatterns: [RegExp, string][] = [
-  [/^gpt(?:-|$)/, "GPT"],
-  [/^o\d(?:-|$)/, "OpenAI o-series"],
-  [/^claude(?:-|$)/, "Claude"],
-  [/^gemini(?:-|$)/, "Gemini"],
-  [/^glm(?:-|$)/, "GLM"],
-  [/^kimi(?:-|$)/, "Kimi"],
-  [/^deepseek(?:-|$)/, "DeepSeek"],
-  [/^qwen(?:[\d.-]|$)/, "Qwen"],
-  [/^grok(?:-|$)/, "Grok"],
-  [/^minimax(?:-|$)/, "MiniMax"],
-  [/^nemotron(?:-|$)/, "Nemotron"],
+const modelFamilyPatterns: [RegExp, string, number][] = [
+  [/^gpt(?:[-\s]|$)/, vendorTitles.openai, vendorBaseHues.openai],
+  [/^o\d(?:-|$)/, vendorTitles.openai, vendorBaseHues.openai],
+  [/^claude(?:[-\s]|$)/, vendorTitles.anthropic, vendorBaseHues.anthropic],
+  [/^gemini(?:[-\s]|$)/, vendorTitles.google, vendorBaseHues.google],
+  [/^gemma(?:[-\d:\s]|$)/, vendorTitles.google, vendorBaseHues.google],
+  [/^glm(?:[-\d\s]|$)/, vendorTitles["z-ai"], vendorBaseHues["z-ai"]],
+  [/^kimi(?:[-\s]|$)/, vendorTitles.moonshot, vendorBaseHues.moonshot],
+  [/^deepseek(?:[-\s]|$)/, vendorTitles.deepseek, vendorBaseHues.deepseek],
+  [/^qwen(?:[\d.\-\s]|$)/, vendorTitles.alibaba, vendorBaseHues.alibaba],
+  [/^grok(?:[-\s]|$)/, vendorTitles.xai, vendorBaseHues.xai],
+  [/^minimax(?:[-\s]|$)/, vendorTitles.minimax, vendorBaseHues.minimax],
+  [/^nemotron(?:[-\s]|$)/, vendorTitles.nvidia, vendorBaseHues.nvidia],
+  [/^muse(?:[-\s]|$)/, "Meta", 220],
+  [/^union-alpha(?:[-\s]|$)/, "Unbiased (Pareto)", 280],
+  [/^pareto(?:[-\s]|$)/, "Unbiased (Pareto)", 280],
+  [/^mimo(?:[-\s]|$)/, "Xiaomi", 15],
+  [
+    /^duo-chat-(?:opus|sonnet|haiku)(?:-|$)/,
+    "Anthropic",
+    vendorBaseHues.anthropic,
+  ],
+  [/^duo-chat-gpt(?:-|$)/, "OpenAI", vendorBaseHues.openai],
+  [/^sherlock-think-alpha(?:-|$)/, "xAI", vendorBaseHues.xai],
 ];
 
-/** Broad model lineages; unrecognized names remain visible as their own family. */
+const modelFamilyNameOverrides: [RegExp, string][] = [
+  [/^big-pickle(?:-|$)/, "Big Pickle"],
+  [/^cursor-auto(?:-|$)/, "Cursor Auto"],
+  [/^horizon-beta(?:-|$)/, "Horizon Beta"],
+  [/^kiro-auto(?:-|$)/, "Kiro Auto"],
+];
+
+function getModelFamilyDefinition(modelName: string) {
+  const normalized = canonicalizeVendorModelName(modelName);
+  const name = normalized
+    .replace(
+      /^(?:zen-|openrouter\/|meta\/|unbiased\/|xiaomi\/|opencode\/)+/,
+      "",
+    )
+    .replace(/^stealth\/union-alpha(?=-|$)/, "union-alpha");
+  const match = modelFamilyPatterns.find(([pattern]) => pattern.test(name));
+  if (match) return { label: match[1], hue: match[2] };
+
+  const label = modelFamilyNameOverrides.find(([pattern]) =>
+    pattern.test(name),
+  )?.[1];
+  return { label: label ?? normalized, hue: null };
+}
+
+/** Group known models by their maker; unknown model IDs remain separate. */
 export function getModelFamily(modelName: string) {
-  const name = canonicalizeVendorModelName(modelName);
-  return (
-    modelFamilyPatterns.find(([pattern]) => pattern.test(name))?.[1] ?? name
-  );
+  return getModelFamilyDefinition(modelName).label;
 }
 
 export function buildModelBurnSeries(
@@ -1382,6 +1415,7 @@ export function buildModelBurnSeries(
   latestUsageDate = getLatestUsageDateKey(payload),
 ): BurnSeries[] {
   const groups = new Map<string, Map<string, BurnSeries["daily"][number]>>();
+  const groupHues = new Map<string, number | null>();
   const latestKey = latestUsageDate ?? "";
   for (const provider of payload.providers) {
     for (const day of provider.daily) {
@@ -1422,10 +1456,11 @@ export function buildModelBurnSeries(
         });
       for (const row of rows) {
         if (row.total <= 0) continue;
-        const name =
-          group === "family" && row.name !== "Unattributed"
-            ? getModelFamily(row.name)
-            : row.name;
+        const family =
+          row.name === "Unattributed"
+            ? null
+            : getModelFamilyDefinition(row.name);
+        const name = group === "family" && family ? family.label : row.name;
         const days =
           groups.get(name) ?? new Map<string, BurnSeries["daily"][number]>();
         const entry = days.get(day.date) ?? {
@@ -1446,6 +1481,7 @@ export function buildModelBurnSeries(
           entry[key] += row[key];
         days.set(day.date, entry);
         groups.set(name, days);
+        if (!groupHues.has(name)) groupHues.set(name, family?.hue ?? null);
       }
     }
   }
@@ -1467,15 +1503,14 @@ export function buildModelBurnSeries(
         longestStreak = Math.max(longestStreak, streak);
         previous = day.date;
       }
-      const hash = [...name].reduce(
-        (n, char) => (n * 31 + char.charCodeAt(0)) >>> 0,
-        0,
-      );
+      const hue = groupHues.get(name);
       return {
         provider: `${group}:${name}`,
         title: name,
         accent:
-          name === "Unattributed" ? "#a3a3a3" : `hsl(${hash % 360} 65% 55%)`,
+          hue === null || hue === undefined
+            ? modelFallbackColor
+            : `hsl(${hue} 74% 58%)`,
         daily,
         longestStreak,
         currentStreak: previous === latestKey ? streak : 0,

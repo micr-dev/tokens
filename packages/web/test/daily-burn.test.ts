@@ -207,18 +207,129 @@ test("model burn merges aliases across harnesses and families without losing unk
   const family = buildSeriesBurn(buildModelBurnSeries(payload, "family"), 4);
   assert.deepEqual(family.totals, burn.totals);
   assert.deepEqual(
-    family.layers.find((row) => row.title === "GPT")?.values,
+    family.layers.find((row) => row.title === "OpenAI")?.values,
     [150, 40, 60, 0],
   );
   assert.equal(
-    family.layers.find((row) => row.title === "GPT")?.longestStreak,
+    family.layers.find((row) => row.title === "OpenAI")?.longestStreak,
     3,
   );
   assert.deepEqual(buildSeriesBurn(models, 2).totals, [60, 50]);
   assert.deepEqual(buildSeriesBurn(models, 2, "2026-01-06").totals, [0, 0]);
   assert.deepEqual(buildModelBurnSeries({ ...payload, providers: [] }), []);
-  assert.equal(getModelFamily("anthropic/claude-opus-4-6"), "Claude");
-  assert.equal(getModelFamily("gemini-3-pro-preview"), "Gemini");
-  assert.equal(getModelFamily("o3"), "OpenAI o-series");
+  assert.equal(getModelFamily("anthropic/claude-opus-4-6"), "Anthropic");
+  assert.equal(getModelFamily("gemini-3-pro-preview"), "Google");
+  assert.equal(getModelFamily("o3"), "OpenAI");
   assert.equal(getModelFamily("new-model"), "new-model");
+});
+
+test("model family grouping maps creators and aliases to provider colors", () => {
+  const modelNames = [
+    "gpt-5.4",
+    "anthropic/claude-4.5-opus",
+    "gemini-3.1-pro-preview",
+    "Gemini 3.5 Flash (High)",
+    "glm5.3",
+    "kimi-k2.5",
+    "deepseek-v4-flash",
+    "qwen3.8-27b",
+    "grok-4.6",
+    "minimax-m2.7",
+    "nemotron-3",
+    "muse-spark-1.3-contributor",
+    "zen-muse-spark-1.2-contributor",
+    "stealth/union-alpha",
+    "zen-union-alpha",
+    "mimo-v2.6-flash",
+    "gemma4:31b",
+    "sherlock-think-alpha",
+    "duo-chat-opus-4-6",
+    "duo-chat-gpt-5-2-codex",
+    "big-pickle",
+    "horizon-beta",
+    "kiro-auto",
+    "cursor-auto-[proxy]-0",
+    "new-model",
+  ];
+  const total = modelNames.length * 10;
+  const day = createDay("2026-01-01", total);
+  day.breakdown = modelNames.map((name) => ({
+    name,
+    tokens: {
+      input: 10,
+      output: 0,
+      cache: { input: 0, output: 0 },
+      total: 10,
+    },
+  }));
+  const payload: PublishedUsagePayload = {
+    version: "1",
+    start: day.date,
+    end: day.date,
+    updatedAt: day.date,
+    providers: [createProvider("codex", [day])],
+  };
+
+  const families = buildModelBurnSeries(payload, "family");
+  const familyByName = new Map(families.map((family) => [family.title, family]));
+  assert.deepEqual(
+    [...familyByName.keys()].sort(),
+    [
+      "Alibaba",
+      "Anthropic",
+      "DeepSeek",
+      "Google",
+      "Horizon Beta",
+      "Kiro Auto",
+      "Cursor Auto",
+      "Meta",
+      "MiniMax",
+      "Moonshot",
+      "NVIDIA",
+      "OpenAI",
+      "Big Pickle",
+      "Unbiased (Pareto)",
+      "Xiaomi",
+      "xAI",
+      "Z.AI",
+      "new-model",
+    ].sort(),
+  );
+  assert.equal(familyByName.get("Meta")?.daily[0]?.total, 20);
+  assert.equal(familyByName.get("Unbiased (Pareto)")?.daily[0]?.total, 20);
+  assert.equal(familyByName.get("Anthropic")?.daily[0]?.total, 20);
+  assert.equal(familyByName.get("OpenAI")?.daily[0]?.total, 20);
+  assert.equal(familyByName.get("xAI")?.daily[0]?.total, 20);
+  assert.equal(familyByName.get("Google")?.daily[0]?.total, 30);
+  assert.equal(familyByName.get("Anthropic")?.accent, "hsl(16 74% 58%)");
+  assert.equal(familyByName.get("OpenAI")?.accent, "hsl(200 74% 58%)");
+  assert.equal(familyByName.get("Meta")?.accent, "hsl(220 74% 58%)");
+  assert.equal(
+    familyByName.get("Unbiased (Pareto)")?.accent,
+    "hsl(280 74% 58%)",
+  );
+  assert.equal(familyByName.get("Xiaomi")?.accent, "hsl(15 74% 58%)");
+  assert.equal(familyByName.get("Horizon Beta")?.accent, "#a3a3a3");
+  assert.equal(familyByName.get("Kiro Auto")?.accent, "#a3a3a3");
+  assert.equal(familyByName.get("Cursor Auto")?.accent, "#a3a3a3");
+  assert.equal(familyByName.get("new-model")?.accent, "#a3a3a3");
+  const modelByName = new Map(
+    buildModelBurnSeries(payload, "model").map((model) => [model.title, model]),
+  );
+  assert.equal(modelByName.get("claude-4.5-opus")?.accent, "hsl(16 74% 58%)");
+  assert.equal(modelByName.get("gpt-5.4")?.accent, "hsl(200 74% 58%)");
+  assert.equal(
+    modelByName.get("gemini 3.5 flash (high)")?.accent,
+    "hsl(138 74% 58%)",
+  );
+  assert.equal(getModelFamily("zen-muse-spark-1.3-contributor"), "Meta");
+  assert.equal(getModelFamily("stealth/union-alpha"), "Unbiased (Pareto)");
+  assert.equal(getModelFamily("unbiased/pareto"), "Unbiased (Pareto)");
+  assert.equal(getModelFamily("mimo-v2.6-flash"), "Xiaomi");
+  assert.equal(getModelFamily("xiaomi/mimo-v2.6-flash"), "Xiaomi");
+  assert.equal(getModelFamily("glm5.3"), "Z.AI");
+  assert.equal(getModelFamily("gemma4:31b"), "Google");
+  assert.equal(getModelFamily("Gemini 3.5 Flash (High)"), "Google");
+  assert.equal(getModelFamily("sherlock-think-alpha"), "xAI");
+  assert.equal(getModelFamily("openrouter/sherlock-think-alpha"), "xAI");
 });

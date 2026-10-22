@@ -70,6 +70,6 @@
   command: bun test packages/web/test/usage.test.ts --test-name-pattern 'exact per-model costs'
   tags: [implemented]
 
-- label: Details groups daily usage by harness, canonical model, or model family with shared ranges and unattributed history retained
-  command: bun test packages/web/test/daily-burn.test.ts && grep -Fq 'aria-label="Usage grouping"' packages/web/app/svg-usage.tsx
+- label: Details groups daily usage by harness, canonical model, or creator family; known aliases use provider colors and unknown models remain distinct with a neutral color
+  command: bun test packages/web/test/daily-burn.test.ts --test-name-pattern 'model family grouping' && grep -Fq 'aria-label="Usage grouping"' packages/web/app/svg-usage.tsx
   tags: [implemented]
