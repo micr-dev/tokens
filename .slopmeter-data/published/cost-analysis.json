@@ -1,14 +1,14 @@
 {
   "version": "2026-10-21",
-  "generatedAt": "2026-10-25T03:23:33.860Z",
+  "generatedAt": "2026-10-25T09:33:14.065Z",
   "source": "tokens.micr.dev published daily usage, priced per model and day with @pydantic/genai-prices",
   "dateRange": {
     "start": "2025-06-07",
     "end": "2026-10-25"
   },
-  "grandTotalTokens": 183051257313,
-  "harnessTotalCostUsd": 95154.74,
-  "modelTotalCostUsd": 95154.74,
+  "grandTotalTokens": 183167615410,
+  "harnessTotalCostUsd": 95194.44,
+  "modelTotalCostUsd": 95194.44,
   "coverageNote": "API-price equivalent for this token usage. Most or all of these tokens were used through subscription plans rather than metered API billing.",
   "harnesses": [
     {
@@ -103,19 +103,19 @@
       "activeDays": 11,
       "firstDate": "2026-10-15",
       "lastDate": "2026-10-25",
-      "totalCostUsd": 38.86536843999999,
-      "totalTokens": 1058158602,
-      "inputTokens": 1052054962,
-      "outputTokens": 6103640,
-      "cacheReadTokens": 969695872,
+      "totalCostUsd": 40.46978323999999,
+      "totalTokens": 1073190779,
+      "inputTokens": 1067081569,
+      "outputTokens": 6109210,
+      "cacheReadTokens": 984698240,
       "monthly": [
         {
           "month": "2026-10",
-          "inputTokens": 1052054962,
-          "outputTokens": 6103640,
-          "cacheReadTokens": 969695872,
-          "totalTokens": 1058158602,
-          "costUsd": 38.86536843999999,
+          "inputTokens": 1067081569,
+          "outputTokens": 6109210,
+          "cacheReadTokens": 984698240,
+          "totalTokens": 1073190779,
+          "costUsd": 40.46978323999999,
           "activeDays": 11
         }
       ]
@@ -126,11 +126,11 @@
       "activeDays": 63,
       "firstDate": "2026-08-22",
       "lastDate": "2026-10-25",
-      "totalCostUsd": 16611.811290095997,
-      "totalTokens": 37779753319,
-      "inputTokens": 674792635,
-      "outputTokens": 118399083,
-      "cacheReadTokens": 36605278801,
+      "totalCostUsd": 16649.906869295995,
+      "totalTokens": 37881079239,
+      "inputTokens": 677107553,
+      "outputTokens": 118883271,
+      "cacheReadTokens": 36703805615,
       "monthly": [
         {
           "month": "2026-08",
@@ -152,11 +152,11 @@
         },
         {
           "month": "2026-10",
-          "inputTokens": 367597777,
-          "outputTokens": 85154377,
-          "cacheReadTokens": 23720708718,
-          "totalTokens": 24442035586,
-          "costUsd": 12241.082885249998,
+          "inputTokens": 369912695,
+          "outputTokens": 85638565,
+          "cacheReadTokens": 23819235532,
+          "totalTokens": 24543361506,
+          "costUsd": 12279.178464449997,
           "activeDays": 25
         }
       ]
@@ -772,11 +772,11 @@
     },
     {
       "name": "gpt-6-astra",
-      "totalCostUsd": 11265.761114,
-      "totalTokens": 7922821464,
-      "inputTokens": 3014983295,
-      "outputTokens": 25769767,
-      "cacheReadTokens": 7666848154,
+      "totalCostUsd": 11293.146504,
+      "totalTokens": 7942427859,
+      "inputTokens": 3015673950,
+      "outputTokens": 25801667,
+      "cacheReadTokens": 7685731994,
       "monthsActive": 2,
       "monthly": [
         {
@@ -789,11 +789,11 @@
         },
         {
           "month": "2026-10",
-          "inputTokens": 878108023,
-          "outputTokens": 15433418,
-          "cacheReadTokens": 4737017014,
-          "totalTokens": 4909160460,
-          "costUsd": 7079.9514465
+          "inputTokens": 878798678,
+          "outputTokens": 15465318,
+          "cacheReadTokens": 4755900854,
+          "totalTokens": 4928766855,
+          "costUsd": 7107.3368365
         }
       ]
     },
@@ -923,11 +923,11 @@
     },
     {
       "name": "gpt-6.1-sol",
-      "totalCostUsd": 2866.7120643999997,
-      "totalTokens": 15537522665,
-      "inputTokens": 8033586856,
-      "outputTokens": 57310401,
-      "cacheReadTokens": 15087798144,
+      "totalCostUsd": 2879.0266684,
+      "totalTokens": 15614676615,
+      "inputTokens": 8049842296,
+      "outputTokens": 57534479,
+      "cacheReadTokens": 15163474944,
       "monthsActive": 2,
       "monthly": [
         {
@@ -940,11 +940,11 @@
         },
         {
           "month": "2026-10",
-          "inputTokens": 7652523179,
-          "outputTokens": 52480633,
-          "cacheReadTokens": 13948374656,
-          "totalTokens": 14362007844,
-          "costUsd": 2641.9489055999998
+          "inputTokens": 7668778619,
+          "outputTokens": 52704711,
+          "cacheReadTokens": 14024051456,
+          "totalTokens": 14439161794,
+          "costUsd": 2654.2635096
         }
       ]
     },
@@ -4642,18 +4642,18 @@
     {
       "name": "qwen3.8-27b-abliterated",
       "totalCostUsd": 0,
-      "totalTokens": 194844874,
-      "inputTokens": 7588066,
-      "outputTokens": 3085575,
-      "cacheReadTokens": 184171233,
+      "totalTokens": 214442626,
+      "inputTokens": 7983496,
+      "outputTokens": 3319355,
+      "cacheReadTokens": 203139775,
       "monthsActive": 1,
       "monthly": [
         {
           "month": "2026-10",
-          "inputTokens": 7588066,
-          "outputTokens": 3085575,
-          "cacheReadTokens": 184171233,
-          "totalTokens": 194844874,
+          "inputTokens": 7983496,
+          "outputTokens": 3319355,
+          "cacheReadTokens": 203139775,
+          "totalTokens": 214442626,
           "costUsd": 0
         }
       ]
@@ -5429,11 +5429,11 @@
     },
     {
       "month": "2026-10",
-      "inputTokens": 12879629906,
-      "outputTokens": 182048077,
-      "cacheReadTokens": 35945377921,
-      "totalTokens": 37050961415,
-      "costUsd": 15558.718705420002,
+      "inputTokens": 12896971431,
+      "outputTokens": 182537835,
+      "cacheReadTokens": 36058907103,
+      "totalTokens": 37167319512,
+      "costUsd": 15598.41869942,
       "activeDays": 89
     }
   ],
@@ -5460,7 +5460,7 @@
     },
     {
       "model": "qwen3.8-27b-abliterated",
-      "totalTokens": 194844874,
+      "totalTokens": 214442626,
       "status": "missing-cost"
     },
     {

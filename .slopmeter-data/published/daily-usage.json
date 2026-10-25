@@ -2,7 +2,7 @@
   "version": "2026-03-03",
   "start": "2025-07-11",
   "end": "2026-10-25",
-  "updatedAt": "2026-10-25T03:23:33.860Z",
+  "updatedAt": "2026-10-25T09:33:14.065Z",
   "providers": [
     {
       "provider": "codex",
@@ -8279,25 +8279,25 @@
         },
         {
           "date": "2026-10-25",
-          "input": 10831902,
-          "output": 15076,
+          "input": 25858509,
+          "output": 20646,
           "cache": {
-            "input": 10757632,
+            "input": 25760000,
             "output": 0
           },
-          "total": 10846978,
-          "displayValue": 10846978,
+          "total": 25879155,
+          "displayValue": 25879155,
           "breakdown": [
             {
               "name": "gpt-6.1-sol",
               "tokens": {
-                "input": 10831902,
-                "output": 15076,
+                "input": 25858509,
+                "output": 20646,
                 "cache": {
-                  "input": 10757632,
+                  "input": 25760000,
                   "output": 0
                 },
-                "total": 10846978
+                "total": 25879155
               }
             }
           ]
@@ -11497,25 +11497,37 @@
         },
         {
           "date": "2026-10-25",
-          "input": 4525243,
-          "output": 953369,
+          "input": 6840161,
+          "output": 1437557,
           "cache": {
-            "input": 247707232,
+            "input": 346234046,
             "output": 357462
           },
-          "total": 253543306,
-          "displayValue": 253543306,
+          "total": 354869226,
+          "displayValue": 354869226,
           "breakdown": [
             {
               "name": "gpt-6.1-sol",
               "tokens": {
-                "input": 2787147,
-                "output": 469814,
+                "input": 4015980,
+                "output": 688322,
                 "cache": {
-                  "input": 128178944,
+                  "input": 188853376,
                   "output": 0
                 },
-                "total": 131435905
+                "total": 193557678
+              }
+            },
+            {
+              "name": "gpt-6-astra",
+              "tokens": {
+                "input": 1999774,
+                "output": 162581,
+                "cache": {
+                  "input": 64106112,
+                  "output": 0
+                },
+                "total": 66268467
               }
             },
             {
@@ -11531,27 +11543,15 @@
               }
             },
             {
-              "name": "gpt-6-astra",
-              "tokens": {
-                "input": 1309119,
-                "output": 130681,
-                "cache": {
-                  "input": 45222272,
-                  "output": 0
-                },
-                "total": 46662072
-              }
-            },
-            {
               "name": "qwen3.8-27b-abliterated",
               "tokens": {
-                "input": 428503,
-                "output": 240884,
+                "input": 823933,
+                "output": 474664,
                 "cache": {
-                  "input": 22659174,
+                  "input": 41627716,
                   "output": 0
                 },
-                "total": 23328561
+                "total": 42926313
               }
             }
           ]
