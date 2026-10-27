@@ -98,6 +98,15 @@ Model names are normalized to remove a trailing date suffix like `-20251101`.
   - `daily[].breakdown` per-model usage for that day, sorted by `tokens.total` (includes `input` and `output`)
   - `insights` (`mostUsedModel`, `recentMostUsedModel`) when available
 
+## Public usage feed
+
+The dashboard publishes its current usage snapshot at `/api/v1/usage.json`.
+The response has `schemaVersion: 1`, the export `version`, `start`, `end`,
+`updatedAt`, and `providers`. Each provider has daily token totals and per-model
+breakdowns. Cache input is included in input tokens, not an additional total.
+The feed updates when the dashboard's published snapshot updates. It contains
+aggregate usage, not session content or credentials.
+
 ## Hosted daily page
 
 `packages/web` contains a small Next.js page meant for Vercel deployment. It renders the original `slopmeter` SVG layout on the web:

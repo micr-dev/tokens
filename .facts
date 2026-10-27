@@ -1,5 +1,10 @@
 # web
 
+## public feed
+- label: the public v1 usage feed serves the same published snapshot as the dashboard
+  command: bun test packages/web/test/public-usage-api.test.ts
+  tags: [implemented]
+
 ## providers
 - label: NanoClaw session usage is collected as a separate turquoise provider
   command: grep -Fq '"nanoclaw"' packages/cli/src/lib/interfaces.ts && grep -Fq 'loadNanoClawRows' packages/cli/src/providers.ts && grep -Fq 'NanoClaw' packages/web/lib/analytics.ts && grep -Fq '"nanoclaw",' packages/web/scripts/publish-usage.ts && grep -Fq 'accent: "#22d3ee"' packages/web/lib/analytics.ts
