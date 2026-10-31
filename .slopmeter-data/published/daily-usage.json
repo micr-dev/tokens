@@ -2,7 +2,7 @@
   "version": "2026-03-03",
   "start": "2025-07-11",
   "end": "2026-10-31",
-  "updatedAt": "2026-10-31T03:21:16.938Z",
+  "updatedAt": "2026-10-31T09:25:11.926Z",
   "providers": [
     {
       "provider": "codex",
@@ -8168,14 +8168,14 @@
         },
         {
           "date": "2026-10-31",
-          "input": 2997741,
-          "output": 4605,
+          "input": 3256210,
+          "output": 5530,
           "cache": {
-            "input": 2843136,
+            "input": 3059584,
             "output": 0
           },
-          "total": 3002346,
-          "displayValue": 3002346,
+          "total": 3261740,
+          "displayValue": 3261740,
           "breakdown": [
             {
               "name": "gpt-6.1-sol",
@@ -8192,13 +8192,13 @@
             {
               "name": "gpt-6-luna",
               "tokens": {
-                "input": 179766,
-                "output": 480,
+                "input": 438235,
+                "output": 1405,
                 "cache": {
-                  "input": 139008,
+                  "input": 355456,
                   "output": 0
                 },
-                "total": 180246
+                "total": 439640
               }
             }
           ]
@@ -8760,25 +8760,25 @@
         },
         {
           "date": "2026-10-31",
-          "input": 402487,
-          "output": 1017,
+          "input": 2652373,
+          "output": 3239,
           "cache": {
-            "input": 361984,
+            "input": 2222464,
             "output": 0
           },
-          "total": 403504,
-          "displayValue": 403504,
+          "total": 2655612,
+          "displayValue": 2655612,
           "breakdown": [
             {
               "name": "gpt-6.1-terra",
               "tokens": {
-                "input": 402487,
-                "output": 1017,
+                "input": 2652373,
+                "output": 3239,
                 "cache": {
-                  "input": 361984,
+                  "input": 2222464,
                   "output": 0
                 },
-                "total": 403504
+                "total": 2655612
               }
             }
           ]
@@ -12344,14 +12344,14 @@
         },
         {
           "date": "2026-10-31",
-          "input": 1008867,
-          "output": 287787,
+          "input": 1173675,
+          "output": 288288,
           "cache": {
-            "input": 73462949,
+            "input": 73952037,
             "output": 1238475
           },
-          "total": 75998078,
-          "displayValue": 75998078,
+          "total": 76652475,
+          "displayValue": 76652475,
           "breakdown": [
             {
               "name": "gpt-6.1-sol",
@@ -12380,13 +12380,13 @@
             {
               "name": "gpt-6-luna",
               "tokens": {
-                "input": 311542,
-                "output": 500,
+                "input": 476350,
+                "output": 1001,
                 "cache": {
-                  "input": 316160,
+                  "input": 805248,
                   "output": 0
                 },
-                "total": 628202
+                "total": 1282599
               }
             }
           ]
