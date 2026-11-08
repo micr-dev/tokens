@@ -2,7 +2,7 @@
   "version": "2026-03-03",
   "start": "2025-07-11",
   "end": "2026-11-08",
-  "updatedAt": "2026-11-08T03:24:22.050Z",
+  "updatedAt": "2026-11-08T09:28:23.423Z",
   "providers": [
     {
       "provider": "codex",
@@ -33,7 +33,7 @@
         },
         "streaks": {
           "longest": 165,
-          "current": 76
+          "current": 77
         }
       },
       "daily": [
@@ -8545,6 +8545,31 @@
               }
             }
           ]
+        },
+        {
+          "date": "2026-11-08",
+          "input": 145727,
+          "output": 737,
+          "cache": {
+            "input": 105344,
+            "output": 0
+          },
+          "total": 146464,
+          "displayValue": 146464,
+          "breakdown": [
+            {
+              "name": "gpt-6-luna",
+              "tokens": {
+                "input": 145727,
+                "output": 737,
+                "cache": {
+                  "input": 105344,
+                  "output": 0
+                },
+                "total": 146464
+              }
+            }
+          ]
         }
       ]
     },
@@ -8576,8 +8601,8 @@
           }
         },
         "streaks": {
-          "longest": 24,
-          "current": 24
+          "longest": 25,
+          "current": 25
         }
       },
       "daily": [
@@ -9312,6 +9337,31 @@
               }
             }
           ]
+        },
+        {
+          "date": "2026-11-08",
+          "input": 1731513,
+          "output": 1666,
+          "cache": {
+            "input": 1426944,
+            "output": 0
+          },
+          "total": 1733179,
+          "displayValue": 1733179,
+          "breakdown": [
+            {
+              "name": "gpt-6.1-terra",
+              "tokens": {
+                "input": 1731513,
+                "output": 1666,
+                "cache": {
+                  "input": 1426944,
+                  "output": 0
+                },
+                "total": 1733179
+              }
+            }
+          ]
         }
       ]
     },
@@ -9321,25 +9371,25 @@
         "mostUsedModel": {
           "name": "claude-opus-5-5",
           "tokens": {
-            "input": 221811,
-            "output": 64755303,
+            "input": 221823,
+            "output": 64756229,
             "cache": {
-              "input": 22729019331,
-              "output": 457461456
+              "input": 22730873780,
+              "output": 458081257
             },
-            "total": 23251457901
+            "total": 23253933089
           }
         },
         "recentMostUsedModel": {
           "name": "claude-opus-5-5",
           "tokens": {
-            "input": 187898,
-            "output": 53808275,
+            "input": 187910,
+            "output": 53809201,
             "cache": {
-              "input": 18630169466,
-              "output": 337911782
+              "input": 18632023915,
+              "output": 338531583
             },
-            "total": 19022077421
+            "total": 19024552609
           }
         },
         "streaks": {
@@ -13398,25 +13448,25 @@
         },
         {
           "date": "2026-11-08",
-          "input": 2378076,
-          "output": 374611,
+          "input": 2378088,
+          "output": 375537,
           "cache": {
-            "input": 309609235,
-            "output": 1661706
+            "input": 311463684,
+            "output": 2281507
           },
-          "total": 314023628,
-          "displayValue": 314023628,
+          "total": 316498816,
+          "displayValue": 316498816,
           "breakdown": [
             {
               "name": "claude-opus-5-5",
               "tokens": {
-                "input": 692,
-                "output": 96848,
+                "input": 704,
+                "output": 97774,
                 "cache": {
-                  "input": 196478739,
-                  "output": 1661706
+                  "input": 198333188,
+                  "output": 2281507
                 },
-                "total": 198237985
+                "total": 200713173
               }
             },
             {
