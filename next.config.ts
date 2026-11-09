@@ -8,11 +8,10 @@ const basePath =
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  output: "export",
+  trailingSlash: true,
   experimental: {
     externalDir: true,
-    // Prefetch per segment so tab links share the root layout's data payload
-    // instead of downloading the full page payload once per tab.
-    clientSegmentCache: true,
   },
   outputFileTracingRoot: process.cwd(),
   basePath,

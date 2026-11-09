@@ -1,5 +1,7 @@
 import { getPublishedUsagePayload } from "../../../../lib/usage";
 
+export const dynamic = "force-static";
+
 // The dashboard and API must use the same published snapshot.
 export async function GET() {
   const usage = await getPublishedUsagePayload();
