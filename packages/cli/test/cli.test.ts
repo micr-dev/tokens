@@ -1526,3 +1526,50 @@ test("OpenCode fails clearly on oversized SQLite message payloads", async (t) =>
   assert.match(result.stderr, /opencode\.db:message:msg-db-oversized/);
   assert.match(result.stderr, /SLOPMETER_MAX_JSONL_RECORD_BYTES/);
 });
+
+test("OpenCode reads current session messages and compaction usage", async (t) => {
+  const workspace = createTempWorkspace("opencode-session-message");
+  t.after(() => rmSync(workspace, { recursive: true, force: true }));
+  const openCodeDir = join(workspace, "opencode");
+  const databasePath = join(openCodeDir, "opencode.db");
+  ensureParent(databasePath);
+  const { DatabaseSync } = await import("node:sqlite");
+  const database = new DatabaseSync(databasePath);
+  database.exec(
+    "CREATE TABLE session_message (id TEXT, type TEXT, time_created INTEGER, data TEXT)",
+  );
+  const insert = database.prepare(
+    "INSERT INTO session_message VALUES (?, ?, ?, ?)",
+  );
+  const now = Date.now();
+  for (const [id, type, input] of [
+    ["a", "assistant", 8],
+    ["c", "compaction", 3],
+    ["u", "user", 100],
+  ] as const) {
+    insert.run(
+      id,
+      type,
+      now,
+      JSON.stringify({
+        time: { created: now },
+        model: { id: "gpt-5.4", providerID: "openai" },
+        tokens: { input, output: 2, cache: { read: 1, write: 0 } },
+      }),
+    );
+  }
+  database.close();
+  const { loadOpenCodeRows } = await import("../src/lib/open-code");
+  const previous = process.env.OPENCODE_DATA_DIR;
+  process.env.OPENCODE_DATA_DIR = openCodeDir;
+  try {
+    const usage = await loadOpenCodeRows(
+      new Date(now - 60_000),
+      new Date(now + 60_000),
+    );
+    assert.equal(usage.daily[0]?.total, 17);
+  } finally {
+    if (previous === undefined) delete process.env.OPENCODE_DATA_DIR;
+    else process.env.OPENCODE_DATA_DIR = previous;
+  }
+});

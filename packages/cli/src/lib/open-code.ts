@@ -238,18 +238,41 @@ async function iterateOpenCodeDatabaseMessages(
     const database = new DatabaseSync(databasePath, { readOnly: true });
 
     try {
+      // Current OpenCode stores assistant and compaction usage in session_message.
+      // Older databases store both in message with a different model shape.
+      const currentSchema = database
+        .prepare(
+          "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'session_message'",
+        )
+        .get();
       const statement = database.prepare(
-        "SELECT id, data FROM message ORDER BY time_created ASC",
+        currentSchema
+          ? "SELECT id, data FROM session_message WHERE type IN ('assistant', 'compaction') ORDER BY time_created ASC"
+          : "SELECT id, data FROM message ORDER BY time_created ASC",
       );
 
       for (const row of statement.iterate() as Iterable<OpenCodeMessageRow>) {
-        onMessage(
-          parseOpenCodeMessageData(
-            row.id,
-            `${databasePath}:message:${row.id}`,
-            row.data,
-          ),
-        );
+        if (currentSchema) {
+          const message = parseJsonTextWithLimit<
+            Omit<OpenCodeMessage, "id" | "modelID" | "providerID"> & {
+              model: { id: string; providerID: string };
+            }
+          >(row.data, `${databasePath}:session_message:${row.id}`);
+          onMessage({
+            ...message,
+            id: row.id,
+            modelID: message.model.id,
+            providerID: message.model.providerID,
+          });
+        } else {
+          onMessage(
+            parseOpenCodeMessageData(
+              row.id,
+              `${databasePath}:message:${row.id}`,
+              row.data,
+            ),
+          );
+        }
       }
     } finally {
       database.close();

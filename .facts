@@ -6,6 +6,9 @@
   tags: [implemented]
 
 ## providers
+- label: OpenCode usage includes current session messages and compaction records as well as older message databases
+  command: node packages/cli/node_modules/tsx/dist/cli.mjs --test --test-name-pattern 'OpenCode reads current session messages' packages/cli/test/cli.test.ts
+  tags: [implemented]
 - label: NanoClaw session usage is collected as a separate turquoise provider
   command: grep -Fq '"nanoclaw"' packages/cli/src/lib/interfaces.ts && grep -Fq 'loadNanoClawRows' packages/cli/src/providers.ts && grep -Fq 'NanoClaw' packages/web/lib/analytics.ts && grep -Fq '"nanoclaw",' packages/web/scripts/publish-usage.ts && grep -Fq 'accent: "#22d3ee"' packages/web/lib/analytics.ts
   tags: [implemented]
