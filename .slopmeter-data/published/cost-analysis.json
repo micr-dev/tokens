@@ -1,14 +1,14 @@
 {
   "version": "2026-10-21",
-  "generatedAt": "2026-11-14T03:27:06.464Z",
+  "generatedAt": "2026-11-14T09:20:51.901Z",
   "source": "tokens.micr.dev published daily usage, priced per model and day with @pydantic/genai-prices",
   "dateRange": {
     "start": "2025-06-07",
     "end": "2026-11-14"
   },
-  "grandTotalTokens": 213122955986,
-  "harnessTotalCostUsd": 106887.36,
-  "modelTotalCostUsd": 106887.36,
+  "grandTotalTokens": 213127263974,
+  "harnessTotalCostUsd": 106887.99,
+  "modelTotalCostUsd": 106887.99,
   "coverageNote": "API-price equivalent for this token usage. Most or all of these tokens were used through subscription plans rather than metered API billing.",
   "harnesses": [
     {
@@ -112,11 +112,11 @@
       "activeDays": 31,
       "firstDate": "2026-10-15",
       "lastDate": "2026-11-14",
-      "totalCostUsd": 238.44076124000006,
-      "totalTokens": 3123545432,
-      "inputTokens": 3114821279,
-      "outputTokens": 8724153,
-      "cacheReadTokens": 2976107648,
+      "totalCostUsd": 239.07642444000004,
+      "totalTokens": 3127853420,
+      "inputTokens": 3119122945,
+      "outputTokens": 8730475,
+      "cacheReadTokens": 2979999872,
       "monthly": [
         {
           "month": "2026-10",
@@ -129,11 +129,11 @@
         },
         {
           "month": "2026-11",
-          "inputTokens": 1232859420,
-          "outputTokens": 1490895,
-          "cacheReadTokens": 1207221120,
-          "totalTokens": 1234350315,
-          "costUsd": 98.62104960000002,
+          "inputTokens": 1237161086,
+          "outputTokens": 1497217,
+          "cacheReadTokens": 1211113344,
+          "totalTokens": 1238658303,
+          "costUsd": 99.25671280000003,
           "activeDays": 14
         }
       ]
@@ -1616,6 +1616,33 @@
       ]
     },
     {
+      "name": "gpt-6.1-terra",
+      "totalCostUsd": 179.3173028,
+      "totalTokens": 2180897186,
+      "inputTokens": 1720049616,
+      "outputTokens": 2911442,
+      "cacheReadTokens": 2119184896,
+      "monthsActive": 2,
+      "monthly": [
+        {
+          "month": "2026-10",
+          "inputTokens": 470967720,
+          "outputTokens": 1221975,
+          "cacheReadTokens": 860170240,
+          "totalTokens": 892627327,
+          "costUsd": 80.35349899999996
+        },
+        {
+          "month": "2026-11",
+          "inputTokens": 1249081896,
+          "outputTokens": 1689467,
+          "cacheReadTokens": 1259014656,
+          "totalTokens": 1288269859,
+          "costUsd": 98.96380380000004
+        }
+      ]
+    },
+    {
       "name": "glm-4.7",
       "totalCostUsd": 179.0887594320001,
       "totalTokens": 1762238765,
@@ -1671,33 +1698,6 @@
           "cacheReadTokens": 0,
           "totalTokens": 186631,
           "costUsd": 0.05163337900000001
-        }
-      ]
-    },
-    {
-      "name": "gpt-6.1-terra",
-      "totalCostUsd": 178.6816396,
-      "totalTokens": 2176589198,
-      "inputTokens": 1715747950,
-      "outputTokens": 2905120,
-      "cacheReadTokens": 2115292672,
-      "monthsActive": 2,
-      "monthly": [
-        {
-          "month": "2026-10",
-          "inputTokens": 470967720,
-          "outputTokens": 1221975,
-          "cacheReadTokens": 860170240,
-          "totalTokens": 892627327,
-          "costUsd": 80.35349899999996
-        },
-        {
-          "month": "2026-11",
-          "inputTokens": 1244780230,
-          "outputTokens": 1683145,
-          "cacheReadTokens": 1255122432,
-          "totalTokens": 1283961871,
-          "costUsd": 98.32814060000003
         }
       ]
     },
@@ -5704,11 +5704,11 @@
     },
     {
       "month": "2026-11",
-      "inputTokens": 3557749482,
-      "outputTokens": 47469651,
-      "cacheReadTokens": 17451236604,
-      "totalTokens": 17898415718,
-      "costUsd": 7224.0153621599975,
+      "inputTokens": 3562051148,
+      "outputTokens": 47475973,
+      "cacheReadTokens": 17455128828,
+      "totalTokens": 17902723706,
+      "costUsd": 7224.651025359997,
       "activeDays": 47
     }
   ],
