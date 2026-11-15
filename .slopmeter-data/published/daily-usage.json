@@ -2,7 +2,7 @@
   "version": "2026-03-03",
   "start": "2025-07-11",
   "end": "2026-11-15",
-  "updatedAt": "2026-11-15T15:24:05.625Z",
+  "updatedAt": "2026-11-15T21:20:47.532Z",
   "providers": [
     {
       "provider": "codex",
@@ -8765,25 +8765,25 @@
         "mostUsedModel": {
           "name": "gpt-6.1-terra",
           "tokens": {
-            "input": 1710389116,
-            "output": 2097728,
+            "input": 1756662207,
+            "output": 2137779,
             "cache": {
-              "input": 1658279808,
+              "input": 1704063744,
               "output": 0
             },
-            "total": 1712486844
+            "total": 1758799986
           }
         },
         "recentMostUsedModel": {
           "name": "gpt-6.1-terra",
           "tokens": {
-            "input": 1710389116,
-            "output": 2097728,
+            "input": 1756662207,
+            "output": 2137779,
             "cache": {
-              "input": 1658279808,
+              "input": 1704063744,
               "output": 0
             },
-            "total": 1712486844
+            "total": 1758799986
           }
         },
         "streaks": {
@@ -9701,25 +9701,25 @@
         },
         {
           "date": "2026-11-15",
-          "input": 12401118,
-          "output": 17056,
+          "input": 58674209,
+          "output": 57107,
           "cache": {
-            "input": 11771136,
+            "input": 57555072,
             "output": 0
           },
-          "total": 12418174,
-          "displayValue": 12418174,
+          "total": 58731316,
+          "displayValue": 58731316,
           "breakdown": [
             {
               "name": "gpt-6.1-terra",
               "tokens": {
-                "input": 12401118,
-                "output": 17056,
+                "input": 58674209,
+                "output": 57107,
                 "cache": {
-                  "input": 11771136,
+                  "input": 57555072,
                   "output": 0
                 },
-                "total": 12418174
+                "total": 58731316
               }
             }
           ]
@@ -9732,25 +9732,25 @@
         "mostUsedModel": {
           "name": "claude-opus-5-5",
           "tokens": {
-            "input": 243905,
-            "output": 70879367,
+            "input": 244831,
+            "output": 71081966,
             "cache": {
-              "input": 26769250227,
-              "output": 502149774
+              "input": 26926213612,
+              "output": 504967294
             },
-            "total": 27342523273
+            "total": 27502507703
           }
         },
         "recentMostUsedModel": {
           "name": "claude-opus-5-5",
           "tokens": {
-            "input": 149256,
-            "output": 45133139,
+            "input": 150182,
+            "output": 45335738,
             "cache": {
-              "input": 17491047814,
-              "output": 277350262
+              "input": 17648011199,
+              "output": 280167782
             },
-            "total": 17813680471
+            "total": 17973664901
           }
         },
         "streaks": {
@@ -14332,49 +14332,49 @@
         },
         {
           "date": "2026-11-15",
-          "input": 12744259,
-          "output": 1913518,
+          "input": 23033978,
+          "output": 3170486,
           "cache": {
-            "input": 645340392,
-            "output": 2616330
+            "input": 976035617,
+            "output": 5433850
           },
-          "total": 662614499,
-          "displayValue": 662614499,
+          "total": 1007673931,
+          "displayValue": 1007673931,
           "breakdown": [
             {
               "name": "claude-opus-5-5",
               "tokens": {
-                "input": 2144,
-                "output": 471403,
+                "input": 3070,
+                "output": 674002,
                 "cache": {
-                  "input": 353831912,
-                  "output": 2616330
+                  "input": 510795297,
+                  "output": 5433850
                 },
-                "total": 356921789
+                "total": 516906219
               }
             },
             {
               "name": "gpt-6.1-sol",
               "tokens": {
-                "input": 11702554,
-                "output": 1282528,
+                "input": 20537199,
+                "output": 2161492,
                 "cache": {
-                  "input": 271162496,
+                  "input": 429838592,
                   "output": 0
                 },
-                "total": 284147578
+                "total": 452537283
               }
             },
             {
               "name": "gpt-6-astra",
               "tokens": {
-                "input": 1039561,
-                "output": 159587,
+                "input": 2493709,
+                "output": 334992,
                 "cache": {
-                  "input": 20345984,
+                  "input": 35401728,
                   "output": 0
                 },
-                "total": 21545132
+                "total": 38230429
               }
             }
           ]
