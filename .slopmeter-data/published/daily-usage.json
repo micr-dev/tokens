@@ -2,7 +2,7 @@
   "version": "2026-03-03",
   "start": "2025-07-11",
   "end": "2026-11-18",
-  "updatedAt": "2026-11-18T03:30:17.740Z",
+  "updatedAt": "2026-11-18T09:25:24.284Z",
   "providers": [
     {
       "provider": "codex",
@@ -8840,30 +8840,30 @@
         "mostUsedModel": {
           "name": "gpt-6.1-terra",
           "tokens": {
-            "input": 1881939623,
-            "output": 2262989,
+            "input": 1888253005,
+            "output": 2278405,
             "cache": {
-              "input": 1826029440,
+              "input": 1831718400,
               "output": 0
             },
-            "total": 1884202612
+            "total": 1890531410
           }
         },
         "recentMostUsedModel": {
           "name": "gpt-6.1-terra",
           "tokens": {
-            "input": 1881939623,
-            "output": 2262989,
+            "input": 1888253005,
+            "output": 2278405,
             "cache": {
-              "input": 1826029440,
+              "input": 1831718400,
               "output": 0
             },
-            "total": 1884202612
+            "total": 1890531410
           }
         },
         "streaks": {
-          "longest": 34,
-          "current": 34
+          "longest": 35,
+          "current": 35
         }
       },
       "daily": [
@@ -9845,6 +9845,31 @@
                   "output": 0
                 },
                 "total": 84401549
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-11-18",
+          "input": 6313382,
+          "output": 15416,
+          "cache": {
+            "input": 5688960,
+            "output": 0
+          },
+          "total": 6328798,
+          "displayValue": 6328798,
+          "breakdown": [
+            {
+              "name": "gpt-6.1-terra",
+              "tokens": {
+                "input": 6313382,
+                "output": 15416,
+                "cache": {
+                  "input": 5688960,
+                  "output": 0
+                },
+                "total": 6328798
               }
             }
           ]

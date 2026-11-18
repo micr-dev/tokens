@@ -1,14 +1,14 @@
 {
   "version": "2026-10-21",
-  "generatedAt": "2026-11-18T03:30:17.740Z",
+  "generatedAt": "2026-11-18T09:25:24.284Z",
   "source": "tokens.micr.dev published daily usage, priced per model and day with @pydantic/genai-prices",
   "dateRange": {
     "start": "2025-06-07",
     "end": "2026-11-18"
   },
-  "grandTotalTokens": 219781966301,
-  "harnessTotalCostUsd": 108671.25,
-  "modelTotalCostUsd": 108671.25,
+  "grandTotalTokens": 219788295099,
+  "harnessTotalCostUsd": 108672.23,
+  "modelTotalCostUsd": 108672.23,
   "coverageNote": "API-price equivalent for this token usage. Most or all of these tokens were used through subscription plans rather than metered API billing.",
   "harnesses": [
     {
@@ -109,14 +109,14 @@
     {
       "id": "nanoclaw",
       "label": "NanoClaw",
-      "activeDays": 34,
+      "activeDays": 35,
       "firstDate": "2026-10-15",
-      "lastDate": "2026-11-17",
-      "totalCostUsd": 254.31599184,
-      "totalTokens": 3318766853,
-      "inputTokens": 3309847910,
-      "outputTokens": 8918943,
-      "cacheReadTokens": 3165713280,
+      "lastDate": "2026-11-18",
+      "totalCostUsd": 255.30194184,
+      "totalTokens": 3325095651,
+      "inputTokens": 3316161292,
+      "outputTokens": 8934359,
+      "cacheReadTokens": 3171402240,
       "monthly": [
         {
           "month": "2026-10",
@@ -129,12 +129,12 @@
         },
         {
           "month": "2026-11",
-          "inputTokens": 1427886051,
-          "outputTokens": 1685685,
-          "cacheReadTokens": 1396826752,
-          "totalTokens": 1429571736,
-          "costUsd": 114.49628020000003,
-          "activeDays": 17
+          "inputTokens": 1434199433,
+          "outputTokens": 1701101,
+          "cacheReadTokens": 1402515712,
+          "totalTokens": 1435900534,
+          "costUsd": 115.48223020000003,
+          "activeDays": 18
         }
       ]
     },
@@ -1617,11 +1617,11 @@
     },
     {
       "name": "gpt-6.1-terra",
-      "totalCostUsd": 194.55687019999996,
-      "totalTokens": 2371810619,
-      "inputTokens": 1910774581,
-      "outputTokens": 3099910,
-      "cacheReadTokens": 2304898304,
+      "totalCostUsd": 195.54282019999997,
+      "totalTokens": 2378139417,
+      "inputTokens": 1917087963,
+      "outputTokens": 3115326,
+      "cacheReadTokens": 2310587264,
       "monthsActive": 2,
       "monthly": [
         {
@@ -1634,11 +1634,11 @@
         },
         {
           "month": "2026-11",
-          "inputTokens": 1439806861,
-          "outputTokens": 1877935,
-          "cacheReadTokens": 1444728064,
-          "totalTokens": 1479183292,
-          "costUsd": 114.20337120000003
+          "inputTokens": 1446120243,
+          "outputTokens": 1893351,
+          "cacheReadTokens": 1450417024,
+          "totalTokens": 1485512090,
+          "costUsd": 115.18932120000004
         }
       ]
     },
@@ -5723,12 +5723,12 @@
     },
     {
       "month": "2026-11",
-      "inputTokens": 3979365787,
-      "outputTokens": 61841818,
-      "cacheReadTokens": 23979638382,
-      "totalTokens": 24557426033,
-      "costUsd": 9007.90397054,
-      "activeDays": 58
+      "inputTokens": 3985679169,
+      "outputTokens": 61857234,
+      "cacheReadTokens": 23985327342,
+      "totalTokens": 24563754831,
+      "costUsd": 9008.889920539998,
+      "activeDays": 59
     }
   ],
   "modelWarnings": [
