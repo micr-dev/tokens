@@ -2,7 +2,7 @@
   "version": "2026-03-03",
   "start": "2025-07-11",
   "end": "2026-11-22",
-  "updatedAt": "2026-11-22T15:32:55.078Z",
+  "updatedAt": "2026-11-22T21:23:23.008Z",
   "providers": [
     {
       "provider": "codex",
@@ -9077,37 +9077,37 @@
         },
         {
           "date": "2026-11-22",
-          "input": 168963448,
-          "output": 155489,
+          "input": 281917396,
+          "output": 314052,
           "cache": {
-            "input": 165926144,
+            "input": 277187072,
             "output": 0
           },
-          "total": 169118937,
-          "displayValue": 169118937,
+          "total": 282231448,
+          "displayValue": 282231448,
           "breakdown": [
             {
               "name": "gpt-6.2-sol",
               "tokens": {
-                "input": 149754101,
-                "output": 121091,
+                "input": 200719111,
+                "output": 183320,
                 "cache": {
-                  "input": 147053824,
+                  "input": 197049088,
                   "output": 0
                 },
-                "total": 149875192
+                "total": 200902431
               }
             },
             {
               "name": "gpt-6.2-astra",
               "tokens": {
-                "input": 19209347,
-                "output": 34398,
+                "input": 81198285,
+                "output": 130732,
                 "cache": {
-                  "input": 18872320,
+                  "input": 80137984,
                   "output": 0
                 },
-                "total": 19243745
+                "total": 81329017
               }
             }
           ]
@@ -9120,25 +9120,25 @@
         "mostUsedModel": {
           "name": "gpt-6.1-terra",
           "tokens": {
-            "input": 2106520699,
-            "output": 2499853,
+            "input": 2190893655,
+            "output": 2601724,
             "cache": {
-              "input": 2040908032,
+              "input": 2123460736,
               "output": 0
             },
-            "total": 2109020552
+            "total": 2193495379
           }
         },
         "recentMostUsedModel": {
           "name": "gpt-6.1-terra",
           "tokens": {
-            "input": 2106520699,
-            "output": 2499853,
+            "input": 2190893655,
+            "output": 2601724,
             "cache": {
-              "input": 2040908032,
+              "input": 2123460736,
               "output": 0
             },
-            "total": 2109020552
+            "total": 2193495379
           }
         },
         "streaks": {
@@ -10231,25 +10231,25 @@
         },
         {
           "date": "2026-11-22",
-          "input": 28704844,
-          "output": 36247,
+          "input": 113077800,
+          "output": 138118,
           "cache": {
-            "input": 27232384,
+            "input": 109785088,
             "output": 0
           },
-          "total": 28741091,
-          "displayValue": 28741091,
+          "total": 113215918,
+          "displayValue": 113215918,
           "breakdown": [
             {
               "name": "gpt-6.1-terra",
               "tokens": {
-                "input": 28704844,
-                "output": 36247,
+                "input": 113077800,
+                "output": 138118,
                 "cache": {
-                  "input": 27232384,
+                  "input": 109785088,
                   "output": 0
                 },
-                "total": 28741091
+                "total": 113215918
               }
             }
           ]
