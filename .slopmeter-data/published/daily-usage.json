@@ -2,7 +2,7 @@
   "version": "2026-03-03",
   "start": "2025-07-11",
   "end": "2026-11-23",
-  "updatedAt": "2026-11-23T21:57:15.160Z",
+  "updatedAt": "2026-11-23T22:36:22.941Z",
   "providers": [
     {
       "provider": "codex",
@@ -9114,37 +9114,37 @@
         },
         {
           "date": "2026-11-23",
-          "input": 1131275189,
-          "output": 2688766,
+          "input": 1148481406,
+          "output": 2720986,
           "cache": {
-            "input": 1115401088,
+            "input": 1132199680,
             "output": 0
           },
-          "total": 1133963955,
-          "displayValue": 1133963955,
+          "total": 1151202392,
+          "displayValue": 1151202392,
           "breakdown": [
             {
               "name": "gpt-6.2-astra",
               "tokens": {
-                "input": 857934926,
-                "output": 2309920,
+                "input": 874156519,
+                "output": 2339959,
                 "cache": {
-                  "input": 845669120,
+                  "input": 861545600,
                   "output": 0
                 },
-                "total": 860244846
+                "total": 876496478
               }
             },
             {
               "name": "gpt-6.2-sol",
               "tokens": {
-                "input": 273340263,
-                "output": 378846,
+                "input": 274324887,
+                "output": 381027,
                 "cache": {
-                  "input": 269731968,
+                  "input": 270654080,
                   "output": 0
                 },
-                "total": 273719109
+                "total": 274705914
               }
             }
           ]
@@ -9157,25 +9157,25 @@
         "mostUsedModel": {
           "name": "gpt-6.1-terra",
           "tokens": {
-            "input": 2627900212,
-            "output": 3023569,
+            "input": 2686747067,
+            "output": 3080242,
             "cache": {
-              "input": 2555739392,
+              "input": 2613784448,
               "output": 0
             },
-            "total": 2630923781
+            "total": 2689827309
           }
         },
         "recentMostUsedModel": {
           "name": "gpt-6.1-terra",
           "tokens": {
-            "input": 2627900212,
-            "output": 3023569,
+            "input": 2686747067,
+            "output": 3080242,
             "cache": {
-              "input": 2555739392,
+              "input": 2613784448,
               "output": 0
             },
-            "total": 2630923781
+            "total": 2689827309
           }
         },
         "streaks": {
@@ -10293,25 +10293,25 @@
         },
         {
           "date": "2026-11-23",
-          "input": 395141220,
-          "output": 392262,
+          "input": 453988075,
+          "output": 448935,
           "cache": {
-            "input": 390933504,
+            "input": 448978560,
             "output": 0
           },
-          "total": 395533482,
-          "displayValue": 395533482,
+          "total": 454437010,
+          "displayValue": 454437010,
           "breakdown": [
             {
               "name": "gpt-6.1-terra",
               "tokens": {
-                "input": 395141220,
-                "output": 392262,
+                "input": 453988075,
+                "output": 448935,
                 "cache": {
-                  "input": 390933504,
+                  "input": 448978560,
                   "output": 0
                 },
-                "total": 395533482
+                "total": 454437010
               }
             }
           ]
@@ -27344,25 +27344,25 @@
         },
         {
           "date": "2026-11-23",
-          "input": 176498607,
-          "output": 29700254,
+          "input": 184299973,
+          "output": 29729826,
           "cache": {
-            "input": 176496193,
-            "output": 26856796
+            "input": 184297533,
+            "output": 26874175
           },
-          "total": 206198861,
-          "displayValue": 206198861,
+          "total": 214029799,
+          "displayValue": 214029799,
           "breakdown": [
             {
               "name": "claude-fable-5-2",
               "tokens": {
-                "input": 75446914,
-                "output": 6338235,
+                "input": 83248280,
+                "output": 6367807,
                 "cache": {
-                  "input": 75446270,
-                  "output": 5635106
+                  "input": 83247610,
+                  "output": 5652485
                 },
-                "total": 81785149
+                "total": 89616087
               }
             },
             {
@@ -27421,20 +27421,20 @@
           }
         },
         "recentMostUsedModel": {
-          "name": "gemini-4-argon-trial",
+          "name": "gemini-4-neon",
           "tokens": {
-            "input": 4967122,
-            "output": 132263,
+            "input": 115074601,
+            "output": 1057417,
             "cache": {
-              "input": 3918345,
+              "input": 104790632,
               "output": 0
             },
-            "total": 5099385
+            "total": 116132018
           }
         },
         "streaks": {
           "longest": 7,
-          "current": 0
+          "current": 4
         }
       },
       "daily": [
@@ -30782,6 +30782,68 @@
           ]
         },
         {
+          "date": "2026-10-21",
+          "input": 52825948,
+          "output": 586712,
+          "cache": {
+            "input": 49950439,
+            "output": 0
+          },
+          "total": 53412660,
+          "displayValue": 53412660,
+          "breakdown": [
+            {
+              "name": "gemini-4-argon-trial",
+              "tokens": {
+                "input": 47204334,
+                "output": 525795,
+                "cache": {
+                  "input": 44846730,
+                  "output": 0
+                },
+                "total": 47730129
+              }
+            },
+            {
+              "name": "gemini-3.8-flash-n",
+              "tokens": {
+                "input": 5603590,
+                "output": 60535,
+                "cache": {
+                  "input": 5103709,
+                  "output": 0
+                },
+                "total": 5664125
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-10-22",
+          "input": 1051498,
+          "output": 15620,
+          "cache": {
+            "input": 829138,
+            "output": 0
+          },
+          "total": 1067118,
+          "displayValue": 1067118,
+          "breakdown": [
+            {
+              "name": "gemini-3.8-flash-n",
+              "tokens": {
+                "input": 1051498,
+                "output": 15620,
+                "cache": {
+                  "input": 829138,
+                  "output": 0
+                },
+                "total": 1067118
+              }
+            }
+          ]
+        },
+        {
           "date": "2026-10-25",
           "input": 805715,
           "output": 9993,
@@ -30839,6 +30901,56 @@
                   "output": 0
                 },
                 "total": 831176
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-10-29",
+          "input": 7632231,
+          "output": 78379,
+          "cache": {
+            "input": 6908250,
+            "output": 0
+          },
+          "total": 7710610,
+          "displayValue": 7710610,
+          "breakdown": [
+            {
+              "name": "gemini-4-argon-trial",
+              "tokens": {
+                "input": 7632231,
+                "output": 78379,
+                "cache": {
+                  "input": 6908250,
+                  "output": 0
+                },
+                "total": 7710610
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-11-06",
+          "input": 28177420,
+          "output": 385537,
+          "cache": {
+            "input": 23996569,
+            "output": 0
+          },
+          "total": 28562957,
+          "displayValue": 28562957,
+          "breakdown": [
+            {
+              "name": "gemini-4-argon-trial",
+              "tokens": {
+                "input": 27977382,
+                "output": 384557,
+                "cache": {
+                  "input": 23996569,
+                  "output": 0
+                },
+                "total": 28361939
               }
             }
           ]
@@ -30906,51 +31018,261 @@
           ]
         },
         {
-          "date": "2026-11-14",
-          "input": 28677,
-          "output": 279,
+          "date": "2026-11-13",
+          "input": 7265191,
+          "output": 53164,
           "cache": {
-            "input": 0,
+            "input": 6833508,
             "output": 0
           },
-          "total": 28956,
-          "displayValue": 28956,
+          "total": 7318355,
+          "displayValue": 7318355,
+          "breakdown": [
+            {
+              "name": "claude-opus-5-5-medium",
+              "tokens": {
+                "input": 3955550,
+                "output": 30964,
+                "cache": {
+                  "input": 3703307,
+                  "output": 0
+                },
+                "total": 3986514
+              }
+            },
+            {
+              "name": "gemini-4-argon-trial",
+              "tokens": {
+                "input": 3309641,
+                "output": 22200,
+                "cache": {
+                  "input": 3130201,
+                  "output": 0
+                },
+                "total": 3331841
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-11-14",
+          "input": 3989287,
+          "output": 128241,
+          "cache": {
+            "input": 3442773,
+            "output": 0
+          },
+          "total": 4117528,
+          "displayValue": 4117528,
           "breakdown": [
             {
               "name": "gemini-4-argon-trial",
               "tokens": {
-                "input": 28677,
-                "output": 279,
+                "input": 3989287,
+                "output": 128241,
                 "cache": {
-                  "input": 0,
+                  "input": 3442773,
                   "output": 0
                 },
-                "total": 28956
+                "total": 4117528
               }
             }
           ]
         },
         {
           "date": "2026-11-15",
-          "input": 3664372,
-          "output": 101715,
+          "input": 3719043,
+          "output": 102843,
           "cache": {
-            "input": 3191566,
+            "input": 3215384,
             "output": 0
           },
-          "total": 3766087,
-          "displayValue": 3766087,
+          "total": 3821886,
+          "displayValue": 3821886,
           "breakdown": [
             {
               "name": "gemini-4-argon-trial",
               "tokens": {
-                "input": 3502294,
-                "output": 101640,
+                "input": 3556965,
+                "output": 102768,
                 "cache": {
-                  "input": 3031822,
+                  "input": 3055640,
                   "output": 0
                 },
-                "total": 3603934
+                "total": 3659733
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-11-17",
+          "input": 5626361,
+          "output": 210462,
+          "cache": {
+            "input": 4850174,
+            "output": 0
+          },
+          "total": 5836823,
+          "displayValue": 5836823,
+          "breakdown": [
+            {
+              "name": "gemini-4-argon-trial",
+              "tokens": {
+                "input": 5149807,
+                "output": 204020,
+                "cache": {
+                  "input": 4440577,
+                  "output": 0
+                },
+                "total": 5353827
+              }
+            },
+            {
+              "name": "claude-opus-5-5-low",
+              "tokens": {
+                "input": 476554,
+                "output": 6442,
+                "cache": {
+                  "input": 409597,
+                  "output": 0
+                },
+                "total": 482996
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-11-20",
+          "input": 20557866,
+          "output": 121046,
+          "cache": {
+            "input": 18002940,
+            "output": 0
+          },
+          "total": 20678912,
+          "displayValue": 20678912,
+          "breakdown": [
+            {
+              "name": "gemini-4-neon",
+              "tokens": {
+                "input": 20557866,
+                "output": 121046,
+                "cache": {
+                  "input": 18002940,
+                  "output": 0
+                },
+                "total": 20678912
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-11-21",
+          "input": 26145169,
+          "output": 262616,
+          "cache": {
+            "input": 24262467,
+            "output": 0
+          },
+          "total": 26407785,
+          "displayValue": 26407785,
+          "breakdown": [
+            {
+              "name": "gemini-4-neon",
+              "tokens": {
+                "input": 22368505,
+                "output": 230776,
+                "cache": {
+                  "input": 20705099,
+                  "output": 0
+                },
+                "total": 22599281
+              }
+            },
+            {
+              "name": "claude-opus-5-5-high",
+              "tokens": {
+                "input": 3776664,
+                "output": 31840,
+                "cache": {
+                  "input": 3557368,
+                  "output": 0
+                },
+                "total": 3808504
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-11-22",
+          "input": 23117130,
+          "output": 274985,
+          "cache": {
+            "input": 20377338,
+            "output": 0
+          },
+          "total": 23392115,
+          "displayValue": 23392115,
+          "breakdown": [
+            {
+              "name": "gemini-4-neon",
+              "tokens": {
+                "input": 21984811,
+                "output": 254551,
+                "cache": {
+                  "input": 19504379,
+                  "output": 0
+                },
+                "total": 22239362
+              }
+            },
+            {
+              "name": "claude-opus-5-5-high",
+              "tokens": {
+                "input": 1132319,
+                "output": 20434,
+                "cache": {
+                  "input": 872959,
+                  "output": 0
+                },
+                "total": 1152753
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-11-23",
+          "input": 50442506,
+          "output": 465048,
+          "cache": {
+            "input": 46704466,
+            "output": 0
+          },
+          "total": 50907554,
+          "displayValue": 50907554,
+          "breakdown": [
+            {
+              "name": "gemini-4-neon",
+              "tokens": {
+                "input": 50163419,
+                "output": 451044,
+                "cache": {
+                  "input": 46578214,
+                  "output": 0
+                },
+                "total": 50614463
+              }
+            },
+            {
+              "name": "claude-opus-5-5-high",
+              "tokens": {
+                "input": 279087,
+                "output": 14004,
+                "cache": {
+                  "input": 126252,
+                  "output": 0
+                },
+                "total": 293091
               }
             }
           ]
