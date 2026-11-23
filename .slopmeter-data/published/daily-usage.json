@@ -2,7 +2,7 @@
   "version": "2026-03-03",
   "start": "2025-07-11",
   "end": "2026-11-23",
-  "updatedAt": "2026-11-23T21:27:59.913Z",
+  "updatedAt": "2026-11-23T21:48:58.352Z",
   "providers": [
     {
       "provider": "codex",
@@ -9114,25 +9114,25 @@
         },
         {
           "date": "2026-11-23",
-          "input": 1115614665,
-          "output": 2655053,
+          "input": 1123220123,
+          "output": 2669785,
           "cache": {
-            "input": 1100121856,
+            "input": 1107386880,
             "output": 0
           },
-          "total": 1118269718,
-          "displayValue": 1118269718,
+          "total": 1125889908,
+          "displayValue": 1125889908,
           "breakdown": [
             {
               "name": "gpt-6.2-astra",
               "tokens": {
-                "input": 842274402,
-                "output": 2276207,
+                "input": 849879860,
+                "output": 2290939,
                 "cache": {
-                  "input": 830389888,
+                  "input": 837654912,
                   "output": 0
                 },
-                "total": 844550609
+                "total": 852170799
               }
             },
             {
@@ -9157,25 +9157,25 @@
         "mostUsedModel": {
           "name": "gpt-6.1-terra",
           "tokens": {
-            "input": 2580754607,
-            "output": 2986983,
+            "input": 2612087590,
+            "output": 3014337,
             "cache": {
-              "input": 2508922880,
+              "input": 2539986048,
               "output": 0
             },
-            "total": 2583741590
+            "total": 2615101927
           }
         },
         "recentMostUsedModel": {
           "name": "gpt-6.1-terra",
           "tokens": {
-            "input": 2580754607,
-            "output": 2986983,
+            "input": 2612087590,
+            "output": 3014337,
             "cache": {
-              "input": 2508922880,
+              "input": 2539986048,
               "output": 0
             },
-            "total": 2583741590
+            "total": 2615101927
           }
         },
         "streaks": {
@@ -10293,25 +10293,25 @@
         },
         {
           "date": "2026-11-23",
-          "input": 347995615,
-          "output": 355676,
+          "input": 379328598,
+          "output": 383030,
           "cache": {
-            "input": 344116992,
+            "input": 375180160,
             "output": 0
           },
-          "total": 348351291,
-          "displayValue": 348351291,
+          "total": 379711628,
+          "displayValue": 379711628,
           "breakdown": [
             {
               "name": "gpt-6.1-terra",
               "tokens": {
-                "input": 347995615,
-                "output": 355676,
+                "input": 379328598,
+                "output": 383030,
                 "cache": {
-                  "input": 344116992,
+                  "input": 375180160,
                   "output": 0
                 },
-                "total": 348351291
+                "total": 379711628
               }
             }
           ]
@@ -15100,15 +15100,15 @@
           }
         },
         "recentMostUsedModel": {
-          "name": "mimo-v2.6-flash-free",
+          "name": "deepseek-v4.1-flash-free",
           "tokens": {
-            "input": 26422608,
-            "output": 74393,
+            "input": 166216617,
+            "output": 456649,
             "cache": {
-              "input": 25526144,
+              "input": 162663680,
               "output": 0
             },
-            "total": 26497001
+            "total": 166673266
           }
         },
         "streaks": {
@@ -23807,6 +23807,453 @@
           ]
         },
         {
+          "date": "2026-10-17",
+          "input": 29000170,
+          "output": 131084,
+          "cache": {
+            "input": 26561408,
+            "output": 0
+          },
+          "total": 29131254,
+          "displayValue": 29131254,
+          "breakdown": [
+            {
+              "name": "deepseek-v4.1-flash-free",
+              "tokens": {
+                "input": 28346159,
+                "output": 121115,
+                "cache": {
+                  "input": 26111616,
+                  "output": 0
+                },
+                "total": 28467274
+              }
+            },
+            {
+              "name": "glm-5.3-flash-free",
+              "tokens": {
+                "input": 633735,
+                "output": 9687,
+                "cache": {
+                  "input": 445312,
+                  "output": 0
+                },
+                "total": 643422
+              }
+            },
+            {
+              "name": "longcat-2.5-preview-free",
+              "tokens": {
+                "input": 20276,
+                "output": 282,
+                "cache": {
+                  "input": 4480,
+                  "output": 0
+                },
+                "total": 20558
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-10-18",
+          "input": 33713935,
+          "output": 94597,
+          "cache": {
+            "input": 30438144,
+            "output": 0
+          },
+          "total": 33808532,
+          "displayValue": 33808532,
+          "breakdown": [
+            {
+              "name": "deepseek-v4.1-flash-free",
+              "tokens": {
+                "input": 24299601,
+                "output": 59608,
+                "cache": {
+                  "input": 23436544,
+                  "output": 0
+                },
+                "total": 24359209
+              }
+            },
+            {
+              "name": "glm-5.3-flash-free",
+              "tokens": {
+                "input": 9414334,
+                "output": 34989,
+                "cache": {
+                  "input": 7001600,
+                  "output": 0
+                },
+                "total": 9449323
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-10-19",
+          "input": 22582387,
+          "output": 69780,
+          "cache": {
+            "input": 20682816,
+            "output": 0
+          },
+          "total": 22652167,
+          "displayValue": 22652167,
+          "breakdown": [
+            {
+              "name": "deepseek-v4.1-flash-free",
+              "tokens": {
+                "input": 15290605,
+                "output": 43106,
+                "cache": {
+                  "input": 14164096,
+                  "output": 0
+                },
+                "total": 15333711
+              }
+            },
+            {
+              "name": "glm-5.3-flash-free",
+              "tokens": {
+                "input": 7291782,
+                "output": 26674,
+                "cache": {
+                  "input": 6518720,
+                  "output": 0
+                },
+                "total": 7318456
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-10-20",
+          "input": 6139734,
+          "output": 19049,
+          "cache": {
+            "input": 5393664,
+            "output": 0
+          },
+          "total": 6158783,
+          "displayValue": 6158783,
+          "breakdown": [
+            {
+              "name": "glm-5.3-flash-free",
+              "tokens": {
+                "input": 6139734,
+                "output": 19049,
+                "cache": {
+                  "input": 5393664,
+                  "output": 0
+                },
+                "total": 6158783
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-10-21",
+          "input": 59548633,
+          "output": 130143,
+          "cache": {
+            "input": 57753820,
+            "output": 0
+          },
+          "total": 59678776,
+          "displayValue": 59678776,
+          "breakdown": [
+            {
+              "name": "deepseek-v4.1-flash-free",
+              "tokens": {
+                "input": 59548633,
+                "output": 130143,
+                "cache": {
+                  "input": 57753820,
+                  "output": 0
+                },
+                "total": 59678776
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-10-25",
+          "input": 17763082,
+          "output": 86341,
+          "cache": {
+            "input": 17358720,
+            "output": 0
+          },
+          "total": 17849423,
+          "displayValue": 17849423,
+          "breakdown": [
+            {
+              "name": "deepseek-v4.1-flash-free",
+              "tokens": {
+                "input": 17763082,
+                "output": 86341,
+                "cache": {
+                  "input": 17358720,
+                  "output": 0
+                },
+                "total": 17849423
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-10-26",
+          "input": 20991054,
+          "output": 64961,
+          "cache": {
+            "input": 20284032,
+            "output": 0
+          },
+          "total": 21056015,
+          "displayValue": 21056015,
+          "breakdown": [
+            {
+              "name": "deepseek-v4.1-flash-free",
+              "tokens": {
+                "input": 19469005,
+                "output": 62346,
+                "cache": {
+                  "input": 18901376,
+                  "output": 0
+                },
+                "total": 19531351
+              }
+            },
+            {
+              "name": "mimo-v2.6-flash-free",
+              "tokens": {
+                "input": 1522049,
+                "output": 2615,
+                "cache": {
+                  "input": 1382656,
+                  "output": 0
+                },
+                "total": 1524664
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-10-27",
+          "input": 16851687,
+          "output": 48643,
+          "cache": {
+            "input": 16402688,
+            "output": 0
+          },
+          "total": 16900330,
+          "displayValue": 16900330,
+          "breakdown": [
+            {
+              "name": "deepseek-v4.1-flash-free",
+              "tokens": {
+                "input": 16851687,
+                "output": 48643,
+                "cache": {
+                  "input": 16402688,
+                  "output": 0
+                },
+                "total": 16900330
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-10-29",
+          "input": 22516736,
+          "output": 43288,
+          "cache": {
+            "input": 22090368,
+            "output": 0
+          },
+          "total": 22560024,
+          "displayValue": 22560024,
+          "breakdown": [
+            {
+              "name": "deepseek-v4.1-flash-free",
+              "tokens": {
+                "input": 22516736,
+                "output": 43288,
+                "cache": {
+                  "input": 22090368,
+                  "output": 0
+                },
+                "total": 22560024
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-10-30",
+          "input": 29379075,
+          "output": 57228,
+          "cache": {
+            "input": 29014656,
+            "output": 0
+          },
+          "total": 29436303,
+          "displayValue": 29436303,
+          "breakdown": [
+            {
+              "name": "deepseek-v4.1-flash-free",
+              "tokens": {
+                "input": 29379075,
+                "output": 57228,
+                "cache": {
+                  "input": 29014656,
+                  "output": 0
+                },
+                "total": 29436303
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-10-31",
+          "input": 21532819,
+          "output": 39855,
+          "cache": {
+            "input": 21259008,
+            "output": 0
+          },
+          "total": 21572674,
+          "displayValue": 21572674,
+          "breakdown": [
+            {
+              "name": "deepseek-v4.1-flash-free",
+              "tokens": {
+                "input": 21532819,
+                "output": 39855,
+                "cache": {
+                  "input": 21259008,
+                  "output": 0
+                },
+                "total": 21572674
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-11-04",
+          "input": 10260503,
+          "output": 36607,
+          "cache": {
+            "input": 9954688,
+            "output": 0
+          },
+          "total": 10297110,
+          "displayValue": 10297110,
+          "breakdown": [
+            {
+              "name": "deepseek-v4.1-flash-free",
+              "tokens": {
+                "input": 10260503,
+                "output": 36607,
+                "cache": {
+                  "input": 9954688,
+                  "output": 0
+                },
+                "total": 10297110
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-11-06",
+          "input": 554648,
+          "output": 4558,
+          "cache": {
+            "input": 508544,
+            "output": 0
+          },
+          "total": 559206,
+          "displayValue": 559206,
+          "breakdown": [
+            {
+              "name": "beam-free",
+              "tokens": {
+                "input": 554648,
+                "output": 4558,
+                "cache": {
+                  "input": 508544,
+                  "output": 0
+                },
+                "total": 559206
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-11-07",
+          "input": 956945,
+          "output": 2386,
+          "cache": {
+            "input": 695040,
+            "output": 0
+          },
+          "total": 959331,
+          "displayValue": 959331,
+          "breakdown": [
+            {
+              "name": "beam-free",
+              "tokens": {
+                "input": 956945,
+                "output": 2386,
+                "cache": {
+                  "input": 695040,
+                  "output": 0
+                },
+                "total": 959331
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-11-08",
+          "input": 27499510,
+          "output": 64931,
+          "cache": {
+            "input": 26626304,
+            "output": 0
+          },
+          "total": 27564441,
+          "displayValue": 27564441,
+          "breakdown": [
+            {
+              "name": "deepseek-v4.1-flash-free",
+              "tokens": {
+                "input": 15300513,
+                "output": 41373,
+                "cache": {
+                  "input": 15018752,
+                  "output": 0
+                },
+                "total": 15341886
+              }
+            },
+            {
+              "name": "beam-free",
+              "tokens": {
+                "input": 12198997,
+                "output": 23558,
+                "cache": {
+                  "input": 11607552,
+                  "output": 0
+                },
+                "total": 12222555
+              }
+            }
+          ]
+        },
+        {
           "date": "2026-11-09",
           "input": 9075326,
           "output": 23709,
@@ -23882,14 +24329,14 @@
         },
         {
           "date": "2026-11-11",
-          "input": 2500659,
-          "output": 6349,
+          "input": 3131228,
+          "output": 8167,
           "cache": {
-            "input": 2329600,
+            "input": 2924864,
             "output": 0
           },
-          "total": 2507008,
-          "displayValue": 2507008,
+          "total": 3139395,
+          "displayValue": 3139395,
           "breakdown": [
             {
               "name": "big-pickle",
@@ -23914,19 +24361,31 @@
                 },
                 "total": 1250827
               }
+            },
+            {
+              "name": "beam-free",
+              "tokens": {
+                "input": 630569,
+                "output": 1818,
+                "cache": {
+                  "input": 595264,
+                  "output": 0
+                },
+                "total": 632387
+              }
             }
           ]
         },
         {
           "date": "2026-11-12",
-          "input": 7292951,
-          "output": 22412,
+          "input": 10265243,
+          "output": 31134,
           "cache": {
-            "input": 6937664,
+            "input": 9797184,
             "output": 0
           },
-          "total": 7315363,
-          "displayValue": 7315363,
+          "total": 10296377,
+          "displayValue": 10296377,
           "breakdown": [
             {
               "name": "deepseek-v4.1-flash-free",
@@ -23941,6 +24400,18 @@
               }
             },
             {
+              "name": "beam-free",
+              "tokens": {
+                "input": 2972292,
+                "output": 8722,
+                "cache": {
+                  "input": 2859520,
+                  "output": 0
+                },
+                "total": 2981014
+              }
+            },
+            {
               "name": "glm-5.3-flash-free",
               "tokens": {
                 "input": 1455343,
@@ -23950,6 +24421,68 @@
                   "output": 0
                 },
                 "total": 1459219
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-11-13",
+          "input": 1509598,
+          "output": 4091,
+          "cache": {
+            "input": 1436288,
+            "output": 0
+          },
+          "total": 1513689,
+          "displayValue": 1513689,
+          "breakdown": [
+            {
+              "name": "deepseek-v4.1-flash-free",
+              "tokens": {
+                "input": 1509598,
+                "output": 4091,
+                "cache": {
+                  "input": 1436288,
+                  "output": 0
+                },
+                "total": 1513689
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-11-18",
+          "input": 6234488,
+          "output": 19614,
+          "cache": {
+            "input": 5916032,
+            "output": 0
+          },
+          "total": 6254102,
+          "displayValue": 6254102,
+          "breakdown": [
+            {
+              "name": "deepseek-v4.1-flash-free",
+              "tokens": {
+                "input": 5795991,
+                "output": 18341,
+                "cache": {
+                  "input": 5548288,
+                  "output": 0
+                },
+                "total": 5814332
+              }
+            },
+            {
+              "name": "mimo-v2.6-flash-free",
+              "tokens": {
+                "input": 438497,
+                "output": 1273,
+                "cache": {
+                  "input": 367744,
+                  "output": 0
+                },
+                "total": 439770
               }
             }
           ]
@@ -26566,25 +27099,25 @@
         },
         {
           "date": "2026-11-23",
-          "input": 171811511,
-          "output": 29681081,
+          "input": 176498607,
+          "output": 29700254,
           "cache": {
-            "input": 171809113,
-            "output": 26844495
+            "input": 176496193,
+            "output": 26856796
           },
-          "total": 201492592,
-          "displayValue": 201492592,
+          "total": 206198861,
+          "displayValue": 206198861,
           "breakdown": [
             {
               "name": "claude-fable-5-2",
               "tokens": {
-                "input": 70759818,
-                "output": 6319062,
+                "input": 75446914,
+                "output": 6338235,
                 "cache": {
-                  "input": 70759190,
-                  "output": 5622805
+                  "input": 75446270,
+                  "output": 5635106
                 },
-                "total": 77078880
+                "total": 81785149
               }
             },
             {
