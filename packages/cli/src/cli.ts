@@ -63,7 +63,7 @@ Options:
   --agy                       Render Antigravity CLI graph
   --gemini                    Render legacy Gemini CLI graph
   --cursor                    Render Cursor graph
-  --opencode                  Render Open Code graph
+  --opencode                  Render Opencode graph
   --pi                        Render Pi Coding Agent graph
   --droid                     Render Droid graph
   --hermes                    Render Hermes Agent graph
@@ -108,7 +108,7 @@ function getProviderListLabel() {
     "Codex",
     "NanoClaw",
     "OMP",
-    "Open Code",
+    "Opencode",
     "Claude Code",
     "Hermes Agent",
     "Droid",

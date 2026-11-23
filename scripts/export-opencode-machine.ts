@@ -1,0 +1,28 @@
+import { createJsonExportPayload } from "../packages/cli/src/lib/export";
+import { loadOpenCodeRows } from "../packages/cli/src/lib/open-code";
+
+// Use the publisher's UTC day boundaries on every machine.
+process.env.TZ = "UTC";
+async function main() {
+  const end = new Date();
+  const start = new Date(end);
+  start.setUTCHours(0, 0, 0, 0);
+  start.setUTCFullYear(start.getUTCFullYear() - 1);
+  const usage = await loadOpenCodeRows(start, end);
+  if (usage.daily.length === 0)
+    throw new Error(
+      "No Opencode usage found; preserving the previous machine export.",
+    );
+  process.stdout.write(
+    JSON.stringify({
+      exportVersion: 1,
+      machine: process.argv[2],
+      exportedAt: end.toISOString(),
+      payload: createJsonExportPayload(start, end, [usage]),
+    }),
+  );
+}
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

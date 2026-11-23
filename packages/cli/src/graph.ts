@@ -182,7 +182,7 @@ export const heatmapThemes: Record<HeatmapThemeId, HeatmapTheme> = {
     },
   },
   opencode: {
-    title: "Open Code",
+    title: "Opencode",
     colors: {
       light: [
         "#f5f5f5", // neutral-100

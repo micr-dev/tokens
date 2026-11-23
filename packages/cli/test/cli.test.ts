@@ -410,7 +410,7 @@ test("--codex only loads Codex and only reports Codex availability", async (t) =
   assert.equal(result.code, 0, result.stderr || result.stdout);
   assert.match(result.stdout, /Codex found/);
   assert.doesNotMatch(result.stdout, /Claude code/);
-  assert.doesNotMatch(result.stdout, /Open Code/);
+  assert.doesNotMatch(result.stdout, /Opencode/);
 
   const payload = JSON.parse(readFileSync(outputPath, "utf8")) as {
     providers: Array<{ provider: string; daily: Array<{ total: number }> }>;
@@ -933,7 +933,7 @@ test("--pi only loads Pi Coding Agent and ignores oversized irrelevant session r
   assert.match(result.stdout, /Pi Coding Agent found/);
   assert.doesNotMatch(result.stdout, /Claude code/);
   assert.doesNotMatch(result.stdout, /Codex/);
-  assert.doesNotMatch(result.stdout, /Open Code/);
+  assert.doesNotMatch(result.stdout, /Opencode/);
 
   const payload = JSON.parse(readFileSync(outputPath, "utf8")) as {
     providers: Array<{
@@ -1391,7 +1391,7 @@ test("OpenCode reads the legacy file-backed message layout", async (t) => {
   );
 
   assert.equal(result.code, 0, result.stderr || result.stdout);
-  assert.match(result.stdout, /Open Code found/);
+  assert.match(result.stdout, /Opencode found/);
 
   const payload = JSON.parse(readFileSync(outputPath, "utf8")) as {
     providers: Array<{ provider: string; daily: Array<{ total: number }> }>;
@@ -1439,7 +1439,7 @@ test("OpenCode prefers the SQLite message store when opencode.db exists", async 
   );
 
   assert.equal(result.code, 0, result.stderr || result.stdout);
-  assert.match(result.stdout, /Open Code found/);
+  assert.match(result.stdout, /Opencode found/);
 
   const payload = JSON.parse(readFileSync(outputPath, "utf8")) as {
     providers: Array<{ provider: string; daily: Array<{ total: number }> }>;
@@ -1558,6 +1558,11 @@ test("OpenCode reads current session messages and compaction usage", async (t) =
       }),
     );
   }
+  insert.run("missing-model", "compaction", now, JSON.stringify({
+    time: { created: now },
+    tokens: { input: 3, output: 2, cache: { read: 1, write: 0 } },
+  }));
+  insert.run("empty-compaction", "compaction", now, JSON.stringify({ time: { created: now } }));
   database.close();
   const { loadOpenCodeRows } = await import("../src/lib/open-code");
   const previous = process.env.OPENCODE_DATA_DIR;
@@ -1567,9 +1572,50 @@ test("OpenCode reads current session messages and compaction usage", async (t) =
       new Date(now - 60_000),
       new Date(now + 60_000),
     );
-    assert.equal(usage.daily[0]?.total, 17);
+    assert.equal(usage.daily[0]?.total, 23);
   } finally {
     if (previous === undefined) delete process.env.OPENCODE_DATA_DIR;
     else process.env.OPENCODE_DATA_DIR = previous;
   }
+});
+
+
+test("OpenCode resolves native data path from CLI output", async () => {
+  const { parseOpenCodeDataPath } = await import("../src/lib/open-code");
+  assert.equal(parseOpenCodeDataPath("home /home/user\ndata       /home/user/space here/opencode\ndb /home/user/db\n"), "/home/user/space here/opencode");
+  assert.equal(parseOpenCodeDataPath("home /home/user\n"), undefined);
+});
+
+test("OpenCode combines native and default databases without duplicate messages", { skip: process.platform === "win32" }, async (t) => {
+  const workspace = createTempWorkspace("opencode-native-path");
+  const prior = { home: process.env.HOME, path: process.env.PATH, data: process.env.OPENCODE_DATA_DIR };
+  t.after(() => {
+    if (prior.home === undefined) delete process.env.HOME; else process.env.HOME = prior.home;
+    if (prior.path === undefined) delete process.env.PATH; else process.env.PATH = prior.path;
+    if (prior.data === undefined) delete process.env.OPENCODE_DATA_DIR; else process.env.OPENCODE_DATA_DIR = prior.data;
+    rmSync(workspace, { recursive: true, force: true });
+  });
+  const nativeDir = join(workspace, "custom", "opencode");
+  const defaultDir = join(workspace, ".local", "share", "opencode");
+  const bin = join(workspace, "bin");
+  mkdirSync(bin, { recursive: true });
+  writeJsonFile(join(bin, "opencode"), `#!/bin/sh\nprintf 'data %s\\n' '${nativeDir}'\n`);
+  chmodSync(join(bin, "opencode"), 0o755);
+  const { DatabaseSync } = await import("node:sqlite");
+  const now = Date.now();
+  for (const [directory, rows] of [[defaultDir, [["shared", 3]]], [nativeDir, [["shared", 3], ["new", 7]]]] as const) {
+    const path = join(directory, "opencode.db");
+    ensureParent(path);
+    const db = new DatabaseSync(path);
+    db.exec("CREATE TABLE session_message (id TEXT, type TEXT, time_created INTEGER, data TEXT)");
+    const insert = db.prepare("INSERT INTO session_message VALUES (?, ?, ?, ?)");
+    for (const [id, input] of rows) insert.run(id, "assistant", now, JSON.stringify({ time: { created: now }, model: { id: "gpt-test", providerID: "test" }, tokens: { input } }));
+    db.close();
+  }
+  process.env.HOME = workspace;
+  process.env.PATH = `${bin}:${prior.path ?? ""}`;
+  delete process.env.OPENCODE_DATA_DIR;
+  const { loadOpenCodeRows } = await import("../src/lib/open-code");
+  const usage = await loadOpenCodeRows(new Date(now - 60_000), new Date(now + 60_000));
+  assert.equal(usage.daily[0]?.total, 10);
 });

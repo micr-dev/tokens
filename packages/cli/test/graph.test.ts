@@ -88,7 +88,7 @@ test("renderUsageHeatmapsSvg renders stacked provider sections", () => {
   });
 
   assert.match(svg, />Codex<\/text>/);
-  assert.match(svg, />Open Code<\/text>/);
+  assert.match(svg, />Opencode<\/text>/);
   assert.doesNotMatch(svg, /<rect x="-2" y="-2"/);
 });
 

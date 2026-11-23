@@ -1,6 +1,6 @@
 # slopmeter
 
-`slopmeter` is a Node.js CLI that scans local Claude Code, Codex, Gemini CLI, Cursor, Open Code, Pi Coding Agent, Droid, Hermes Agent, and Helios usage data and generates a contribution-style heatmap for the rolling past year.
+`slopmeter` is a Node.js CLI that scans local Claude Code, Codex, Gemini CLI, Cursor, Opencode, Pi Coding Agent, Droid, Hermes Agent, and Helios usage data and generates a contribution-style heatmap for the rolling past year.
 
 ## Requirements
 
@@ -39,7 +39,7 @@ By default, the CLI:
 - `--codex`: include only Codex data
 - `--gemini`: include only Gemini CLI data
 - `--cursor`: include only Cursor data
-- `--opencode`: include only Open Code data
+- `--opencode`: include only Opencode data
 - `--pi`: include only Pi Coding Agent data
 - `--droid`: include only Droid data
 - `--hermes`: include only Hermes Agent data
@@ -145,7 +145,7 @@ npx slopmeter --dark --format svg --output ./out/heatmap-dark.svg
 - Codex: `$CODEX_HOME/sessions` or `~/.codex/sessions`, reading both `rollout-*.jsonl` and Codex's zstd-compressed `rollout-*.jsonl.zst`; a plain `.jsonl` hides its compressed sibling. Archived threads in `archived_sessions` are not read.
 - Gemini CLI: `$GEMINI_HOME/tmp/*/chats/session-*.json` or `~/.gemini/tmp/*/chats/session-*.json`
 - Cursor: reads `cursorAuth/accessToken` and `cursorAuth/refreshToken` from `$CURSOR_STATE_DB_PATH`, `$CURSOR_CONFIG_DIR/User/globalStorage/state.vscdb`, `~/Library/Application Support/Cursor/User/globalStorage/state.vscdb` (macOS), `%APPDATA%/Cursor/User/globalStorage/state.vscdb` (Windows), or `~/.config/Cursor/User/globalStorage/state.vscdb` (Linux), then loads usage from Cursor's CSV export endpoint
-- Open Code: prefers `$OPENCODE_DATA_DIR/opencode.db` or `~/.local/share/opencode/opencode.db`, and falls back to `$OPENCODE_DATA_DIR/storage/message` or `~/.local/share/opencode/storage/message`
+- Opencode: reads its default data directory and the active CLI data directory, deduplicating messages. Set `OPENCODE_DATA_DIR` to use a specific directory instead.
 - Pi Coding Agent: `$PI_CODING_AGENT_DIR/sessions` or `~/.pi/agent/sessions`
 - GSD-2: `$GSD_HOME/sessions` or `~/.gsd/sessions`, merged into `pi`
 - Droid: `~/.factory/sessions/**/*.settings.json`

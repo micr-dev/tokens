@@ -53,7 +53,7 @@ const providerTitles: Record<ProviderId, string> = {
   codex: "Codex",
   nanoclaw: "NanoClaw",
   omp: "OMP",
-  opencode: "Open Code",
+  opencode: "Opencode",
   claude: "Claude Code",
   hermes: "Hermes Agent",
   droid: "Droid",

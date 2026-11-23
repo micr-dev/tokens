@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { copyFile, mkdtemp, rm } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
@@ -115,33 +116,48 @@ async function getOpenCodeSource(): Promise<OpenCodeSource> {
   return { kind: "legacy", files: await listFilesRecursive(messagesDir, ".json") };
 }
 
+// OpenCode can launch with its own XDG_DATA_HOME. Ask the installed CLI
+// where it writes data instead of assuming the publisher inherits that setting.
+export function parseOpenCodeDataPath(output: string) {
+  return output.match(/^data\s+(.+)$/m)?.[1]?.trim();
+}
+
 async function getOpenCodeSources(): Promise<OpenCodeSource[]> {
   const baseDir = getOpenCodeBaseDir();
+  const directories = new Set([baseDir]);
+  if (!process.env.OPENCODE_DATA_DIR?.trim()) {
+    try {
+      const paths = execFileSync("opencode", ["debug", "paths"], {
+        encoding: "utf8", timeout: 5000, stdio: ["ignore", "pipe", "ignore"],
+      });
+      const nativeDir = parseOpenCodeDataPath(paths);
+      if (nativeDir) directories.add(resolve(nativeDir));
+    } catch (error) {
+      // Older versions lack this command. Keep the default store, but report
+      // other failures so a changed CLI cannot silently hide usage.
+      const failure = error as NodeJS.ErrnoException & { status?: number };
+      if (failure.code !== "ENOENT") {
+        process.stderr.write(`Could not discover Opencode's data directory: ${failure.message}\n`);
+      }
+    }
+  }
+
   const sources: OpenCodeSource[] = [];
-  const databasePath = join(baseDir, "opencode.db");
+  const slateDirectories = new Set<string>();
+  for (const directory of directories) {
+    const databasePath = join(directory, "opencode.db");
+    if (existsSync(databasePath)) sources.push({ kind: "database", path: databasePath });
 
-  if (existsSync(databasePath)) {
-    sources.push({ kind: "database", path: databasePath });
+    const legacyFiles = await listFilesRecursive(join(directory, "storage", "message"), ".json");
+    if (legacyFiles.length > 0) sources.push({ kind: "legacy", files: legacyFiles });
+
+    const slateMessagesDir = join(resolve(directory, ".."), "slate", "storage", "message");
+    if (!slateDirectories.has(slateMessagesDir)) {
+      slateDirectories.add(slateMessagesDir);
+      const slateFiles = await listFilesRecursive(slateMessagesDir, ".json");
+      if (slateFiles.length > 0) sources.push({ kind: "slate", files: slateFiles });
+    }
   }
-
-  const messagesDir = join(baseDir, "storage", "message");
-  const legacyFiles = await listFilesRecursive(messagesDir, ".json");
-
-  if (legacyFiles.length > 0) {
-    sources.push({ kind: "legacy", files: legacyFiles });
-  }
-
-  const slateMessagesDir = join(resolve(baseDir, ".."), "slate", "storage", "message");
-  const slateFiles = await listFilesRecursive(slateMessagesDir, ".json");
-
-  if (slateFiles.length > 0) {
-    sources.push({ kind: "slate", files: slateFiles });
-  }
-
-  if (sources.length === 0) {
-    return [{ kind: "legacy", files: [] }];
-  }
-
   return sources;
 }
 
@@ -255,14 +271,14 @@ async function iterateOpenCodeDatabaseMessages(
         if (currentSchema) {
           const message = parseJsonTextWithLimit<
             Omit<OpenCodeMessage, "id" | "modelID" | "providerID"> & {
-              model: { id: string; providerID: string };
+              model?: { id: string; providerID: string };
             }
           >(row.data, `${databasePath}:session_message:${row.id}`);
           onMessage({
             ...message,
             id: row.id,
-            modelID: message.model.id,
-            providerID: message.model.providerID,
+            modelID: message.model?.id ?? "unknown",
+            providerID: message.model?.providerID ?? "unknown",
           });
         } else {
           onMessage(
