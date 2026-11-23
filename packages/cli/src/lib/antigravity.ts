@@ -26,11 +26,6 @@ const MAX_PROTO_RECURSION_DEPTH = 12;
 const MAX_TEXTUAL_CHILD_BYTES = 512;
 const MIN_USAGE_TOTAL = 1;
 
-interface AntigravityGenerationRow {
-  idx: number;
-  data: Buffer;
-}
-
 interface ProtoField {
   number: number;
   wireType: number;
@@ -105,7 +100,12 @@ function isLikelyText(buffer: Buffer) {
   let printable = 0;
 
   for (const byte of buffer) {
-    if (byte === 9 || byte === 10 || byte === 13 || (byte >= 32 && byte < 127)) {
+    if (
+      byte === 9 ||
+      byte === 10 ||
+      byte === 13 ||
+      (byte >= 32 && byte < 127)
+    ) {
       printable += 1;
     }
   }
@@ -113,10 +113,7 @@ function isLikelyText(buffer: Buffer) {
   return printable / buffer.length > 0.85;
 }
 
-function parseProtoMessage(
-  buffer: Buffer,
-  depth = 0,
-): ProtoMessage | null {
+function parseProtoMessage(buffer: Buffer, depth = 0): ProtoMessage | null {
   if (depth > MAX_PROTO_RECURSION_DEPTH) {
     return null;
   }
@@ -386,28 +383,75 @@ export function parseAntigravityGenerationMetadata(
   };
 }
 
-function loadAntigravityGenerationsFromDatabase(databasePath: string) {
+function loadAntigravityGenerationsFromDatabase(
+  databasePath: string,
+  start: Date,
+  end: Date,
+) {
   const database = new Database(databasePath, {
     readonly: true,
     fileMustExist: true,
   });
 
   try {
-    const query = database.prepare(`
-      SELECT idx, data
-      FROM gen_metadata
+    // Model responses carry authoritative timestamps and usage in step metadata.
+    // Generation metadata is indexed separately and is used only for the model name.
+    const steps = database.prepare(`
+      SELECT metadata AS data FROM steps WHERE step_type = 15 AND metadata IS NOT NULL
       ORDER BY idx ASC
     `);
-
-    return [...query.iterate() as Iterable<AntigravityGenerationRow>];
+    const model = database.prepare(
+      "SELECT data FROM gen_metadata WHERE idx = ?",
+    );
+    const usages: AntigravityGenerationUsage[] = [];
+    for (const { data } of steps.iterate() as Iterable<{ data: Buffer }>) {
+      const message = parseProtoMessage(data);
+      if (!message) continue;
+      const timestamp = findTimestamp(message);
+      const tokens = findUsageTokens(message);
+      if (!timestamp || timestamp < start || timestamp > end || !tokens)
+        continue;
+      const fields = message.fields;
+      const reference = fields?.find((field) => field.number === 20)?.children;
+      const generationIndex = reference
+        ? (numberValuesByField(reference).get(3)?.[0] ?? 0)
+        : null;
+      const generation =
+        generationIndex === null
+          ? undefined
+          : (model.get(generationIndex) as { data: Buffer } | undefined);
+      const envelope =
+        generation &&
+        parseProtoMessage(generation.data, MAX_PROTO_RECURSION_DEPTH);
+      const metadata = envelope?.fields.find(
+        (field) => field.number === 1,
+      )?.value;
+      const modelField = Buffer.isBuffer(metadata)
+        ? parseProtoMessage(metadata, MAX_PROTO_RECURSION_DEPTH)?.fields.find(
+            (field) => field.number === 19,
+          )?.value
+        : undefined;
+      usages.push({
+        timestamp,
+        tokens,
+        modelName: Buffer.isBuffer(modelField)
+          ? normalizeModelName(modelField.toString("utf8"))
+          : undefined,
+      });
+    }
+    return usages;
   } finally {
     database.close();
   }
 }
 
-async function readAntigravityGenerations(databasePath: string) {
+async function readAntigravityGenerations(
+  databasePath: string,
+  start: Date,
+  end: Date,
+) {
   try {
-    return loadAntigravityGenerationsFromDatabase(databasePath);
+    return loadAntigravityGenerationsFromDatabase(databasePath, start, end);
   } catch (error) {
     if (!isSqliteLockedError(error)) {
       throw error;
@@ -416,7 +460,8 @@ async function readAntigravityGenerations(databasePath: string) {
     return await withSqliteSnapshot(
       databasePath,
       "antigravity",
-      async (snapshotPath) => loadAntigravityGenerationsFromDatabase(snapshotPath),
+      async (snapshotPath) =>
+        loadAntigravityGenerationsFromDatabase(snapshotPath, start, end),
     );
   }
 }
@@ -454,26 +499,16 @@ export async function loadAntigravityRows(
   const recentStart = getRecentWindowStart(end, 30);
 
   for (const file of files) {
-    let generations: AntigravityGenerationRow[];
+    let generations: AntigravityGenerationUsage[];
 
     try {
-      generations = await readAntigravityGenerations(file);
+      generations = await readAntigravityGenerations(file, start, end);
     } catch {
       continue;
     }
 
-    for (const generation of generations) {
-      const usage = parseAntigravityGenerationMetadata(generation.data);
-
-      if (
-        !usage?.timestamp ||
-        Number.isNaN(usage.timestamp.getTime()) ||
-        usage.timestamp < start ||
-        usage.timestamp > end ||
-        usage.tokens.total <= 0
-      ) {
-        continue;
-      }
+    for (const usage of generations) {
+      if (!usage.timestamp) continue;
 
       addAntigravityTokenTotals(
         totals,
@@ -487,11 +522,5 @@ export async function loadAntigravityRows(
     }
   }
 
-  return createUsageSummary(
-    "agy",
-    totals,
-    modelTotals,
-    recentModelTotals,
-    end,
-  );
+  return createUsageSummary("agy", totals, modelTotals, recentModelTotals, end);
 }

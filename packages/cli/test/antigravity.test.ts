@@ -87,11 +87,21 @@ function createAntigravityGenerationMetadata({
   ]);
 }
 
-function createAntigravityDatabase(databasePath: string, blobs: Buffer[]) {
+function createAntigravityDatabase(
+  databasePath: string,
+  generations: Array<{
+    seconds: number;
+    input: number;
+    output: number;
+    cacheRead: number;
+    model: string;
+  }>,
+) {
   const database = new Database(databasePath);
 
   try {
     database.exec(`
+      CREATE TABLE steps (idx integer PRIMARY KEY, step_type integer, metadata blob);
       CREATE TABLE gen_metadata (
         idx integer PRIMARY KEY,
         data blob,
@@ -103,9 +113,29 @@ function createAntigravityDatabase(databasePath: string, blobs: Buffer[]) {
       "INSERT INTO gen_metadata (idx, data, size) VALUES (?, ?, ?)",
     );
 
-    blobs.forEach((blob, index) => {
-      insert.run(index, blob, blob.length);
-    });
+    generations.forEach(
+      ({ seconds, input, output, cacheRead, model }, index) => {
+        const generation = fieldMessage(1, [fieldString(19, model)]);
+        insert.run(index, generation, generation.length);
+        const step = Buffer.concat([
+          fieldMessage(1, [fieldVarint(1, seconds)]),
+          fieldMessage(9, [
+            fieldVarint(2, input),
+            fieldVarint(3, output),
+            fieldVarint(5, cacheRead),
+            fieldVarint(6, 24),
+          ]),
+          fieldMessage(20, [fieldVarint(3, index)]),
+        ]);
+        database
+          .prepare("INSERT INTO steps VALUES (?, 15, ?)")
+          .run(index, step);
+        // Tool/error steps can repeat the preceding usage and must not be counted.
+        database
+          .prepare("INSERT INTO steps VALUES (?, 23, ?)")
+          .run(index + 100, step);
+      },
+    );
   } finally {
     database.close();
   }
@@ -121,20 +151,23 @@ test("parseAntigravityGenerationMetadata reads protobuf token usage", () => {
   });
   const usage = parseAntigravityGenerationMetadata(metadata);
 
-  assert.deepEqual(usage && {
-    date: usage.timestamp?.toISOString(),
-    modelName: usage.modelName,
-    tokens: usage.tokens,
-  }, {
-    date: "2026-05-27T23:20:00.000Z",
-    modelName: "gemini-3-flash-a",
-    tokens: {
-      input: 28_501,
-      output: 113,
-      cache: { input: 24_471, output: 0 },
-      total: 28_614,
+  assert.deepEqual(
+    usage && {
+      date: usage.timestamp?.toISOString(),
+      modelName: usage.modelName,
+      tokens: usage.tokens,
     },
-  });
+    {
+      date: "2026-05-27T23:20:00.000Z",
+      modelName: "gemini-3-flash-a",
+      tokens: {
+        input: 28_501,
+        output: 113,
+        cache: { input: 24_471, output: 0 },
+        total: 28_614,
+      },
+    },
+  );
 });
 
 test("parseAntigravityGenerationMetadata ignores timestamp-less placeholders", () => {
@@ -170,27 +203,27 @@ test("loadAntigravityRows aggregates conversation databases", async (t) => {
   process.env.ANTIGRAVITY_HOME = workspace;
   mkdirSync(conversationsDir, { recursive: true });
   createAntigravityDatabase(databasePath, [
-    createAntigravityGenerationMetadata({
+    {
       seconds: 1_779_924_000,
       input: 4_030,
       output: 113,
       cacheRead: 24_471,
       model: "gemini-3-flash-a",
-    }),
-    createAntigravityGenerationMetadata({
+    },
+    {
       seconds: 1_780_010_400,
       input: 1_000,
       output: 50,
       cacheRead: 0,
       model: "gemini-3-flash-a",
-    }),
-    createAntigravityGenerationMetadata({
+    },
+    {
       seconds: 1_778_371_200,
       input: 999,
       output: 1,
       cacheRead: 0,
       model: "gemini-old",
-    }),
+    },
   ]);
 
   const summary = await loadAntigravityRows(
