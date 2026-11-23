@@ -6,6 +6,9 @@
   tags: [implemented]
 
 ## providers
+- label: Antigravity includes T3 Code ACP conversations once, including usage records without field 6
+  command: bunx tsx --test --test-name-pattern 'includes T3 ACP' packages/cli/test/antigravity.test.ts
+  tags: [implemented]
 - label: Antigravity follows Claude Code in the published provider order
   command: bunx tsx --test --test-name-pattern 'Antigravity follows Claude' packages/web/test/publish-usage.test.ts
   tags: [implemented]

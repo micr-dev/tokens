@@ -1,5 +1,11 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  utimesSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -95,6 +101,7 @@ function createAntigravityDatabase(
     output: number;
     cacheRead: number;
     model: string;
+    omitUsageFieldSix?: boolean;
   }>,
 ) {
   const database = new Database(databasePath);
@@ -114,7 +121,10 @@ function createAntigravityDatabase(
     );
 
     generations.forEach(
-      ({ seconds, input, output, cacheRead, model }, index) => {
+      (
+        { seconds, input, output, cacheRead, model, omitUsageFieldSix },
+        index,
+      ) => {
         const generation = fieldMessage(1, [fieldString(19, model)]);
         insert.run(index, generation, generation.length);
         const step = Buffer.concat([
@@ -123,7 +133,7 @@ function createAntigravityDatabase(
             fieldVarint(2, input),
             fieldVarint(3, output),
             fieldVarint(5, cacheRead),
-            fieldVarint(6, 24),
+            ...(omitUsageFieldSix ? [] : [fieldVarint(6, 24)]),
           ]),
           fieldMessage(20, [fieldVarint(3, index)]),
         ]);
@@ -187,11 +197,14 @@ test("parseAntigravityGenerationMetadata ignores timestamp-less placeholders", (
 test("loadAntigravityRows aggregates conversation databases", async (t) => {
   const workspace = createTempWorkspace("antigravity");
   const originalAntigravityHome = process.env.ANTIGRAVITY_HOME;
+  const originalHome = process.env.HOME;
   const conversationsDir = join(workspace, "conversations");
   const databasePath = join(conversationsDir, "conversation.db");
 
   t.after(() => {
     rmSync(workspace, { recursive: true, force: true });
+    if (originalHome === undefined) delete process.env.HOME;
+    else process.env.HOME = originalHome;
 
     if (originalAntigravityHome === undefined) {
       delete process.env.ANTIGRAVITY_HOME;
@@ -201,6 +214,7 @@ test("loadAntigravityRows aggregates conversation databases", async (t) => {
   });
 
   process.env.ANTIGRAVITY_HOME = workspace;
+  process.env.HOME = workspace;
   mkdirSync(conversationsDir, { recursive: true });
   createAntigravityDatabase(databasePath, [
     {
@@ -261,4 +275,81 @@ test("loadAntigravityRows aggregates conversation databases", async (t) => {
     ],
   );
   assert.equal(summary.insights?.mostUsedModel?.name, "gemini-3-flash-a");
+});
+
+test("loadAntigravityRows includes T3 ACP conversations without duplicates", async (t) => {
+  const home = createTempWorkspace("antigravity-acp");
+  const original = {
+    home: process.env.HOME,
+    agy: process.env.ANTIGRAVITY_HOME,
+    gemini: process.env.GEMINI_HOME,
+  };
+  t.after(() => {
+    for (const [key, value] of [
+      ["HOME", original.home],
+      ["ANTIGRAVITY_HOME", original.agy],
+      ["GEMINI_HOME", original.gemini],
+    ] as const) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+    rmSync(home, { recursive: true, force: true });
+  });
+  process.env.HOME = home;
+  process.env.ANTIGRAVITY_HOME = join(home, "custom-native");
+  delete process.env.GEMINI_HOME;
+  const native = join(home, "custom-native", "conversations");
+  const acp = join(
+    home,
+    ".t3",
+    "userdata",
+    "providers",
+    "antigravity",
+    "account",
+    "antigravity-acp",
+    "conversations",
+  );
+  mkdirSync(native, { recursive: true });
+  mkdirSync(acp, { recursive: true });
+  const entry = {
+    seconds: 1_779_924_000,
+    input: 100,
+    output: 10,
+    cacheRead: 20,
+    model: "gemini-test",
+  };
+  createAntigravityDatabase(join(native, "shared.db"), [entry, entry]);
+  createAntigravityDatabase(join(acp, "shared.db"), [entry]);
+  utimesSync(join(native, "shared.db"), new Date(0), new Date(0));
+  createAntigravityDatabase(join(acp, "new.db"), [
+    { ...entry, omitUsageFieldSix: true },
+    { ...entry, input: 0, output: 2, cacheRead: 30, omitUsageFieldSix: true },
+  ]);
+  const summary = await loadAntigravityRows(
+    new Date("2026-05-27T00:00:00Z"),
+    new Date("2026-05-29T00:00:00Z"),
+  );
+  assert.equal(summary.daily[0]?.total, 422);
+});
+
+test("loadAntigravityRows fails on a corrupt conversation instead of exporting partial totals", async (t) => {
+  const home = createTempWorkspace("antigravity-corrupt");
+  const original = process.env.ANTIGRAVITY_HOME;
+  const originalHome = process.env.HOME;
+  t.after(() => {
+    if (original === undefined) delete process.env.ANTIGRAVITY_HOME;
+    else process.env.ANTIGRAVITY_HOME = original;
+    if (originalHome === undefined) delete process.env.HOME;
+    else process.env.HOME = originalHome;
+    rmSync(home, { recursive: true, force: true });
+  });
+  process.env.ANTIGRAVITY_HOME = home;
+  process.env.HOME = home;
+  const dir = join(home, "conversations");
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, "bad.db"), "not a sqlite database");
+  await assert.rejects(
+    loadAntigravityRows(new Date("2026-01-01"), new Date("2027-01-01")),
+    /Could not read Antigravity conversation/,
+  );
 });

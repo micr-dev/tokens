@@ -1,7 +1,6 @@
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync, statSync } from "node:fs";
 import { homedir } from "node:os";
-import { join, resolve } from "node:path";
-import Database from "better-sqlite3";
+import { basename, join, resolve } from "node:path";
 import type { UsageSummary } from "../interfaces";
 import {
   type DailyTotalsByDate,
@@ -25,6 +24,10 @@ const PROTOBUF_WIRE_FIXED32 = 5;
 const MAX_PROTO_RECURSION_DEPTH = 12;
 const MAX_TEXTUAL_CHILD_BYTES = 512;
 const MIN_USAGE_TOTAL = 1;
+
+interface AntigravityStoredUsage extends AntigravityGenerationUsage {
+  index: number;
+}
 
 interface ProtoField {
   number: number;
@@ -58,13 +61,45 @@ function getAntigravityBaseDir() {
 }
 
 async function getAntigravityDatabaseFiles() {
-  const conversationsRoot = join(getAntigravityBaseDir(), "conversations");
-
-  if (!existsSync(conversationsRoot)) {
-    return [];
+  const roots = [join(getAntigravityBaseDir(), "conversations")];
+  const accountsDir = join(
+    homedir(),
+    ".t3",
+    "userdata",
+    "providers",
+    "antigravity",
+  );
+  if (existsSync(accountsDir)) {
+    for (const account of readdirSync(accountsDir, { withFileTypes: true })) {
+      if (account.isDirectory())
+        roots.push(
+          join(accountsDir, account.name, "antigravity-acp", "conversations"),
+        );
+    }
   }
 
-  return await listFilesRecursive(conversationsRoot, ".db");
+  // Read newer copies first, then deduplicate response indices across copies.
+  // An older copy can still contain responses missing from a newer snapshot.
+  const conversations = new Map<string, string[]>();
+  for (const root of roots) {
+    if (!existsSync(root)) continue;
+    for (const path of await listFilesRecursive(root, ".db")) {
+      const id = basename(path);
+      const copies = conversations.get(id) ?? [];
+      copies.push(path);
+      conversations.set(id, copies);
+    }
+  }
+  const updatedAt = (path: string) =>
+    Math.max(
+      statSync(path).mtimeMs,
+      existsSync(`${path}-wal`) ? statSync(`${path}-wal`).mtimeMs : 0,
+    );
+  return [...conversations.values()].flatMap((copies) =>
+    copies.length > 1
+      ? copies.sort((a, b) => updatedAt(b) - updatedAt(a))
+      : copies,
+  );
 }
 
 function readVarint(buffer: Buffer, offset: number) {
@@ -323,6 +358,24 @@ function findUsageTokens(message: ProtoMessage) {
   return candidates[0] ?? null;
 }
 
+// A response step's field 9 is its usage message. Unlike the older generic
+// protobuf heuristic, this structural location does not require field 6.
+function findStepUsageTokens(message: ProtoMessage): DailyTokenTotals | null {
+  const fields = message.fields.find((field) => field.number === 9)?.children;
+  if (!fields) return null;
+  const values = numberValuesByField(fields);
+  const input = values.get(2)?.[0] ?? 0;
+  const output = values.get(3)?.[0] ?? 0;
+  const cacheRead = values.get(5)?.[0] ?? 0;
+  if (input + cacheRead + output <= 0) return null;
+  return {
+    input: input + cacheRead,
+    output,
+    cache: { input: cacheRead, output: 0 },
+    total: input + cacheRead + output,
+  };
+}
+
 function collectText(buffer: Buffer) {
   const text = buffer.toString("utf8");
   const strings: string[] = [];
@@ -344,7 +397,9 @@ function getModelName(buffer: Buffer) {
     return normalizeModelName(match);
   }
 
-  const displayModel = strings.find((value) => /^Gemini\s+/i.test(value.trim()));
+  const displayModel = strings.find((value) =>
+    /^Gemini\s+/i.test(value.trim()),
+  );
 
   if (displayModel) {
     return normalizeModelName(displayModel.trim());
@@ -383,32 +438,40 @@ export function parseAntigravityGenerationMetadata(
   };
 }
 
-function loadAntigravityGenerationsFromDatabase(
+async function loadAntigravityGenerationsFromDatabase(
   databasePath: string,
   start: Date,
   end: Date,
 ) {
-  const database = new Database(databasePath, {
-    readonly: true,
-    fileMustExist: true,
-  });
+  const { DatabaseSync } = await import("node:sqlite");
+  const database = new DatabaseSync(databasePath, { readOnly: true });
 
   try {
     // Model responses carry authoritative timestamps and usage in step metadata.
     // Generation metadata is indexed separately and is used only for the model name.
+    // An empty database can be created before its schema is initialized.
+    const tableCount = database
+      .prepare(
+        "SELECT count(*) AS count FROM sqlite_master WHERE type = 'table'",
+      )
+      .get() as { count: number };
+    if (tableCount.count === 0) return [];
     const steps = database.prepare(`
-      SELECT metadata AS data FROM steps WHERE step_type = 15 AND metadata IS NOT NULL
+      SELECT idx, metadata AS data FROM steps WHERE step_type = 15 AND metadata IS NOT NULL
       ORDER BY idx ASC
     `);
     const model = database.prepare(
       "SELECT data FROM gen_metadata WHERE idx = ?",
     );
-    const usages: AntigravityGenerationUsage[] = [];
-    for (const { data } of steps.iterate() as Iterable<{ data: Buffer }>) {
-      const message = parseProtoMessage(data);
+    const usages: AntigravityStoredUsage[] = [];
+    for (const { idx, data } of steps.iterate() as Iterable<{
+      idx: number;
+      data: Uint8Array;
+    }>) {
+      const message = parseProtoMessage(Buffer.from(data));
       if (!message) continue;
       const timestamp = findTimestamp(message);
-      const tokens = findUsageTokens(message);
+      const tokens = findStepUsageTokens(message);
       if (!timestamp || timestamp < start || timestamp > end || !tokens)
         continue;
       const fields = message.fields;
@@ -419,10 +482,13 @@ function loadAntigravityGenerationsFromDatabase(
       const generation =
         generationIndex === null
           ? undefined
-          : (model.get(generationIndex) as { data: Buffer } | undefined);
+          : (model.get(generationIndex) as { data: Uint8Array } | undefined);
       const envelope =
         generation &&
-        parseProtoMessage(generation.data, MAX_PROTO_RECURSION_DEPTH);
+        parseProtoMessage(
+          Buffer.from(generation.data),
+          MAX_PROTO_RECURSION_DEPTH,
+        );
       const metadata = envelope?.fields.find(
         (field) => field.number === 1,
       )?.value;
@@ -432,6 +498,7 @@ function loadAntigravityGenerationsFromDatabase(
           )?.value
         : undefined;
       usages.push({
+        index: idx,
         timestamp,
         tokens,
         modelName: Buffer.isBuffer(modelField)
@@ -451,7 +518,11 @@ async function readAntigravityGenerations(
   end: Date,
 ) {
   try {
-    return loadAntigravityGenerationsFromDatabase(databasePath, start, end);
+    return await loadAntigravityGenerationsFromDatabase(
+      databasePath,
+      start,
+      end,
+    );
   } catch (error) {
     if (!isSqliteLockedError(error)) {
       throw error;
@@ -497,18 +568,24 @@ export async function loadAntigravityRows(
   const modelTotals = new Map<string, ModelTokenTotals>();
   const recentModelTotals = new Map<string, ModelTokenTotals>();
   const recentStart = getRecentWindowStart(end, 30);
+  const seenResponses = new Set<string>();
 
   for (const file of files) {
-    let generations: AntigravityGenerationUsage[];
+    let generations: AntigravityStoredUsage[];
 
     try {
       generations = await readAntigravityGenerations(file, start, end);
-    } catch {
-      continue;
+    } catch (error) {
+      throw new Error(`Could not read Antigravity conversation ${file}`, {
+        cause: error,
+      });
     }
 
     for (const usage of generations) {
       if (!usage.timestamp) continue;
+      const responseId = `${basename(file)}:${usage.index}`;
+      if (seenResponses.has(responseId)) continue;
+      seenResponses.add(responseId);
 
       addAntigravityTokenTotals(
         totals,

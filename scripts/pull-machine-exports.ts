@@ -17,7 +17,7 @@ interface MachineRoute {
 
 interface MachineConfig extends MachineRoute {
   id: string;
-  source?: "opencode-ssh";
+  source?: "opencode-ssh" | "antigravity-ssh";
   fallback?: MachineRoute;
 }
 
@@ -43,7 +43,7 @@ function main() {
   ) as MachineConfig[];
   mkdirSync(outputDir, { recursive: true });
 
-  let openCodeBundle: string | undefined;
+  let usageBundle: string | undefined;
   for (const machine of machines) {
     const destination = resolve(outputDir, `${machine.id}.json`);
     const routes = [machine, ...(machine.fallback ? [machine.fallback] : [])];
@@ -67,14 +67,17 @@ function main() {
       try {
         // ConnectTimeout only covers the handshake; a stalled transfer over a
         // flaky Tailscale/DERP path must not hang the whole publisher.
-        if (machine.source === "opencode-ssh") {
+        if (
+          machine.source === "opencode-ssh" ||
+          machine.source === "antigravity-ssh"
+        ) {
           // Run the same loader remotely without installing code or copying
           // private conversation contents off the machine.
-          openCodeBundle ??= execFileSync(
+          usageBundle ??= execFileSync(
             "bun",
             [
               "build",
-              "scripts/export-opencode-machine.ts",
+              "scripts/export-machine-ssh.ts",
               "--target=node",
               "--format=cjs",
             ],
@@ -88,9 +91,10 @@ function main() {
               "node",
               "-",
               machine.id,
+              machine.source === "opencode-ssh" ? "opencode" : "agy",
             ],
             {
-              input: openCodeBundle,
+              input: usageBundle,
               encoding: "utf8",
               timeout: 120_000,
               killSignal: "SIGKILL",
@@ -107,7 +111,7 @@ function main() {
             envelope.machine !== machine.id ||
             !Array.isArray(envelope.payload?.providers)
           ) {
-            throw new Error(`Invalid OpenCode export from ${machine.id}`);
+            throw new Error(`Invalid usage export from ${machine.id}`);
           }
           writeFileSync(temporaryPath, output);
         } else {
