@@ -10,6 +10,7 @@ StartLimitIntervalSec=0
 Type=oneshot
 WorkingDirectory=%h/.local/share/tokens-publish/repo
 Environment=HOME=%h
+Environment=OPENCODE_CLI=%h/.local/bin/opencode
 Environment=PATH=%h/.nvm/versions/node/v24.13.0/bin:%h/.bun/bin:/home/linuxbrew/.linuxbrew/bin:/usr/local/bin:/usr/bin:/bin
 ExecStart=/usr/bin/env bun scripts/auto-publish-web.ts
 # A hung run would otherwise stay "activating" forever and swallow every later

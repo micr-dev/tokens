@@ -127,7 +127,7 @@ async function getOpenCodeSources(): Promise<OpenCodeSource[]> {
   const directories = new Set([baseDir]);
   if (!process.env.OPENCODE_DATA_DIR?.trim()) {
     try {
-      const paths = execFileSync("opencode", ["debug", "paths"], {
+      const paths = execFileSync(process.env.OPENCODE_CLI?.trim() || "opencode", ["debug", "paths"], {
         encoding: "utf8", timeout: 5000, stdio: ["ignore", "pipe", "ignore"],
       });
       const nativeDir = parseOpenCodeDataPath(paths);
