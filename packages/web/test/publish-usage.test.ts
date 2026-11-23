@@ -137,7 +137,7 @@ test("mergePublishedUsagePayloads preserves hosted providers and applies canonic
 
   assert.deepEqual(
     merged.providers.map((provider) => provider.provider),
-    ["codex", "opencode", "claude", "droid", "t3", "agy"],
+    ["codex", "opencode", "claude", "agy", "droid", "t3"],
   );
   const firstTotal = (id: string) =>
     merged.providers.find((provider) => provider.provider === id)?.daily[0]
@@ -147,6 +147,10 @@ test("mergePublishedUsagePayloads preserves hosted providers and applies canonic
   assert.equal(firstTotal("agy"), 5);
   assert.equal(firstTotal("droid"), 7);
   assert.equal(firstTotal("claude"), 12);
+});
+
+test("Antigravity follows Claude Code in canonical published order", () => {
+  assert.equal(WEB_PROVIDER_ORDER.indexOf("agy"), WEB_PROVIDER_ORDER.indexOf("claude") + 1);
 });
 
 test("NanoClaw follows Codex in canonical published order", () => {

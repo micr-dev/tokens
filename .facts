@@ -6,6 +6,9 @@
   tags: [implemented]
 
 ## providers
+- label: Antigravity follows Claude Code in the published provider order
+  command: bunx tsx --test --test-name-pattern 'Antigravity follows Claude' packages/web/test/publish-usage.test.ts
+  tags: [implemented]
 - label: OpenCode usage includes current session messages and compaction records as well as older message databases
   command: node packages/cli/node_modules/tsx/dist/cli.mjs --test --test-name-pattern 'OpenCode reads current session messages' packages/cli/test/cli.test.ts
   tags: [implemented]
