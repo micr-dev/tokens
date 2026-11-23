@@ -2,7 +2,7 @@
   "version": "2026-03-03",
   "start": "2025-07-11",
   "end": "2026-11-23",
-  "updatedAt": "2026-11-23T21:48:58.352Z",
+  "updatedAt": "2026-11-23T21:57:15.160Z",
   "providers": [
     {
       "provider": "codex",
@@ -9114,25 +9114,25 @@
         },
         {
           "date": "2026-11-23",
-          "input": 1123220123,
-          "output": 2669785,
+          "input": 1131275189,
+          "output": 2688766,
           "cache": {
-            "input": 1107386880,
+            "input": 1115401088,
             "output": 0
           },
-          "total": 1125889908,
-          "displayValue": 1125889908,
+          "total": 1133963955,
+          "displayValue": 1133963955,
           "breakdown": [
             {
               "name": "gpt-6.2-astra",
               "tokens": {
-                "input": 849879860,
-                "output": 2290939,
+                "input": 857934926,
+                "output": 2309920,
                 "cache": {
-                  "input": 837654912,
+                  "input": 845669120,
                   "output": 0
                 },
-                "total": 852170799
+                "total": 860244846
               }
             },
             {
@@ -9157,25 +9157,25 @@
         "mostUsedModel": {
           "name": "gpt-6.1-terra",
           "tokens": {
-            "input": 2612087590,
-            "output": 3014337,
+            "input": 2627900212,
+            "output": 3023569,
             "cache": {
-              "input": 2539986048,
+              "input": 2555739392,
               "output": 0
             },
-            "total": 2615101927
+            "total": 2630923781
           }
         },
         "recentMostUsedModel": {
           "name": "gpt-6.1-terra",
           "tokens": {
-            "input": 2612087590,
-            "output": 3014337,
+            "input": 2627900212,
+            "output": 3023569,
             "cache": {
-              "input": 2539986048,
+              "input": 2555739392,
               "output": 0
             },
-            "total": 2615101927
+            "total": 2630923781
           }
         },
         "streaks": {
@@ -10293,25 +10293,25 @@
         },
         {
           "date": "2026-11-23",
-          "input": 379328598,
-          "output": 383030,
+          "input": 395141220,
+          "output": 392262,
           "cache": {
-            "input": 375180160,
+            "input": 390933504,
             "output": 0
           },
-          "total": 379711628,
-          "displayValue": 379711628,
+          "total": 395533482,
+          "displayValue": 395533482,
           "breakdown": [
             {
               "name": "gpt-6.1-terra",
               "tokens": {
-                "input": 379328598,
-                "output": 383030,
+                "input": 395141220,
+                "output": 392262,
                 "cache": {
-                  "input": 375180160,
+                  "input": 390933504,
                   "output": 0
                 },
-                "total": 379711628
+                "total": 395533482
               }
             }
           ]
@@ -15102,18 +15102,18 @@
         "recentMostUsedModel": {
           "name": "deepseek-v4.1-flash-free",
           "tokens": {
-            "input": 166216617,
-            "output": 456649,
+            "input": 188422771,
+            "output": 500982,
             "cache": {
-              "input": 162663680,
+              "input": 184393984,
               "output": 0
             },
-            "total": 166673266
+            "total": 188923753
           }
         },
         "streaks": {
           "longest": 103,
-          "current": 0
+          "current": 6
         }
       },
       "daily": [
@@ -24452,25 +24452,49 @@
         },
         {
           "date": "2026-11-18",
-          "input": 6234488,
-          "output": 19614,
+          "input": 28425206,
+          "output": 175286,
           "cache": {
-            "input": 5916032,
+            "input": 25971676,
             "output": 0
           },
-          "total": 6254102,
-          "displayValue": 6254102,
+          "total": 28600492,
+          "displayValue": 28600492,
           "breakdown": [
             {
               "name": "deepseek-v4.1-flash-free",
               "tokens": {
-                "input": 5795991,
-                "output": 18341,
+                "input": 15813848,
+                "output": 35405,
                 "cache": {
-                  "input": 5548288,
+                  "input": 15330816,
                   "output": 0
                 },
-                "total": 5814332
+                "total": 15849253
+              }
+            },
+            {
+              "name": "qwen3.8-27b-abliterated-mtp",
+              "tokens": {
+                "input": 7935905,
+                "output": 124264,
+                "cache": {
+                  "input": 7159260,
+                  "output": 0
+                },
+                "total": 8060169
+              }
+            },
+            {
+              "name": "zai-glm-5-3-flash-vibe-free",
+              "tokens": {
+                "input": 4151126,
+                "output": 10248,
+                "cache": {
+                  "input": 3113856,
+                  "output": 0
+                },
+                "total": 4161374
               }
             },
             {
@@ -24483,6 +24507,227 @@
                   "output": 0
                 },
                 "total": 439770
+              }
+            },
+            {
+              "name": "unknown",
+              "tokens": {
+                "input": 85830,
+                "output": 4096,
+                "cache": {
+                  "input": 0,
+                  "output": 0
+                },
+                "total": 89926
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-11-19",
+          "input": 13421167,
+          "output": 494968,
+          "cache": {
+            "input": 10142157,
+            "output": 0
+          },
+          "total": 13916135,
+          "displayValue": 13916135,
+          "breakdown": [
+            {
+              "name": "qwen3.8-27b-abliterated-mtp",
+              "tokens": {
+                "input": 12530511,
+                "output": 428982,
+                "cache": {
+                  "input": 9671323,
+                  "output": 0
+                },
+                "total": 12959493
+              }
+            },
+            {
+              "name": "unknown",
+              "tokens": {
+                "input": 890656,
+                "output": 65986,
+                "cache": {
+                  "input": 470834,
+                  "output": 0
+                },
+                "total": 956642
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-11-20",
+          "input": 20027296,
+          "output": 458053,
+          "cache": {
+            "input": 15984606,
+            "output": 0
+          },
+          "total": 20485349,
+          "displayValue": 20485349,
+          "breakdown": [
+            {
+              "name": "qwen3.8-27b-abliterated-mtp",
+              "tokens": {
+                "input": 19428273,
+                "output": 424236,
+                "cache": {
+                  "input": 15768619,
+                  "output": 0
+                },
+                "total": 19852509
+              }
+            },
+            {
+              "name": "unknown",
+              "tokens": {
+                "input": 599023,
+                "output": 33817,
+                "cache": {
+                  "input": 215987,
+                  "output": 0
+                },
+                "total": 632840
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-11-21",
+          "input": 23890417,
+          "output": 93793,
+          "cache": {
+            "input": 22098202,
+            "output": 0
+          },
+          "total": 23984210,
+          "displayValue": 23984210,
+          "breakdown": [
+            {
+              "name": "deepseek-v4.1-flash-free",
+              "tokens": {
+                "input": 12188297,
+                "output": 27269,
+                "cache": {
+                  "input": 11947776,
+                  "output": 0
+                },
+                "total": 12215566
+              }
+            },
+            {
+              "name": "deepseek-v4-1-flash-1017",
+              "tokens": {
+                "input": 7134551,
+                "output": 15515,
+                "cache": {
+                  "input": 6910080,
+                  "output": 0
+                },
+                "total": 7150066
+              }
+            },
+            {
+              "name": "qwen3.8-27b-abliterated-mtp",
+              "tokens": {
+                "input": 4567569,
+                "output": 51009,
+                "cache": {
+                  "input": 3240346,
+                  "output": 0
+                },
+                "total": 4618578
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-11-22",
+          "input": 1276151,
+          "output": 3161,
+          "cache": {
+            "input": 798720,
+            "output": 0
+          },
+          "total": 1279312,
+          "displayValue": 1279312,
+          "breakdown": [
+            {
+              "name": "zai-glm-5-3-flash-vibe-free",
+              "tokens": {
+                "input": 955958,
+                "output": 3015,
+                "cache": {
+                  "input": 796032,
+                  "output": 0
+                },
+                "total": 958973
+              }
+            },
+            {
+              "name": "gpt-6.1-sol",
+              "tokens": {
+                "input": 161192,
+                "output": 10,
+                "cache": {
+                  "input": 2688,
+                  "output": 0
+                },
+                "total": 161202
+              }
+            },
+            {
+              "name": "inkling-2-mini-heretic-q4-dspark",
+              "tokens": {
+                "input": 110639,
+                "output": 132,
+                "cache": {
+                  "input": 0,
+                  "output": 0
+                },
+                "total": 110771
+              }
+            },
+            {
+              "name": "qwen3.8-27b-abliterated-mtp",
+              "tokens": {
+                "input": 48362,
+                "output": 4,
+                "cache": {
+                  "input": 0,
+                  "output": 0
+                },
+                "total": 48366
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-11-23",
+          "input": 11105413,
+          "output": 276512,
+          "cache": {
+            "input": 7350261,
+            "output": 0
+          },
+          "total": 11381925,
+          "displayValue": 11381925,
+          "breakdown": [
+            {
+              "name": "inkling-2-mini-heretic-q4-dspark",
+              "tokens": {
+                "input": 11105413,
+                "output": 276512,
+                "cache": {
+                  "input": 7350261,
+                  "output": 0
+                },
+                "total": 11381925
               }
             }
           ]
