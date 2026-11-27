@@ -2,7 +2,7 @@
   "version": "2026-03-03",
   "start": "2025-07-11",
   "end": "2026-11-27",
-  "updatedAt": "2026-11-27T09:29:58.581Z",
+  "updatedAt": "2026-11-27T15:34:02.158Z",
   "providers": [
     {
       "provider": "codex",
@@ -9346,25 +9346,37 @@
         },
         {
           "date": "2026-11-27",
-          "input": 387761710,
-          "output": 838823,
+          "input": 499011240,
+          "output": 1093789,
           "cache": {
-            "input": 385725184,
+            "input": 495699328,
             "output": 0
           },
-          "total": 388600533,
-          "displayValue": 388600533,
+          "total": 500105029,
+          "displayValue": 500105029,
           "breakdown": [
             {
               "name": "gpt-6.2-astra",
               "tokens": {
-                "input": 387761710,
-                "output": 838823,
+                "input": 496640312,
+                "output": 1087423,
                 "cache": {
-                  "input": 385725184,
+                  "input": 493895680,
                   "output": 0
                 },
-                "total": 388600533
+                "total": 497727735
+              }
+            },
+            {
+              "name": "gpt-6.1-sol",
+              "tokens": {
+                "input": 2370928,
+                "output": 6366,
+                "cache": {
+                  "input": 1803648,
+                  "output": 0
+                },
+                "total": 2377294
               }
             }
           ]
@@ -9377,25 +9389,25 @@
         "mostUsedModel": {
           "name": "gpt-6.1-terra",
           "tokens": {
-            "input": 3336550110,
-            "output": 3591561,
+            "input": 3350339144,
+            "output": 3604018,
             "cache": {
-              "input": 3250556288,
+              "input": 3263696896,
               "output": 0
             },
-            "total": 3340141671
+            "total": 3353943162
           }
         },
         "recentMostUsedModel": {
           "name": "gpt-6.1-terra",
           "tokens": {
-            "input": 3025662938,
-            "output": 3199801,
+            "input": 3039451972,
+            "output": 3212258,
             "cache": {
-              "input": 2952428928,
+              "input": 2965569536,
               "output": 0
             },
-            "total": 3028862739
+            "total": 3042664230
           }
         },
         "streaks": {
@@ -10613,25 +10625,25 @@
         },
         {
           "date": "2026-11-27",
-          "input": 4367628,
-          "output": 2863,
+          "input": 18156662,
+          "output": 15320,
           "cache": {
-            "input": 3638912,
+            "input": 16779520,
             "output": 0
           },
-          "total": 4370491,
-          "displayValue": 4370491,
+          "total": 18171982,
+          "displayValue": 18171982,
           "breakdown": [
             {
               "name": "gpt-6.1-terra",
               "tokens": {
-                "input": 4367628,
-                "output": 2863,
+                "input": 18156662,
+                "output": 15320,
                 "cache": {
-                  "input": 3638912,
+                  "input": 16779520,
                   "output": 0
                 },
-                "total": 4370491
+                "total": 18171982
               }
             }
           ]
@@ -15422,13 +15434,13 @@
         "recentMostUsedModel": {
           "name": "deepseek-v4.1-flash-free",
           "tokens": {
-            "input": 170488056,
-            "output": 407446,
+            "input": 171834403,
+            "output": 413550,
             "cache": {
-              "input": 166105088,
+              "input": 167400064,
               "output": 0
             },
-            "total": 170895502
+            "total": 172247953
           }
         },
         "streaks": {
@@ -25213,25 +25225,49 @@
         },
         {
           "date": "2026-11-27",
-          "input": 5189035,
-          "output": 11923,
+          "input": 24310587,
+          "output": 63187,
           "cache": {
-            "input": 5020416,
+            "input": 21624615,
             "output": 0
           },
-          "total": 5200958,
-          "displayValue": 5200958,
+          "total": 24373774,
+          "displayValue": 24373774,
           "breakdown": [
             {
               "name": "zai-glm-5-3-flash-vibe-free",
               "tokens": {
-                "input": 5189035,
-                "output": 11923,
+                "input": 21062170,
+                "output": 42871,
                 "cache": {
-                  "input": 5020416,
+                  "input": 19180800,
                   "output": 0
                 },
-                "total": 5200958
+                "total": 21105041
+              }
+            },
+            {
+              "name": "inkling-2-mini-heretic-q4-dspark",
+              "tokens": {
+                "input": 1902070,
+                "output": 14212,
+                "cache": {
+                  "input": 1148839,
+                  "output": 0
+                },
+                "total": 1916282
+              }
+            },
+            {
+              "name": "deepseek-v4.1-flash-free",
+              "tokens": {
+                "input": 1346347,
+                "output": 6104,
+                "cache": {
+                  "input": 1294976,
+                  "output": 0
+                },
+                "total": 1352451
               }
             }
           ]
@@ -25256,18 +25292,18 @@
         "recentMostUsedModel": {
           "name": "claude-opus-5-5",
           "tokens": {
-            "input": 2566104269,
-            "output": 44644737,
+            "input": 2781821278,
+            "output": 47436082,
             "cache": {
-              "input": 2566088499,
-              "output": 39395050
+              "input": 2781804166,
+              "output": 41615552
             },
-            "total": 2610749006
+            "total": 2829257360
           }
         },
         "streaks": {
           "longest": 11,
-          "current": 9
+          "current": 10
         }
       },
       "daily": [
@@ -28029,6 +28065,31 @@
               }
             }
           ]
+        },
+        {
+          "date": "2026-11-27",
+          "input": 215717009,
+          "output": 2791345,
+          "cache": {
+            "input": 215715667,
+            "output": 2220502
+          },
+          "total": 218508354,
+          "displayValue": 218508354,
+          "breakdown": [
+            {
+              "name": "claude-opus-5-5",
+              "tokens": {
+                "input": 215717009,
+                "output": 2791345,
+                "cache": {
+                  "input": 215715667,
+                  "output": 2220502
+                },
+                "total": 218508354
+              }
+            }
+          ]
         }
       ]
     },
@@ -28050,18 +28111,18 @@
         "recentMostUsedModel": {
           "name": "gemini-4-neon",
           "tokens": {
-            "input": 210022111,
-            "output": 2103865,
+            "input": 214492838,
+            "output": 2134946,
             "cache": {
-              "input": 188472788,
+              "input": 192727943,
               "output": 0
             },
-            "total": 212125976
+            "total": 216627784
           }
         },
         "streaks": {
-          "longest": 7,
-          "current": 7
+          "longest": 8,
+          "current": 8
         }
       },
       "daily": [
@@ -31975,6 +32036,31 @@
                   "output": 0
                 },
                 "total": 20840514
+              }
+            }
+          ]
+        },
+        {
+          "date": "2026-11-27",
+          "input": 4470727,
+          "output": 31081,
+          "cache": {
+            "input": 4255155,
+            "output": 0
+          },
+          "total": 4501808,
+          "displayValue": 4501808,
+          "breakdown": [
+            {
+              "name": "gemini-4-neon",
+              "tokens": {
+                "input": 4470727,
+                "output": 31081,
+                "cache": {
+                  "input": 4255155,
+                  "output": 0
+                },
+                "total": 4501808
               }
             }
           ]
