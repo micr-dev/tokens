@@ -2,7 +2,7 @@
   "version": "2026-03-03",
   "start": "2025-07-11",
   "end": "2026-11-28",
-  "updatedAt": "2026-11-28T03:22:30.318Z",
+  "updatedAt": "2026-11-28T09:27:42.760Z",
   "providers": [
     {
       "provider": "codex",
@@ -9426,25 +9426,25 @@
         "mostUsedModel": {
           "name": "gpt-6.1-terra",
           "tokens": {
-            "input": 3359476606,
-            "output": 3612576,
+            "input": 3368662192,
+            "output": 3637052,
             "cache": {
-              "input": 3272111104,
+              "input": 3280361984,
               "output": 0
             },
-            "total": 3363089182
+            "total": 3372299244
           }
         },
         "recentMostUsedModel": {
           "name": "gpt-6.1-terra",
           "tokens": {
-            "input": 2988245960,
-            "output": 3171381,
+            "input": 2997431546,
+            "output": 3195857,
             "cache": {
-              "input": 2920761600,
+              "input": 2929012480,
               "output": 0
             },
-            "total": 2991417341
+            "total": 3000627403
           }
         },
         "streaks": {
@@ -10687,25 +10687,25 @@
         },
         {
           "date": "2026-11-28",
-          "input": 9137462,
-          "output": 8558,
+          "input": 18323048,
+          "output": 33034,
           "cache": {
-            "input": 8414208,
+            "input": 16665088,
             "output": 0
           },
-          "total": 9146020,
-          "displayValue": 9146020,
+          "total": 18356082,
+          "displayValue": 18356082,
           "breakdown": [
             {
               "name": "gpt-6.1-terra",
               "tokens": {
-                "input": 9137462,
-                "output": 8558,
+                "input": 18323048,
+                "output": 33034,
                 "cache": {
-                  "input": 8414208,
+                  "input": 16665088,
                   "output": 0
                 },
-                "total": 9146020
+                "total": 18356082
               }
             }
           ]
@@ -15494,15 +15494,15 @@
           }
         },
         "recentMostUsedModel": {
-          "name": "zai-glm-5-3-flash-vibe-free",
+          "name": "gpt-6.2-astra-fast",
           "tokens": {
-            "input": 228407949,
-            "output": 486269,
+            "input": 273156188,
+            "output": 367220,
             "cache": {
-              "input": 211724928,
+              "input": 199598208,
               "output": 0
             },
-            "total": 228894218
+            "total": 273523408
           }
         },
         "streaks": {
@@ -25360,37 +25360,37 @@
         },
         {
           "date": "2026-11-28",
-          "input": 98330331,
-          "output": 169574,
+          "input": 243595320,
+          "output": 350834,
           "cache": {
-            "input": 87205120,
+            "input": 166576256,
             "output": 0
           },
-          "total": 98499905,
-          "displayValue": 98499905,
+          "total": 243946154,
+          "displayValue": 243946154,
           "breakdown": [
             {
               "name": "gpt-6.2-astra-fast",
               "tokens": {
-                "input": 77109842,
-                "output": 132522,
+                "input": 211479006,
+                "output": 298123,
                 "cache": {
-                  "input": 66966784,
+                  "input": 138472064,
                   "output": 0
                 },
-                "total": 77242364
+                "total": 211777129
               }
             },
             {
               "name": "zai-glm-5-3-flash-vibe-free",
               "tokens": {
-                "input": 21220489,
-                "output": 37052,
+                "input": 32116314,
+                "output": 52711,
                 "cache": {
-                  "input": 20238336,
+                  "input": 28104192,
                   "output": 0
                 },
-                "total": 21257541
+                "total": 32169025
               }
             }
           ]
@@ -28271,13 +28271,13 @@
         "recentMostUsedModel": {
           "name": "gemini-4-neon",
           "tokens": {
-            "input": 347618799,
-            "output": 2619130,
+            "input": 357381869,
+            "output": 2636165,
             "cache": {
-              "input": 320294349,
+              "input": 329562893,
               "output": 0
             },
-            "total": 350237929
+            "total": 360018034
           }
         },
         "streaks": {
@@ -32227,25 +32227,25 @@
         },
         {
           "date": "2026-11-28",
-          "input": 43207660,
-          "output": 111841,
+          "input": 52970730,
+          "output": 128876,
           "cache": {
-            "input": 41992936,
+            "input": 51261480,
             "output": 0
           },
-          "total": 43319501,
-          "displayValue": 43319501,
+          "total": 53099606,
+          "displayValue": 53099606,
           "breakdown": [
             {
               "name": "gemini-4-neon",
               "tokens": {
-                "input": 43207660,
-                "output": 111841,
+                "input": 52970730,
+                "output": 128876,
                 "cache": {
-                  "input": 41992936,
+                  "input": 51261480,
                   "output": 0
                 },
-                "total": 43319501
+                "total": 53099606
               }
             }
           ]
